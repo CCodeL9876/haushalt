@@ -1,0 +1,9 @@
+{
+  "name": "haushalt",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Haushaltsplattform: Einkaufsliste, Wochenmenüplan, Menüideen, Kosten und Abrechnung.",
+  "scripts": {
+    "dev": "python3 serve.py"
+  }
+}

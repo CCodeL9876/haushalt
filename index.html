@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Haushalt</title>
+  <meta name="description" content="Einkaufsliste, Wochenmenü, Menüideen, Kosten und Abrechnung für den gemeinsamen Haushalt.">
+  <meta name="theme-color" content="#F6F5F1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#151714" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Haushalt">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 id="view-title" class="topbar-title">Haushalt</h1>
+    <div class="topbar-actions">
+      <!-- Initialen: wer an diesem Gerät angemeldet ist (nur gemeinsamer Haushalt), siehe js/login.js -->
+      <button type="button" class="me-btn" id="btn-me" hidden></button>
+      <button type="button" class="icon-btn" id="btn-settings" aria-label="Haushalt &amp; Einstellungen"></button>
+    </div>
+  </header>
+
+  <!-- Die aktive Ansicht (js/views/*.js) wird hier hineingezeichnet -->
+  <main id="view" class="view"></main>
+
+  <nav class="tabbar" id="tabbar" aria-label="Bereiche"></nav>
+
+  <!-- Anmeldung (Link, Zugangscode, „Wer bist du?“) liegt als Vollbild über der App -->
+  <section id="gate" class="gate" hidden></section>
+
+  <!-- Ein gemeinsames Fenster für alle Formulare (Bottom-Sheet), siehe openSheet in js/ui.js -->
+  <dialog id="sheet" class="sheet"></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
