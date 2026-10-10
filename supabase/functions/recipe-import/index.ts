@@ -12,6 +12,7 @@
 
 const MAX_BYTES = 3_000_000;
 const TIMEOUT_MS = 12000;
+const MAX_REDIRECTS = 5;
 
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', frac12: '½', frac14: '¼', frac34: '¾',
   auml: 'ä', ouml: 'ö', uuml: 'ü', Auml: 'Ä', Ouml: 'Ö', Uuml: 'Ü', szlig: 'ß', eacute: 'é', egrave: 'è', agrave: 'à',
@@ -197,6 +198,33 @@ async function readLimited(res) {
   return new TextDecoder('utf-8').decode(all);
 }
 
+const PAGE_HEADERS = {
+  // Manche Seiten liefern Programmen ohne Browser-Kennung nichts aus
+  'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  'Accept': 'text/html,application/xhtml+xml',
+  'Accept-Language': 'de-CH,de;q=0.9',
+};
+
+class BlockedRedirect extends Error {}
+
+// Weiterleitungen selbst verfolgen und jede Zwischenadresse prüfen – sonst könnte eine öffentliche Seite
+// die Funktion auf eine interne Adresse umleiten, bevor das Ziel kontrolliert wird.
+async function fetchPage(start) {
+  const signal = AbortSignal.timeout(TIMEOUT_MS);
+  let url = start;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const res = await fetch(url.href, { redirect: 'manual', signal, headers: PAGE_HEADERS });
+    const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+    if (!location) return { res, url };
+    await res.body?.cancel().catch(() => {});
+    let next = null;
+    try { next = allowedUrl(new URL(location, url).href); } catch { /* ungültige Adresse */ }
+    if (!next) throw new BlockedRedirect();
+    url = next;
+  }
+  throw new BlockedRedirect();
+}
+
 async function handle(req) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'nur POST' }, 405);
@@ -208,24 +236,22 @@ async function handle(req) {
   }
   const url = input.length <= 2000 ? allowedUrl(input) : null;
   if (!url) return json({ error: 'Bitte einen Link zu einer Rezeptseite (https://…) einfügen.' }, 400);
-  let res;
+  let page;
   try {
-    res = await fetch(url.href, {
-      redirect: 'follow',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: {
-        // Manche Seiten liefern Programmen ohne Browser-Kennung nichts aus
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'de-CH,de;q=0.9',
-      },
-    });
-  } catch {
+    page = await fetchPage(url);
+  } catch (err) {
+    if (err instanceof BlockedRedirect) return json({ error: 'Weiterleitung auf eine nicht erlaubte Adresse.' }, 400);
     return json({ error: 'Die Seite antwortet nicht.' }, 502);
   }
+  const { res } = page;
   if (!res.ok) return json({ error: `Die Seite meldet Fehler ${res.status}.` }, 502);
-  if (!allowedUrl(res.url || url.href)) return json({ error: 'Weiterleitung auf eine nicht erlaubte Adresse.' }, 400);
-  const recipe = extractRecipe(await readLimited(res), res.url || url.href);
+  // Nur Webseiten lesen, keine Bilder, PDFs oder sonstigen Dateien
+  const type = res.headers.get('content-type') || '';
+  if (type && !/html|xml/i.test(type)) {
+    await res.body?.cancel().catch(() => {});
+    return json({ error: 'Das ist keine Webseite.' }, 422);
+  }
+  const recipe = extractRecipe(await readLimited(res), page.url.href);
   if (!recipe) return json({ error: 'Auf dieser Seite wurde kein Rezept gefunden.' }, 422);
   return json(recipe);
 }

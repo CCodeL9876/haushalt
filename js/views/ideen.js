@@ -3,7 +3,7 @@
 // (js/recipes.js); die Zutaten stehen mit Mengen da („400 g Kartoffeln“), beim Einkaufen wird die Menge zur Notiz.
 
 import { state, update, uid } from '../store.js';
-import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
+import { closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui.js';
 import { todayKey } from '../dates.js';
 import { shopIngredients } from './einkauf.js';
 import { importRecipe, normalizeUrl, recipeImportAvailable } from '../recipes.js';
@@ -23,7 +23,7 @@ function editIdea(id) {
           <button type="button" class="btn" data-sheet-action="import" style="width:auto;padding:0 14px">Einlesen</button>
         </div>
         <p class="muted small import-status" style="margin:0">${recipeImportAvailable()
-          ? (idea?.url ? `<a href="${esc(idea.url)}" target="_blank" rel="noopener">Rezept öffnen ↗</a>` : 'Link einfügen und „Einlesen“ – Name und Zutaten werden übernommen.')
+          ? (safeLink(idea?.url) ? `<a href="${esc(safeLink(idea.url))}" target="_blank" rel="noopener noreferrer">Rezept öffnen ↗</a>` : 'Link einfügen und „Einlesen“ – Name und Zutaten werden übernommen.')
           : 'Einlesen braucht das Supabase-Projekt (ANLEITUNG.md). Den Link kannst du trotzdem speichern.'}</p>
       </div>
       <label class="field"><span>Name</span>

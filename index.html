@@ -8,6 +8,9 @@
   <meta name="theme-color" content="#F6F5F1" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#151714" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
+  <!-- Zweite Absicherung: Skripte nur aus diesem Projekt, Daten nur von hier und von Supabase.
+       Wechselt das Supabase-Projekt die Adresse nicht auf *.supabase.co, hier ergänzen (connect-src). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">

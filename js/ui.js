@@ -45,13 +45,25 @@ export function parseMoney(text) {
   return Number.isFinite(value) && value > 0 ? Math.round(value * 100) : null;
 }
 
+// Gespeicherte Werte kommen aus der Datenbank oder einer Sicherungsdatei und könnten verändert sein:
+// Beim Anzeigen in Farben (style) und Links (href) nur erwartete Formen zulassen.
+export const safeColor = (value) => (/^#[0-9a-f]{3,8}$/i.test(String(value || '')) ? value : '#888888');
+export function safeLink(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return /^https?:$/.test(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
 // „Anna Muster“ → „AM“, „Anna“ → „A“
 export function initials(name) {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
   return (parts.length > 1 ? parts[0][0] + parts.at(-1)[0] : (parts[0] || '?')[0]).toUpperCase();
 }
 export const avatar = (member) =>
-  `<span class="avatar" style="background:${esc(member?.color || '#888')}" aria-hidden="true">${esc(initials(member?.name))}</span>`;
+  `<span class="avatar" style="background:${safeColor(member?.color)}" aria-hidden="true">${esc(initials(member?.name))}</span>`;
 
 // ---------- Bottom-Sheet ----------
 // Ein <dialog> für alle Formulare. `body` ist fertiges HTML (Werte mit esc!).

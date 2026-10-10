@@ -8,7 +8,7 @@
 import { AccessError, Remote, sharingConfigured, validCodeChars } from './remote.js';
 import { cachedName, hasCache, MEMBER_COLORS, session, startLocal, startShared, state, uid, update } from './store.js';
 import { keyFromText, loadSession, logout, myMemberId, saveSession, setMyMemberId, takeKeyFromUrl } from './session.js';
-import { closeSheet, esc, icon, initials, openSheet, toast } from './ui.js';
+import { closeSheet, esc, icon, initials, openSheet, safeColor, toast } from './ui.js';
 
 const gate = document.getElementById('gate');
 const appParts = ['.topbar', '#view', '#tabbar'].map((sel) => document.querySelector(sel));
@@ -143,7 +143,7 @@ function showCode(key, error = '', shake = false) {
 
 const memberButtons = (currentId) => state.members.map((m) => `
   <button type="button" class="who-btn" data-who="${esc(m.id)}" aria-pressed="${m.id === currentId}">
-    <span class="avatar" style="background:${esc(m.color)}" aria-hidden="true">${esc(initials(m.name))}</span>
+    <span class="avatar" style="background:${safeColor(m.color)}" aria-hidden="true">${esc(initials(m.name))}</span>
     <span>${esc(m.name)}</span>
   </button>`).join('');
 
@@ -195,7 +195,7 @@ function renderMe() {
   if (meBtn.hidden) return;
   const me = currentMember();
   meBtn.textContent = me ? initials(me.name) : '?';
-  meBtn.style.background = me?.color || '';
+  meBtn.style.background = me ? safeColor(me.color) : '';
   meBtn.title = me ? `Angemeldet als ${me.name}${session.offline ? ' (offline)' : ''} – antippen zum Wechseln` : 'Wer bist du?';
   meBtn.setAttribute('aria-label', meBtn.title);
   meBtn.classList.toggle('is-offline', session.offline);
