@@ -39,6 +39,16 @@
   --abend-label-text: var(--muted);
   --week-btn-bg: var(--chip);
   --week-btn-text: var(--text);
+  --idea-1: transparent;     /* Farbstreifen der Menüideen-Karten, reihum */
+  --idea-2: transparent;
+  --idea-3: transparent;
+  --idea-4: transparent;
+  --tag-1-bg: var(--accent-tint);  /* Stichworte, reihum */
+  --tag-2-bg: var(--accent-tint);
+  --tag-3-bg: var(--accent-tint);
+  --tag-4-bg: var(--accent-tint);
+  --tag-text: var(--text-soft);
+  --tag-4-text: var(--tag-text);
 
   --radius-sm: 10px;
   --radius: 14px;
@@ -216,6 +226,57 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
+/* ---------- Farbschema „Menüideen“: Lime, Orange, Magenta, Violett ----------
+   Lime, Orange und Magenta sind als Schrift zu grell bzw. zu blass – sie dienen nur als Flächen mit dunkler Schrift
+   (Farbstreifen der Karten, Stichworte). Violett trägt Knöpfe und Tab; im dunklen Modus übernimmt Lime. */
+:root[data-view="ideen"] {
+  --bg: #F7F4FF;
+  --card: #FFFFFF;
+  --chip: #ECE6FF;
+  --line: #DDD3FF;
+  --text: #1B1530;
+  --text-soft: #3D3560;
+  --muted: #6A6390;
+  --accent: #5200FF;        /* Violett: Hinzufügen, Speichern */
+  --accent-hover: #4200D6;
+  --accent-tint: #ECE6FF;
+  --on-accent: #FFFFFF;
+  --tab-active: #5200FF;
+  --idea-1: #CCFF00;        /* Lime */
+  --idea-2: #FF6B00;        /* Orange */
+  --idea-3: #F900FF;        /* Magenta */
+  --idea-4: #5200FF;        /* Violett */
+  --tag-1-bg: #CCFF00;
+  --tag-2-bg: #FF6B00;
+  --tag-3-bg: #F900FF;
+  --tag-4-bg: #5200FF;
+  --tag-text: #1A1A1A;
+  --tag-4-text: #FFFFFF;
+  --shadow: 0 1px 2px rgba(82, 0, 255, 0.07), 0 4px 14px rgba(82, 0, 255, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-view="ideen"]:not([data-theme="light"]) {
+    --bg: #120E20; --card: #1C1630; --chip: #2A2245; --line: #352C55;
+    --text: #F3F0FF; --text-soft: #D3CCF0; --muted: #A49BC8;
+    --accent: #CCFF00; --accent-hover: #D9FF4D; --accent-tint: #2A2245; --on-accent: #16130A;
+    --tab-active: #CCFF00;
+    --idea-1: #CCFF00; --idea-2: #FF6B00; --idea-3: #F900FF; --idea-4: #7A3DFF;
+    --tag-1-bg: #CCFF00; --tag-2-bg: #FF6B00; --tag-3-bg: #F900FF; --tag-4-bg: #5200FF;
+    --tag-text: #1A1A1A; --tag-4-text: #FFFFFF;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
+}
+:root[data-view="ideen"][data-theme="dark"] {
+  --bg: #120E20; --card: #1C1630; --chip: #2A2245; --line: #352C55;
+  --text: #F3F0FF; --text-soft: #D3CCF0; --muted: #A49BC8;
+  --accent: #CCFF00; --accent-hover: #D9FF4D; --accent-tint: #2A2245; --on-accent: #16130A;
+  --tab-active: #CCFF00;
+  --idea-1: #CCFF00; --idea-2: #FF6B00; --idea-3: #F900FF; --idea-4: #7A3DFF;
+  --tag-1-bg: #CCFF00; --tag-2-bg: #FF6B00; --tag-3-bg: #F900FF; --tag-4-bg: #5200FF;
+  --tag-text: #1A1A1A; --tag-4-text: #FFFFFF;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
@@ -350,7 +411,10 @@ button { cursor: pointer; }
 .term-chip { padding-right: 4px; }
 .term-x { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); }
 .term-x:active { background: var(--line); }
-.tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--accent-tint); color: var(--text-soft); font-size: 12px; font-weight: 600; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--tag-1-bg); color: var(--tag-text); font-size: 12px; font-weight: 600; }
+.tag:nth-child(4n+2) { background: var(--tag-2-bg); }
+.tag:nth-child(4n+3) { background: var(--tag-3-bg); }
+.tag:nth-child(4n+4) { background: var(--tag-4-bg); color: var(--tag-4-text); }
 
 .fab {
   position: fixed; z-index: 15; right: 16px;
@@ -406,7 +470,12 @@ button { cursor: pointer; }
 .search { position: relative; margin-bottom: 14px; }
 .search .icon { position: absolute; left: 12px; top: 12px; color: var(--muted); }
 .search .input { padding-left: 42px; }
-.idea { display: block; width: 100%; border: 0; text-align: left; color: inherit; }
+.idea { display: block; width: 100%; border: 0; text-align: left; color: inherit; --idea-color: var(--idea-1); }
+.idea:nth-of-type(4n+2) { --idea-color: var(--idea-2); }
+.idea:nth-of-type(4n+3) { --idea-color: var(--idea-3); }
+.idea:nth-of-type(4n+4) { --idea-color: var(--idea-4); }
+/* Farbstreifen links (in anderen Farbschemas unsichtbar) */
+.card.idea { box-shadow: inset 6px 0 0 var(--idea-color), var(--shadow); padding-left: 22px; }
 .idea h3 { margin: 0 0 4px; font-size: 17px; }
 .idea p { margin: 6px 0 0; }
 .idea .chips { gap: 6px; margin-top: 8px; }
