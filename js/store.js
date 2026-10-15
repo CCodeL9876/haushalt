@@ -24,7 +24,8 @@ const LOCAL_KEY = 'haushalt.v1';
 const CACHE_PREFIX = 'haushalt.cache.';
 const LIST_COLLECTIONS = ['members', 'shopping', 'terms', 'ideas', 'expenses'];
 
-export const MEMBER_COLORS = ['#2F6F5E', '#B5501F', '#3E5BA9', '#8A4A9C', '#9C7A1C', '#3F7F96'];
+// Dunkle Töne aus Lila, Oliv und Lavendel – weisse Initialen bleiben darauf lesbar
+export const MEMBER_COLORS = ['#8A35C2', '#6B6728', '#4B2F80', '#5E5AB8', '#55531F', '#A23FB0'];
 export const DEFAULT_CATEGORIES = ['Lebensmittel', 'Haushalt', 'Wohnen', 'Freizeit', 'Sonstiges'];
 
 // Schlüssel eines Begriffs: klein geschrieben, ohne Leerzeichen am Rand (höchstens 64 Zeichen, siehe schema.sql)

@@ -181,10 +181,13 @@ button { cursor: pointer; }
   padding: 14px 16px; margin-bottom: 12px;
 }
 .section-title {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  margin: 22px 4px 8px; font-size: 13px; font-weight: 650; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+  margin: 22px 4px 8px; font-size: 13px; font-weight: 650; color: var(--section-text);
   text-transform: uppercase; letter-spacing: 0.04em;
 }
+/* Punkt vor dem Titel wie bei den Abteilungen im Einkauf; Knopf rechtsbündig */
+.section-title::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--section-dot); flex: none; }
+.section-title > .btn { margin-left: auto; }
 .muted { color: var(--muted); }
 .small { font-size: 14px; }
 .empty { text-align: center; color: var(--muted); padding: 36px 16px; }
@@ -353,7 +356,7 @@ button { cursor: pointer; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 .me-btn {
   width: 44px; height: 44px; flex: none; border: 0; border-radius: 50%;
-  display: grid; place-items: center; background: var(--accent); color: var(--on-accent);
+  display: grid; place-items: center; background: var(--accent); color: #fff;
   font-size: 15px; font-weight: 750; letter-spacing: 0.02em; box-shadow: var(--shadow);
 }
 .me-btn.is-offline { outline: 2px dashed var(--muted); outline-offset: 2px; }
