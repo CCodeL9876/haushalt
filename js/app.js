@@ -64,7 +64,7 @@ function route() {
   const next = VIEWS.find((v) => v.id === id) || VIEWS[0];
   const changed = next !== current;
   current = next;
-  // Farbschema pro Bereich (siehe css/styles.css, :root[data-view=…])
+  // Bereich als Merkmal am <html>, z. B. für eigene Farben pro Bereich (css/styles.css, :root[data-view=…])
   document.documentElement.dataset.view = current.id;
   syncThemeColor();
   titleEl.textContent = current.title;

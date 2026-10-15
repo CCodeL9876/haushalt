@@ -1,60 +1,64 @@
 /* Haushalt – fürs iPhone gebaut: grosse Tippflächen, Tab-Leiste unten, Fenster als Bottom-Sheet.
    Farben nur über die Variablen in :root, damit der dunkle Modus und spätere Stile einfach bleiben. */
 
+/* ---------- Farbschema für alle Bereiche: Creme, Oliv, Lavendel, Lila ----------
+   Oliv, Lavendel und Lila sind als Schrift auf Creme zu blass – sie dienen als Flächen mit dunkler Schrift;
+   für Schrift werden dunklere Töne derselben Farben verwendet (--accent-text, --tab-active, --section-text). */
 :root {
-  --bg: #F6F5F1;
-  --card: #FFFFFF;
-  --chip: #ECEAE3;
-  --line: #E1DED5;
-  --text: #1F241E;
-  --text-soft: #464C44;
-  --muted: #6A7067;
-  --accent: #2F6F5E;
-  --accent-hover: #255A4C;
-  --accent-tint: #DDEBE5;
-  --on-accent: #FFFFFF;
+  --bg: #FDFBD4;             /* Creme */
+  --card: #FFFEF3;
+  --chip: #F1EDBE;
+  --line: #E9E4B0;
+  --text: #23221A;
+  --text-soft: #46442F;
+  --muted: #6E6B4C;
+  --accent: #CF6DFC;         /* Lila: Hinzufügen, Speichern, erledigt */
+  --accent-hover: #C056F3;
+  --accent-tint: #ECEBFF;
+  --accent-text: #8A35C2;    /* dunkleres Lila: als Schrift lesbar */
+  --on-accent: #1E1530;
   --plus: #2C6E3F;           /* Guthaben in der Abrechnung */
   --minus: #A63D2F;          /* Schulden in der Abrechnung */
-  --bar: #2F6F5E;
-  --bar-track: #ECEAE3;
-  /* Bausteine, die einzelne Bereiche eigens einfärben können (Standard = bisheriges Aussehen) */
-  --tab-active: var(--accent);
-  --check-border: var(--line);
-  --suggest-bg: var(--accent-tint);
-  --suggest-text: var(--text-soft);
-  --suggest-icon: var(--accent);
-  --seg-bg: var(--chip);
-  --seg-active-bg: var(--card);
-  --seg-active-text: var(--text);
-  --section-text: var(--muted);
-  --section-dot: transparent;
-  --today-ring: var(--accent);
-  --today-pill-bg: var(--accent-tint);
-  --today-pill-text: var(--text-soft);
-  --mittag-bg: var(--bg);
-  --mittag-label-bg: transparent;
-  --mittag-label-text: var(--muted);
-  --abend-bg: var(--bg);
-  --abend-label-bg: transparent;
-  --abend-label-text: var(--muted);
-  --week-btn-bg: var(--chip);
-  --week-btn-text: var(--text);
-  --idea-1: transparent;     /* Farbstreifen der Menüideen-Karten, reihum */
-  --idea-2: transparent;
-  --idea-3: transparent;
-  --idea-4: transparent;
-  --tag-1-bg: var(--accent-tint);  /* Stichworte, reihum */
-  --tag-2-bg: var(--accent-tint);
-  --tag-3-bg: var(--accent-tint);
-  --tag-4-bg: var(--accent-tint);
-  --tag-text: var(--text-soft);
-  --tag-4-text: var(--tag-text);
+  --bar: #CF6DFC;
+  --bar-track: #F1EDBE;
+  /* Bausteine der einzelnen Bereiche */
+  --tab-active: #8A35C2;
+  --check-border: #BDB96A;   /* Oliv */
+  --suggest-bg: #C1BFFF;     /* Lavendel */
+  --suggest-text: #23221A;
+  --suggest-icon: #4B2F80;
+  --seg-bg: #F1EDBE;
+  --seg-active-bg: #BDB96A;
+  --seg-active-text: #23221A;
+  --section-text: #6B6728;   /* Oliv dunkel */
+  --section-dot: #BDB96A;
+  --today-ring: #CF6DFC;
+  --today-pill-bg: #C1BFFF;
+  --today-pill-text: #23221A;
+  --mittag-bg: #F3F1FF;
+  --mittag-label-bg: #C1BFFF; /* Lavendel */
+  --mittag-label-text: #23221A;
+  --abend-bg: #F5F2CE;
+  --abend-label-bg: #BDB96A;  /* Oliv */
+  --abend-label-text: #23221A;
+  --week-btn-bg: #C1BFFF;
+  --week-btn-text: #23221A;
+  --idea-1: #BDB96A;         /* Farbstreifen der Menüideen-Karten, reihum */
+  --idea-2: #C1BFFF;
+  --idea-3: #CF6DFC;
+  --idea-4: #6B6728;
+  --tag-1-bg: #E3E0A4;       /* Stichworte, reihum */
+  --tag-2-bg: #C1BFFF;
+  --tag-3-bg: #E7B8FD;
+  --tag-4-bg: #ECEBFF;
+  --tag-text: #23221A;
+  --tag-4-text: #23221A;
 
   --radius-sm: 10px;
   --radius: 14px;
   --radius-lg: 20px;
-  --shadow: 0 1px 3px rgba(31, 36, 30, 0.08);
-  --shadow-lg: 0 -10px 40px rgba(31, 36, 30, 0.18);
+  --shadow: 0 1px 2px rgba(80, 76, 30, 0.08), 0 4px 14px rgba(80, 76, 30, 0.06);
+  --shadow-lg: 0 -10px 40px rgba(80, 76, 30, 0.18);
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
 
   --tabbar-h: 58px;
@@ -66,215 +70,45 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #151714;
-    --card: #1F221E;
-    --chip: #2B2F2A;
-    --line: #343933;
-    --text: #ECEFEA;
-    --text-soft: #C9CEC6;
-    --muted: #9AA096;
-    --accent: #6FBFA6;
-    --accent-hover: #86CDB7;
-    --accent-tint: #23362F;
-    --on-accent: #0E1B16;
-    --plus: #7CC98F;
-    --minus: #F08B7C;
-    --bar: #6FBFA6;
-    --bar-track: #2B2F2A;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --bg: #1A1912; --card: #24231A; --chip: #2F2D21; --line: #3A382A;
+    --text: #FDFBD4; --text-soft: #E6E3BC; --muted: #A9A57E;   /* Creme als Schrift */
+    --accent: #CF6DFC; --accent-hover: #DA8BFD; --accent-tint: #2A2840; --accent-text: #DA8BFD; --on-accent: #1E1530;
+    --plus: #A9C97C; --minus: #F08B7C; --bar: #CF6DFC; --bar-track: #2F2D21;
+    --tab-active: #CF6DFC; --check-border: #8E8A4C;
+    --suggest-bg: #2A2840; --suggest-text: #C1BFFF; --suggest-icon: #CF6DFC;
+    --seg-bg: #2F2D21; --seg-active-bg: #BDB96A; --seg-active-text: #1A1912;
+    --section-text: #BDB96A; --section-dot: #BDB96A;
+    --today-ring: #CF6DFC; --today-pill-bg: #C1BFFF; --today-pill-text: #1E1530;
+    --mittag-bg: #242337; --mittag-label-bg: #C1BFFF; --mittag-label-text: #1E1530;
+    --abend-bg: #2A2918; --abend-label-bg: #BDB96A; --abend-label-text: #1A1912;
+    --week-btn-bg: #C1BFFF; --week-btn-text: #1E1530;
+    --idea-1: #BDB96A; --idea-2: #C1BFFF; --idea-3: #CF6DFC; --idea-4: #8E8A4C;
+    --tag-1-bg: #BDB96A; --tag-2-bg: #C1BFFF; --tag-3-bg: #CF6DFC; --tag-4-bg: #2A2840;
+    --tag-text: #1A1912; --tag-4-text: #C1BFFF;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #151714;
-  --card: #1F221E;
-  --chip: #2B2F2A;
-  --line: #343933;
-  --text: #ECEFEA;
-  --text-soft: #C9CEC6;
-  --muted: #9AA096;
-  --accent: #6FBFA6;
-  --accent-hover: #86CDB7;
-  --accent-tint: #23362F;
-  --on-accent: #0E1B16;
-  --plus: #7CC98F;
-  --minus: #F08B7C;
-  --bar: #6FBFA6;
-  --bar-track: #2B2F2A;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
-  color-scheme: dark;
-}
-
-/* ---------- Farbschema „Einkauf“: Creme, Oliv, Lavendel, Lila ----------
-   Gilt nur, solange der Bereich Einkauf offen ist (app.js setzt <html data-view="einkauf">).
-   Oliv und Lila sind als Schrift auf Creme zu blass – sie dienen als Flächen mit dunkler Schrift;
-   für Schrift werden dunklere Töne derselben Farben verwendet. */
-:root[data-view="einkauf"] {
-  --bg: #FDFBD4;            /* Creme */
-  --card: #FFFEF3;
-  --chip: #F1EDBE;
-  --line: #E9E4B0;
-  --text: #23221A;
-  --text-soft: #46442F;
-  --muted: #6E6B4C;
-  --accent: #CF6DFC;        /* Lila: Hinzufügen, erledigt */
-  --accent-hover: #C056F3;
-  --accent-tint: #ECEBFF;
-  --on-accent: #1E1530;
-  --tab-active: #8A35C2;    /* dunkleres Lila: als Schrift lesbar */
-  --check-border: #BDB96A;  /* Oliv */
-  --suggest-bg: #C1BFFF;    /* Lavendel */
-  --suggest-text: #23221A;
-  --suggest-icon: #4B2F80;
-  --seg-bg: #F1EDBE;
-  --seg-active-bg: #BDB96A; /* Oliv */
-  --seg-active-text: #23221A;
-  --section-text: #6B6728;  /* Oliv dunkel */
-  --section-dot: #BDB96A;
-  --shadow: 0 1px 2px rgba(80, 76, 30, 0.08), 0 4px 14px rgba(80, 76, 30, 0.06);
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-view="einkauf"]:not([data-theme="light"]) {
-    --bg: #1A1912;
-    --card: #24231A;
-    --chip: #2F2D21;
-    --line: #3A382A;
-    --text: #FDFBD4;        /* Creme als Schrift */
-    --text-soft: #E6E3BC;
-    --muted: #A9A57E;
-    --accent: #CF6DFC;
-    --accent-hover: #DA8BFD;
-    --accent-tint: #2A2840;
-    --on-accent: #1E1530;
-    --tab-active: #CF6DFC;
-    --check-border: #8E8A4C;
-    --suggest-bg: #2A2840;
-    --suggest-text: #C1BFFF;
-    --suggest-icon: #CF6DFC;
-    --seg-bg: #2F2D21;
-    --seg-active-bg: #BDB96A;
-    --seg-active-text: #1A1912;
-    --section-text: #BDB96A;
-    --section-dot: #BDB96A;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-  }
-}
-:root[data-view="einkauf"][data-theme="dark"] {
   --bg: #1A1912; --card: #24231A; --chip: #2F2D21; --line: #3A382A;
   --text: #FDFBD4; --text-soft: #E6E3BC; --muted: #A9A57E;
-  --accent: #CF6DFC; --accent-hover: #DA8BFD; --accent-tint: #2A2840; --on-accent: #1E1530;
+  --accent: #CF6DFC; --accent-hover: #DA8BFD; --accent-tint: #2A2840; --accent-text: #DA8BFD; --on-accent: #1E1530;
+  --plus: #A9C97C; --minus: #F08B7C; --bar: #CF6DFC; --bar-track: #2F2D21;
   --tab-active: #CF6DFC; --check-border: #8E8A4C;
   --suggest-bg: #2A2840; --suggest-text: #C1BFFF; --suggest-icon: #CF6DFC;
   --seg-bg: #2F2D21; --seg-active-bg: #BDB96A; --seg-active-text: #1A1912;
   --section-text: #BDB96A; --section-dot: #BDB96A;
+  --today-ring: #CF6DFC; --today-pill-bg: #C1BFFF; --today-pill-text: #1E1530;
+  --mittag-bg: #242337; --mittag-label-bg: #C1BFFF; --mittag-label-text: #1E1530;
+  --abend-bg: #2A2918; --abend-label-bg: #BDB96A; --abend-label-text: #1A1912;
+  --week-btn-bg: #C1BFFF; --week-btn-text: #1E1530;
+  --idea-1: #BDB96A; --idea-2: #C1BFFF; --idea-3: #CF6DFC; --idea-4: #8E8A4C;
+  --tag-1-bg: #BDB96A; --tag-2-bg: #C1BFFF; --tag-3-bg: #CF6DFC; --tag-4-bg: #2A2840;
+  --tag-text: #1A1912; --tag-4-text: #C1BFFF;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-}
-
-/* ---------- Farbschema „Wochenplan“: Hellgrün, Grün, Rosa (Mittag), Mauve (Abend) ----------
-   Grün und Mauve sind als Schrift auf Hell zu blass – sie dienen als Flächen mit dunkler Schrift;
-   für Schrift werden dunklere Töne derselben Farben verwendet. */
-:root[data-view="woche"] {
-  --bg: #F1F8EF;
-  --card: #FFFFFF;
-  --chip: #E3F1E2;
-  --line: #D6E8D4;
-  --text: #1C2A1D;
-  --text-soft: #3E5240;
-  --muted: #5E7360;
-  --accent: #519755;        /* Grün */
-  --accent-hover: #458A49;
-  --accent-tint: #E0F2E1;
-  --on-accent: #0F1A11;
-  --tab-active: #3B7440;    /* dunkleres Grün: als Schrift lesbar */
-  --today-ring: #519755;
-  --today-pill-bg: #A8DCAB; /* Hellgrün */
-  --today-pill-text: #1C2A1D;
-  --mittag-bg: #F8ECEB;
-  --mittag-label-bg: #DBAAA7; /* Rosa */
-  --mittag-label-text: #3A2422;
-  --abend-bg: #F4EAF4;
-  --abend-label-bg: #BE91BE;  /* Mauve */
-  --abend-label-text: #2E1B2E;
-  --week-btn-bg: #A8DCAB;
-  --week-btn-text: #1C2A1D;
-  --shadow: 0 1px 2px rgba(40, 80, 44, 0.08), 0 4px 14px rgba(40, 80, 44, 0.06);
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-view="woche"]:not([data-theme="light"]) {
-    --bg: #141B15; --card: #1C251D; --chip: #263027; --line: #2F3A30;
-    --text: #EAF3E9; --text-soft: #C9D8C8; --muted: #9DB09C;
-    --accent: #A8DCAB; --accent-hover: #BDE6BF; --accent-tint: #23352A; --on-accent: #10200F;
-    --tab-active: #A8DCAB; --today-ring: #519755;
-    --today-pill-bg: #519755; --today-pill-text: #0F1A11;
-    --mittag-bg: #2A2322; --mittag-label-bg: #DBAAA7; --mittag-label-text: #2A1C1B;
-    --abend-bg: #28202A; --abend-label-bg: #BE91BE; --abend-label-text: #2A1C2A;
-    --week-btn-bg: #A8DCAB; --week-btn-text: #10200F;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-  }
-}
-:root[data-view="woche"][data-theme="dark"] {
-  --bg: #141B15; --card: #1C251D; --chip: #263027; --line: #2F3A30;
-  --text: #EAF3E9; --text-soft: #C9D8C8; --muted: #9DB09C;
-  --accent: #A8DCAB; --accent-hover: #BDE6BF; --accent-tint: #23352A; --on-accent: #10200F;
-  --tab-active: #A8DCAB; --today-ring: #519755;
-  --today-pill-bg: #519755; --today-pill-text: #0F1A11;
-  --mittag-bg: #2A2322; --mittag-label-bg: #DBAAA7; --mittag-label-text: #2A1C1B;
-  --abend-bg: #28202A; --abend-label-bg: #BE91BE; --abend-label-text: #2A1C2A;
-  --week-btn-bg: #A8DCAB; --week-btn-text: #10200F;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-}
-
-/* ---------- Farbschema „Menüideen“: Lime, Orange, Magenta, Violett ----------
-   Lime, Orange und Magenta sind als Schrift zu grell bzw. zu blass – sie dienen nur als Flächen mit dunkler Schrift
-   (Farbstreifen der Karten, Stichworte). Violett trägt Knöpfe und Tab; im dunklen Modus übernimmt Lime. */
-:root[data-view="ideen"] {
-  --bg: #F7F4FF;
-  --card: #FFFFFF;
-  --chip: #ECE6FF;
-  --line: #DDD3FF;
-  --text: #1B1530;
-  --text-soft: #3D3560;
-  --muted: #6A6390;
-  --accent: #5200FF;        /* Violett: Hinzufügen, Speichern */
-  --accent-hover: #4200D6;
-  --accent-tint: #ECE6FF;
-  --on-accent: #FFFFFF;
-  --tab-active: #5200FF;
-  --idea-1: #CCFF00;        /* Lime */
-  --idea-2: #FF6B00;        /* Orange */
-  --idea-3: #F900FF;        /* Magenta */
-  --idea-4: #5200FF;        /* Violett */
-  --tag-1-bg: #CCFF00;
-  --tag-2-bg: #FF6B00;
-  --tag-3-bg: #F900FF;
-  --tag-4-bg: #5200FF;
-  --tag-text: #1A1A1A;
-  --tag-4-text: #FFFFFF;
-  --shadow: 0 1px 2px rgba(82, 0, 255, 0.07), 0 4px 14px rgba(82, 0, 255, 0.06);
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-view="ideen"]:not([data-theme="light"]) {
-    --bg: #120E20; --card: #1C1630; --chip: #2A2245; --line: #352C55;
-    --text: #F3F0FF; --text-soft: #D3CCF0; --muted: #A49BC8;
-    --accent: #CCFF00; --accent-hover: #D9FF4D; --accent-tint: #2A2245; --on-accent: #16130A;
-    --tab-active: #CCFF00;
-    --idea-1: #CCFF00; --idea-2: #FF6B00; --idea-3: #F900FF; --idea-4: #7A3DFF;
-    --tag-1-bg: #CCFF00; --tag-2-bg: #FF6B00; --tag-3-bg: #F900FF; --tag-4-bg: #5200FF;
-    --tag-text: #1A1A1A; --tag-4-text: #FFFFFF;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-  }
-}
-:root[data-view="ideen"][data-theme="dark"] {
-  --bg: #120E20; --card: #1C1630; --chip: #2A2245; --line: #352C55;
-  --text: #F3F0FF; --text-soft: #D3CCF0; --muted: #A49BC8;
-  --accent: #CCFF00; --accent-hover: #D9FF4D; --accent-tint: #2A2245; --on-accent: #16130A;
-  --tab-active: #CCFF00;
-  --idea-1: #CCFF00; --idea-2: #FF6B00; --idea-3: #F900FF; --idea-4: #7A3DFF;
-  --tag-1-bg: #CCFF00; --tag-2-bg: #FF6B00; --tag-3-bg: #F900FF; --tag-4-bg: #5200FF;
-  --tag-text: #1A1A1A; --tag-4-text: #FFFFFF;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -330,7 +164,7 @@ button { cursor: pointer; }
 }
 .btn-primary { background: var(--accent); color: var(--on-accent); }
 .btn-primary:active { background: var(--accent-hover); }
-.btn-ghost { background: transparent; color: var(--accent); padding: 0 8px; }
+.btn-ghost { background: transparent; color: var(--accent-text); padding: 0 8px; }
 .btn-danger { background: transparent; color: var(--minus); }
 .btn-block { width: 100%; }
 .btn-sm { min-height: 34px; padding: 0 12px; font-size: 14px; }
@@ -406,7 +240,7 @@ button { cursor: pointer; }
 .pick-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 4px 2px; border-bottom: 1px solid var(--line); }
 .pick-row:last-child { border-bottom: 0; }
 .pick-row input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
-.import-status a { color: var(--accent); font-weight: 600; }
+.import-status a { color: var(--accent-text); font-weight: 600; }
 .terms-field summary { font-size: 14px; font-weight: 600; color: var(--text-soft); cursor: pointer; min-height: 32px; }
 .term-chip { padding-right: 4px; }
 .term-x { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); }
@@ -519,7 +353,7 @@ button { cursor: pointer; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 .me-btn {
   width: 44px; height: 44px; flex: none; border: 0; border-radius: 50%;
-  display: grid; place-items: center; background: var(--accent); color: #fff;
+  display: grid; place-items: center; background: var(--accent); color: var(--on-accent);
   font-size: 15px; font-weight: 750; letter-spacing: 0.02em; box-shadow: var(--shadow);
 }
 .me-btn.is-offline { outline: 2px dashed var(--muted); outline-offset: 2px; }
