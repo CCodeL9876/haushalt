@@ -6,8 +6,8 @@ Web-App fürs iPhone für den gemeinsamen Haushalt. Reines HTML, CSS und JavaScr
 |---|---|---|
 | Einkauf | `js/views/einkauf.js` | Einkaufsliste; mehrere Artikel mit Komma auf einmal; gemerkte Begriffe als Vorschläge beim Tippen (häufige zuerst, auch Zutaten der Menüideen); „Nach Laden“ gruppiert nach Abteilungen (`js/aisles.js`, Reihenfolge unter Haushalt anpassbar) |
 | ToDo | `js/views/todo.js` | Geteilte Listen (für alle im Haushalt) und persönliche (nur auf diesem Gerät, `js/personal.js`); ToDo mit Datum und Uhrzeit per .ics in den Apple-Kalender (`js/calendar.js`, ohne Server) |
-| Wochenplan | `js/views/wochenplan.js` | Mo–So, Mittag und Abend; Zutaten der Woche auf die Einkaufsliste |
-| Menüideen | `js/views/ideen.js` | Gerichte mit Zutaten und Stichworten, Suche, „Planen“ und „Einkaufen“; Rezept per Link einlesen (`js/recipes.js`, Supabase-Funktion `recipe-import`); vor dem Einkaufen Zutaten auswählen, Mengen werden zur Notiz (`js/ingredients.js`) |
+| Essen → Wochenplan | `js/views/wochenplan.js` | Mo–So, Mittag und Abend; Zutaten der Woche auf die Einkaufsliste |
+| Essen → Menüideen | `js/views/ideen.js` | Gerichte mit Zutaten und Stichworten, Suche, „Planen“ und „Einkaufen“; Rezept per Link einlesen (`js/recipes.js`, Supabase-Funktion `recipe-import`); vor dem Einkaufen Zutaten auswählen, Mengen werden zur Notiz (`js/ingredients.js`) |
 | Kosten | `js/views/kosten.js` | Ausgaben pro Monat, Summe nach Kategorie, wer bezahlt / auf wen aufgeteilt |
 | Abrechnung | `js/views/abrechnung.js` | Saldo pro Person, Vorschlag mit möglichst wenigen Zahlungen (`js/settle.js`) |
 | Haushalt (oben rechts) | `js/views/einstellungen.js` | Personen, Währung, Kategorien, Sicherung als JSON |
@@ -36,5 +36,6 @@ ohne Anmeldung und nur lokal (mit Beispieldaten).
 - `js/app.js` – Tab-Leiste, Wechsel der Ansichten, Weiterleitung der Klicks (`data-action`, `data-form`, `data-input`).
 - `js/ui.js` – Symbole, Geldbeträge (intern in Rappen), Bottom-Sheet, Meldungen.
 - Neuer Bereich: Datei in `js/views/` anlegen und in `VIEWS` in `js/app.js` eintragen.
+- Essen (`js/views/essen.js`) fasst Wochenplan und Menüideen unter einem Tab zusammen (Umschalter oben); `#woche` und `#ideen` führen direkt zum jeweiligen Teil.
 
 Beim ersten Start sind Beispieldaten drin (Anna, Ben, drei Menüideen). „Haushalt → Alles zurücksetzen“ leert alles.

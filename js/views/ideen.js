@@ -115,7 +115,6 @@ function planIdea(idea) {
 export default {
   id: 'ideen',
   title: 'Menüideen',
-  tab: 'Ideen',   // kurz für die Tab-Leiste
   icon: 'book',
 
   render() {

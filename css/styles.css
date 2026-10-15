@@ -231,6 +231,9 @@ button { cursor: pointer; }
 .seg { display: inline-flex; gap: 4px; padding: 3px; margin: 0 0 10px; border-radius: 999px; background: var(--seg-bg); }
 .seg-btn { min-height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--text-soft); font-size: 14px; font-weight: 600; }
 .seg-btn[aria-pressed="true"] { background: var(--seg-active-bg); color: var(--seg-active-text); box-shadow: var(--shadow); }
+/* Umschalter über die ganze Breite (Essen: Wochenplan | Menüideen) */
+.seg-wide { display: flex; margin-bottom: 14px; }
+.seg-wide .seg-btn { flex: 1; min-height: 36px; }
 .aisle-title {
   display: flex; align-items: center; gap: 8px;
   margin: 16px 4px 6px; font-size: 13px; font-weight: 650; color: var(--section-text); text-transform: uppercase; letter-spacing: 0.04em;

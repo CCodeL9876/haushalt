@@ -6,6 +6,7 @@
 //   actions.name(el)      – Klick auf ein Element mit data-action="name"
 //   submit.name(form)     – Absenden eines Formulars mit data-form="name"
 //   input.name(el, root)  – Eingabe in ein Feld mit data-input="name"
+//   aliases, enter(id)   – weitere Adressen, die zu dieser Ansicht führen (z. B. #woche → Essen, Teil Wochenplan)
 //   data-keep-focus       – an Knöpfen: Antippen lässt den Fokus (und die iPhone-Tastatur) im Eingabefeld
 // Neuer Bereich = neue Datei in js/views/ und hier in VIEWS eintragen.
 
@@ -15,13 +16,12 @@ import { boot, ensureMe } from './login.js';
 import { AccessError } from './remote.js';
 import einkauf from './views/einkauf.js';
 import todo from './views/todo.js';
-import wochenplan from './views/wochenplan.js';
-import ideen from './views/ideen.js';
+import essen from './views/essen.js';
 import kosten from './views/kosten.js';
 import abrechnung from './views/abrechnung.js';
 import { openSettings } from './views/einstellungen.js';
 
-const VIEWS = [einkauf, todo, wochenplan, ideen, kosten, abrechnung];
+const VIEWS = [einkauf, todo, essen, kosten, abrechnung];
 
 const root = document.getElementById('view');
 const titleEl = document.getElementById('view-title');
@@ -62,7 +62,8 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeC
 
 function route() {
   const id = location.hash.slice(1);
-  const next = VIEWS.find((v) => v.id === id) || VIEWS[0];
+  const next = VIEWS.find((v) => v.id === id || v.aliases?.includes(id)) || VIEWS[0];
+  if (next.aliases?.includes(id)) next.enter?.(id);
   const changed = next !== current;
   current = next;
   // Bereich als Merkmal am <html>, z. B. für eigene Farben pro Bereich (css/styles.css, :root[data-view=…])
@@ -70,6 +71,8 @@ function route() {
   syncThemeColor();
   titleEl.textContent = current.title;
   document.title = `${current.title} · Haushalt`;
+  // Alte Adresse (#woche) durch die des Tabs ersetzen, damit Zurück/Neuladen stimmt
+  if (id !== current.id && next.aliases?.includes(id)) history.replaceState(null, '', `#${current.id}`);
   for (const tab of tabbar.children) {
     if (tab.dataset.tab === current.id) tab.setAttribute('aria-current', 'page');
     else tab.removeAttribute('aria-current');
