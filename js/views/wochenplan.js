@@ -65,6 +65,7 @@ function editMeal(day, slot) {
 export default {
   id: 'woche',
   title: 'Wochenplan',
+  tab: 'Woche',   // kurz für die Tab-Leiste
   icon: 'calendar',
 
   render() {

@@ -5,6 +5,7 @@ Web-App fürs iPhone für den gemeinsamen Haushalt. Reines HTML, CSS und JavaScr
 | Bereich | Datei | Was |
 |---|---|---|
 | Einkauf | `js/views/einkauf.js` | Einkaufsliste; mehrere Artikel mit Komma auf einmal; gemerkte Begriffe als Vorschläge beim Tippen (häufige zuerst, auch Zutaten der Menüideen); „Nach Laden“ gruppiert nach Abteilungen (`js/aisles.js`, Reihenfolge unter Haushalt anpassbar) |
+| ToDo | `js/views/todo.js` | Geteilte Listen (für alle im Haushalt) und persönliche (nur auf diesem Gerät, `js/personal.js`); ToDo mit Datum und Uhrzeit per .ics in den Apple-Kalender (`js/calendar.js`, ohne Server) |
 | Wochenplan | `js/views/wochenplan.js` | Mo–So, Mittag und Abend; Zutaten der Woche auf die Einkaufsliste |
 | Menüideen | `js/views/ideen.js` | Gerichte mit Zutaten und Stichworten, Suche, „Planen“ und „Einkaufen“; Rezept per Link einlesen (`js/recipes.js`, Supabase-Funktion `recipe-import`); vor dem Einkaufen Zutaten auswählen, Mengen werden zur Notiz (`js/ingredients.js`) |
 | Kosten | `js/views/kosten.js` | Ausgaben pro Monat, Summe nach Kategorie, wer bezahlt / auf wen aufgeteilt |

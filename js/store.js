@@ -15,6 +15,8 @@
 //   expenses  [{ id, kind: 'expense' | 'transfer', title, amount (Rappen/Cent), payerId, splitIds, category, date }]
 //             Eine Ausgleichszahlung (transfer) ist „payerId zahlt splitIds[0]“.
 //   settings  { currency, categories, aisleOrder? }   aisleOrder: Reihenfolge der Abteilungen im Laden
+//   todolists [{ id, name, createdAt }]                 geteilte ToDo-Listen (persönliche: js/personal.js, nie hier)
+//   todos     [{ id, listId, title, note, done, due?, time?, addedAt }]   due 'JJJJ-MM-TT', time 'HH:MM'
 // In der Datenbank ist jeder Eintrag eine Zeile (collection + id); plan je Tag, settings als eine Zeile „main“.
 
 import { todayKey } from './dates.js';
@@ -22,7 +24,7 @@ import { AccessError } from './remote.js';
 
 const LOCAL_KEY = 'haushalt.v1';
 const CACHE_PREFIX = 'haushalt.cache.';
-const LIST_COLLECTIONS = ['members', 'shopping', 'terms', 'ideas', 'expenses'];
+const LIST_COLLECTIONS = ['members', 'shopping', 'terms', 'ideas', 'expenses', 'todolists', 'todos'];
 
 // Dunkle Töne aus Lila, Oliv und Lavendel – weisse Initialen bleiben darauf lesbar
 export const MEMBER_COLORS = ['#8A35C2', '#6B6728', '#4B2F80', '#5E5AB8', '#55531F', '#A23FB0'];
@@ -41,6 +43,8 @@ function empty() {
     ideas: [],
     plan: {},
     expenses: [],
+    todolists: [],
+    todos: [],
     settings: { currency: 'CHF', categories: [...DEFAULT_CATEGORIES] },
   };
 }
@@ -60,6 +64,12 @@ function sample() {
     { id: uid(), title: 'Älplermagronen', ingredients: ['Magronen', 'Kartoffeln', 'Rahm', 'Käse', 'Apfelmus'], tags: ['Klassiker'], note: 'Mit Röstzwiebeln!' },
   ];
   const today = todayKey();
+  const list = { id: uid(), name: 'Haushalt', createdAt: Date.now() };
+  data.todolists = [list];
+  data.todos = [
+    { id: uid(), listId: list.id, title: 'Altpapier rausstellen', note: '', done: false, due: today, time: '', addedAt: Date.now() },
+    { id: uid(), listId: list.id, title: 'Steuererklärung', note: '', done: false, due: '', time: '', addedAt: Date.now() - 1 },
+  ];
   data.expenses = [
     { id: uid(), kind: 'expense', title: 'Wocheneinkauf', amount: 8640, payerId: a.id, splitIds: [a.id, b.id], category: 'Lebensmittel', date: today },
     { id: uid(), kind: 'expense', title: 'Putzmittel', amount: 1890, payerId: b.id, splitIds: [a.id, b.id], category: 'Haushalt', date: today },
@@ -97,6 +107,8 @@ function normalize(saved) {
     ideas: Array.isArray(saved.ideas) ? saved.ideas : base.ideas,
     plan: saved.plan && typeof saved.plan === 'object' ? saved.plan : base.plan,
     expenses: Array.isArray(saved.expenses) ? saved.expenses : base.expenses,
+    todolists: Array.isArray(saved.todolists) ? saved.todolists : base.todolists,
+    todos: Array.isArray(saved.todos) ? saved.todos : base.todos,
     settings: { ...base.settings, ...(saved.settings || {}) },
   };
 }
@@ -128,6 +140,7 @@ function fromRows(rows) {
   // Die Datenbank liefert ohne feste Reihenfolge
   data.members.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || a.name.localeCompare(b.name, 'de'));
   data.shopping.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  data.todolists.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   return data;
 }
 
@@ -195,7 +208,11 @@ function flush() {
     }
     if (!upserts.length && !Object.keys(removals).length) return true;
     try {
-      await remote.upsert(upserts);
+      // ToDo-Listen in eigener Anfrage zuletzt: Ist die Datenbank noch nicht auf dem neuen Stand (schema.sql),
+      // scheitert nur diese – alles andere ist dann schon oben
+      const late = (r) => r.collection === 'todolists' || r.collection === 'todos';
+      await remote.upsert(upserts.filter((r) => !late(r)));
+      await remote.upsert(upserts.filter(late));
       await remote.remove(removals);
       synced = nowSig;
       session.offline = false;

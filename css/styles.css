@@ -127,6 +127,7 @@ button { cursor: pointer; }
 
 .icon { width: 22px; height: 22px; flex: none; }
 .icon-sm { width: 18px; height: 18px; }
+.icon-xs { width: 13px; height: 13px; vertical-align: -2px; }
 
 /* ---------- Kopfzeile ---------- */
 .topbar {
@@ -143,7 +144,7 @@ button { cursor: pointer; }
 /* ---------- Tab-Leiste ---------- */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
   height: calc(var(--tabbar-h) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
   background: color-mix(in srgb, var(--card) 92%, transparent);
@@ -155,6 +156,8 @@ button { cursor: pointer; }
   color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 600;
 }
 .tab[aria-current="page"] { color: var(--tab-active); }
+/* Sechs Bereiche auf schmalen iPhones: Beschriftung notfalls kürzen statt überlappen */
+.tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; }
 
 /* ---------- Bausteine ---------- */
 .btn {
@@ -316,6 +319,17 @@ button { cursor: pointer; }
 .idea h3 { margin: 0 0 4px; font-size: 17px; }
 .idea p { margin: 6px 0 0; }
 .idea .chips { gap: 6px; margin-top: 8px; }
+
+/* ---------- ToDo ---------- */
+.todo-hint { display: flex; align-items: center; gap: 6px; margin: -2px 4px 8px; }
+.todo-hint .icon-sm { width: 15px; height: 15px; color: var(--section-text); }
+.todo-add-list { margin-top: 8px; }
+.todo-head { display: flex; align-items: center; gap: 4px; margin: 0 -8px 10px; }
+.todo-head-title { flex: 1; min-width: 0; text-align: center; }
+.todo-head-title strong { display: block; font-size: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.todo-head-title small { font-size: 13px; }
+.todo-cal { color: var(--accent-text); display: grid; }
+.todo-cal-btn { background: var(--suggest-bg); color: var(--suggest-text); }
 
 /* ---------- Kosten ---------- */
 .hero-number { font-size: 38px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }

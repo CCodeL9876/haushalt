@@ -1,7 +1,7 @@
 // Einstieg: Tab-Leiste, Wechsel zwischen den Ansichten (über #einkauf, #woche …) und Weiterleitung der Klicks.
 //
 // Eine Ansicht (js/views/*.js) ist ein Objekt mit
-//   id, title, icon       – für Adresse, Kopfzeile und Tab-Leiste
+//   id, title, icon       – für Adresse, Kopfzeile und Tab-Leiste (tab: kürzere Beschriftung, falls nötig)
 //   render()              – gibt das HTML der Ansicht zurück (wird bei jeder Datenänderung neu gezeichnet)
 //   actions.name(el)      – Klick auf ein Element mit data-action="name"
 //   submit.name(form)     – Absenden eines Formulars mit data-form="name"
@@ -14,20 +14,21 @@ import { icon, toast } from './ui.js';
 import { boot, ensureMe } from './login.js';
 import { AccessError } from './remote.js';
 import einkauf from './views/einkauf.js';
+import todo from './views/todo.js';
 import wochenplan from './views/wochenplan.js';
 import ideen from './views/ideen.js';
 import kosten from './views/kosten.js';
 import abrechnung from './views/abrechnung.js';
 import { openSettings } from './views/einstellungen.js';
 
-const VIEWS = [einkauf, wochenplan, ideen, kosten, abrechnung];
+const VIEWS = [einkauf, todo, wochenplan, ideen, kosten, abrechnung];
 
 const root = document.getElementById('view');
 const titleEl = document.getElementById('view-title');
 const tabbar = document.getElementById('tabbar');
 let current = VIEWS[0];
 
-tabbar.innerHTML = VIEWS.map((v) => `<a class="tab" href="#${v.id}" data-tab="${v.id}">${icon(v.icon)}<span>${v.title}</span></a>`).join('');
+tabbar.innerHTML = VIEWS.map((v) => `<a class="tab" href="#${v.id}" data-tab="${v.id}">${icon(v.icon)}<span>${v.tab || v.title}</span></a>`).join('');
 
 // Änderung von einem anderen Gerät, während man hier gerade etwas eintippt: erst danach neu zeichnen,
 // sonst wäre der angefangene Text weg. Ist das Feld leer, gleich neu zeichnen und den Cursor zurücksetzen.

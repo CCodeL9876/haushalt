@@ -1,6 +1,7 @@
 // Fenster „Haushalt“ (Knopf oben rechts): Personen, Zugang (Link, Code), Währung, Kategorien, Sicherung.
 
 import { changeCode, replaceAll, resetAll, session, state, update } from '../store.js';
+import { updatePersonal } from '../personal.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { todayKey } from '../dates.js';
 import { addMember } from '../login.js';
@@ -148,6 +149,7 @@ export function openSettings() {
       reset() {
         if (!confirm('Wirklich alle Daten auf diesem Gerät löschen?')) return;
         resetAll();
+        updatePersonal((d) => { d.lists = []; d.todos = []; }); // persönliche ToDo-Listen gehören auch dazu
         closeSheet();
         toast('Alles zurückgesetzt');
       },

@@ -72,6 +72,17 @@ Sie gibt nur die Rezeptangaben zurück und speichert nichts.
 Ohne diese Funktion lässt sich der Link trotzdem bei der Menüidee speichern („Rezept öffnen“), und die Zutaten
 kann man von Hand einfügen (eine pro Zeile, gern mit Menge: „400 g Kartoffeln“).
 
+## 6. ToDo-Listen freischalten (einmalig, für bestehende Datenbanken)
+
+Geteilte ToDo-Listen brauchen zwei neue Sammlungen in der Datenbank. Wer die Datenbank schon vorher eingerichtet hat:
+**SQL Editor** → **New query** → den ganzen Inhalt von [supabase/schema.sql](supabase/schema.sql) nochmals einfügen →
+**Run**. Das ist gefahrlos: Bestehende Daten bleiben, nur die erlaubten Sammlungen werden ergänzt.
+Bis dahin meldet die App beim Speichern einer geteilten Liste „Nicht gespeichert“.
+
+Persönliche Listen brauchen nichts davon: Sie liegen nur auf dem jeweiligen Gerät, getrennt pro Person
+(„Wer bist du?“), und gehen weder in die Datenbank noch in die Sicherung. Dafür erscheinen sie auch nicht
+auf einem zweiten Gerät derselben Person.
+
 ## Gut zu wissen
 
 - **Code ändern:** In der App unter Haushalt → Zugang. Alle anderen Geräte werden beim nächsten Abgleich

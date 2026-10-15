@@ -1,0 +1,280 @@
+// ToDo-Listen: geteilte (für den ganzen Haushalt, in state.todolists/todos) und persönliche (nur auf diesem
+// Gerät, js/personal.js). Übersicht aller Listen → Antippen öffnet eine Liste. Ein ToDo mit Datum lässt sich
+// in den Apple-Kalender eintragen (js/calendar.js).
+
+import { refresh, state, update, uid } from '../store.js';
+import { personal, updatePersonal } from '../personal.js';
+import { addToCalendar, isInCalendar } from '../calendar.js';
+import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
+import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
+
+// Beide Arten gleich behandeln: d = { lists, todos }; Zuweisungen an d.lists/d.todos werden übernommen
+const SCOPES = {
+  shared: {
+    data: () => ({ lists: state.todolists, todos: state.todos }),
+    change: (fn) => update((s) => {
+      const d = { lists: s.todolists, todos: s.todos };
+      fn(d);
+      s.todolists = d.lists;
+      s.todos = d.todos;
+    }),
+  },
+  personal: { data: personal, change: updatePersonal },
+};
+
+let open = null; // { scope, id } der geöffneten Liste, sonst Übersicht
+
+// Offene zuerst nach Datum (ohne Datum zuletzt), dann die neuesten
+const byDue = (a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (a.time || '99').localeCompare(b.time || '99') || (b.addedAt || 0) - (a.addedAt || 0);
+
+function dueLabel(t) {
+  if (!t.due) return '';
+  const today = todayKey();
+  const day = t.due === today ? 'Heute' : t.due === dateKey(addDays(new Date(), 1)) ? 'Morgen' : fmtShort(t.due);
+  return `${day}${t.time ? ` · ${t.time}` : ''}`;
+}
+
+const overdue = (t) => !t.done && t.due && t.due < todayKey();
+
+// ---------- Übersicht ----------
+
+function listRow(scope, list, todos) {
+  const items = todos.filter((t) => t.listId === list.id && !t.done).sort(byDue);
+  const next = items.find((t) => t.due);
+  const info = [
+    items.length ? `${items.length} offen` : 'Alles erledigt',
+    next ? `nächstes: ${dueLabel(next)}` : '',
+  ].filter(Boolean).join(' · ');
+  return `
+    <li>
+      <button type="button" class="list-main" data-action="openList" data-scope="${scope}" data-id="${list.id}">
+        ${esc(list.name)}<small class="${items.some(overdue) ? 'amount-minus' : ''}">${esc(info)}</small>
+      </button>
+      <span class="muted" aria-hidden="true">${icon('right', 'icon-sm')}</span>
+    </li>`;
+}
+
+function overview() {
+  const shared = SCOPES.shared.data();
+  const mine = SCOPES.personal.data();
+  const section = (scope, d, title, hint, placeholder) => `
+    <h2 class="section-title">${title}</h2>
+    ${hint ? `<p class="muted small todo-hint">${icon(scope === 'personal' ? 'lock' : 'users', 'icon-sm')}${hint}</p>` : ''}
+    ${d.lists.length ? `<ul class="list">${d.lists.map((l) => listRow(scope, l, d.todos)).join('')}</ul>` : ''}
+    <form class="add-row todo-add-list" data-form="addList" data-scope="${scope}">
+      <input class="input" id="new-list-${scope}" name="name" placeholder="${placeholder}" autocomplete="off" enterkeyhint="done" required maxlength="60">
+      <button type="submit" class="btn btn-primary" aria-label="Liste anlegen">${icon('plus')}</button>
+    </form>`;
+  return `
+    ${section('shared', shared, 'Geteilt', 'Alle im Haushalt sehen und bearbeiten diese Listen.', 'Neue geteilte Liste')}
+    ${section('personal', mine, 'Nur für mich', 'Nur auf diesem Gerät gespeichert – niemand sonst sieht sie.', 'Neue persönliche Liste')}`;
+}
+
+// ---------- Eine Liste ----------
+
+const todoItem = (t) => `
+  <li class="${t.done ? 'is-done' : ''}">
+    <button type="button" class="check" data-action="toggle" data-id="${t.id}" aria-label="${t.done ? 'Wieder offen' : 'Erledigt'}: ${esc(t.title)}">${icon('check', 'icon-sm')}</button>
+    <button type="button" class="list-main" data-action="edit" data-id="${t.id}" aria-label="${esc(t.title)} bearbeiten">
+      ${esc(t.title)}
+      ${t.due || t.note ? `<small>${t.due ? `<span class="${overdue(t) ? 'amount-minus' : ''}">${esc(dueLabel(t))}</span>` : ''}${t.due && t.note ? ' · ' : ''}${esc(t.note)}</small>` : ''}
+    </button>
+    ${isInCalendar(t.id) ? `<span class="todo-cal" title="Im Kalender eingetragen">${icon('calendar', 'icon-sm')}</span>` : ''}
+    <button type="button" class="icon-btn" data-action="remove" data-id="${t.id}" aria-label="${esc(t.title)} löschen">${icon('x', 'icon-sm')}</button>
+  </li>`;
+
+function listView(scope, list, d) {
+  const items = d.todos.filter((t) => t.listId === list.id);
+  const openItems = items.filter((t) => !t.done).sort(byDue);
+  const done = items.filter((t) => t.done);
+  return `
+    <div class="todo-head">
+      <button type="button" class="icon-btn" data-action="back" aria-label="Zurück zu allen Listen">${icon('left')}</button>
+      <div class="todo-head-title">
+        <strong>${esc(list.name)}</strong>
+        <small class="muted">${scope === 'personal' ? `${icon('lock', 'icon-xs')} Nur für mich` : `${icon('users', 'icon-xs')} Geteilt`}</small>
+      </div>
+      <button type="button" class="icon-btn" data-action="editList" aria-label="Liste umbenennen oder löschen">${icon('settings')}</button>
+    </div>
+    <form class="add-row" data-form="addTodo">
+      <input class="input" id="todo-input" name="title" placeholder="Was ist zu tun?" autocomplete="off" enterkeyhint="done" required maxlength="120">
+      <button type="submit" class="btn btn-primary" aria-label="Hinzufügen">${icon('plus')}</button>
+    </form>
+    ${openItems.length
+      ? `<ul class="list">${openItems.map(todoItem).join('')}</ul>`
+      : `<div class="empty"><strong>Nichts zu tun</strong>Neue ToDos oben eintragen. Antippen für Datum, Notiz und Kalender.</div>`}
+    ${done.length ? `
+      <h2 class="section-title">Erledigt (${done.length})
+        <button type="button" class="btn btn-ghost btn-sm" data-action="clearDone">Aufräumen</button>
+      </h2>
+      <ul class="list">${done.map(todoItem).join('')}</ul>` : ''}`;
+}
+
+// Geöffnete Liste – gibt es sie nicht mehr (auf einem anderen Gerät gelöscht), zurück zur Übersicht
+function current() {
+  if (!open) return null;
+  const d = SCOPES[open.scope].data();
+  const list = d.lists.find((l) => l.id === open.id);
+  if (!list) open = null;
+  return list ? { scope: open.scope, list, d, change: SCOPES[open.scope].change } : null;
+}
+
+function editTodo(cur, id) {
+  const t = cur.d.todos.find((x) => x.id === id);
+  if (!t) return;
+  // Werte aus dem Formular übernehmen (auch für „In Kalender“, ohne vorher speichern zu müssen)
+  const save = (form) => {
+    const title = form.elements.title.value.trim();
+    if (!title) return false;
+    cur.change((d) => {
+      const item = d.todos.find((x) => x.id === id);
+      if (!item) return;
+      Object.assign(item, {
+        title: title.slice(0, 120),
+        due: form.elements.due.value,
+        time: form.elements.due.value ? form.elements.time.value : '',
+        note: form.elements.note.value.trim().slice(0, 500),
+      });
+    });
+    return true;
+  };
+  openSheet({
+    title: 'ToDo',
+    body: `
+      <label class="field"><span>Was</span>
+        <input class="input" name="title" value="${esc(t.title)}" required maxlength="120" autocomplete="off">
+      </label>
+      <div class="row">
+        <label class="field"><span>Datum</span><input class="input" type="date" name="due" value="${esc(t.due)}"></label>
+        <label class="field"><span>Uhrzeit (optional)</span><input class="input" type="time" name="time" value="${esc(t.time)}"></label>
+      </div>
+      <label class="field"><span>Notiz</span>
+        <textarea class="textarea" name="note" maxlength="500">${esc(t.note)}</textarea>
+      </label>
+      <button type="button" class="btn btn-block todo-cal-btn" data-sheet-action="calendar">${icon('calendar')}In Apple-Kalender eintragen</button>
+      <p class="muted small" style="margin:8px 0 0">${isInCalendar(t.id) ? 'Schon einmal eingetragen. Änderungen hier übernimmt der Kalender nicht von selbst – bei Bedarf neu eintragen.' : 'Ohne Uhrzeit ganztägig, mit Uhrzeit eine Stunde mit Erinnerung 15 Minuten vorher.'}</p>`,
+    submitLabel: 'Speichern',
+    footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Löschen</button>`,
+    onSubmit: (_, form) => save(form),
+    actions: {
+      calendar(_, form) {
+        if (!form.reportValidity()) return;
+        if (!form.elements.due.value) {
+          toast('Zuerst ein Datum wählen');
+          form.elements.due.focus();
+          return;
+        }
+        save(form);
+        closeSheet();
+        const item = SCOPES[cur.scope].data().todos.find((x) => x.id === id);
+        if (item) addToCalendar(item);
+        refresh(); // Kalender-Zeichen in der Liste
+      },
+      delete() {
+        cur.change((d) => { d.todos = d.todos.filter((x) => x.id !== id); });
+        closeSheet();
+      },
+    },
+  });
+}
+
+function editList(cur) {
+  const { list } = cur;
+  const count = cur.d.todos.filter((t) => t.listId === list.id).length;
+  openSheet({
+    title: 'Liste',
+    body: `
+      <label class="field"><span>Name</span>
+        <input class="input" name="name" value="${esc(list.name)}" required maxlength="60" autocomplete="off">
+      </label>
+      ${cur.scope === 'shared' ? '<p class="muted small">Umbenennen und Löschen gilt für alle im Haushalt.</p>' : ''}`,
+    submitLabel: 'Speichern',
+    footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Liste löschen</button>`,
+    onSubmit(data) {
+      const name = String(data.get('name')).trim();
+      if (!name) return false;
+      cur.change((d) => {
+        const l = d.lists.find((x) => x.id === list.id);
+        if (l) l.name = name.slice(0, 60);
+      });
+    },
+    actions: {
+      delete() {
+        if (!confirm(`„${list.name}“${count ? ` mit ${count} ToDo${count === 1 ? '' : 's'}` : ''} löschen?`)) return;
+        cur.change((d) => {
+          d.lists = d.lists.filter((x) => x.id !== list.id);
+          d.todos = d.todos.filter((x) => x.listId !== list.id);
+        });
+        open = null;
+        closeSheet();
+      },
+    },
+  });
+}
+
+export default {
+  id: 'todo',
+  title: 'ToDo',
+  icon: 'listCheck',
+
+  render() {
+    const cur = current();
+    return cur ? listView(cur.scope, cur.list, cur.d) : overview();
+  },
+
+  actions: {
+    openList(el) {
+      open = { scope: el.dataset.scope, id: el.dataset.id };
+      refresh();
+      window.scrollTo(0, 0);
+    },
+    back() {
+      open = null;
+      refresh();
+      window.scrollTo(0, 0);
+    },
+    toggle(el) {
+      current()?.change((d) => {
+        const t = d.todos.find((x) => x.id === el.dataset.id);
+        if (t) t.done = !t.done;
+      });
+    },
+    edit(el) {
+      const cur = current();
+      if (cur) editTodo(cur, el.dataset.id);
+    },
+    remove(el) {
+      current()?.change((d) => { d.todos = d.todos.filter((x) => x.id !== el.dataset.id); });
+    },
+    clearDone() {
+      const cur = current();
+      cur?.change((d) => { d.todos = d.todos.filter((x) => !(x.listId === cur.list.id && x.done)); });
+    },
+    editList() {
+      const cur = current();
+      if (cur) editList(cur);
+    },
+  },
+
+  submit: {
+    addList(form) {
+      const scope = form.dataset.scope;
+      const name = form.elements.name.value.trim();
+      if (!name) return;
+      const id = uid();
+      open = { scope, id }; // gleich die neue Liste zeigen
+      SCOPES[scope].change((d) => { d.lists.push({ id, name: name.slice(0, 60), createdAt: Date.now() }); });
+      window.scrollTo(0, 0);
+      document.getElementById('todo-input')?.focus();
+    },
+    addTodo(form) {
+      const cur = current();
+      const title = form.elements.title.value.trim();
+      if (!cur || !title) return;
+      cur.change((d) => {
+        d.todos.push({ id: uid(), listId: cur.list.id, title: title.slice(0, 120), note: '', done: false, due: '', time: '', addedAt: Date.now() });
+      });
+      document.getElementById('todo-input')?.focus();
+    },
+  },
+};
