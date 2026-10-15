@@ -427,6 +427,19 @@ button { cursor: pointer; }
 }
 .who-btn[aria-pressed="true"] { border-color: var(--accent); }
 
+/* ---------- Ziehen zum Aktualisieren (js/refresh.js) ---------- */
+.ptr {
+  position: fixed; top: calc(var(--safe-top) + 8px); left: 50%; z-index: 30;
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--card); color: var(--muted); box-shadow: var(--shadow);
+  transform: translate(-50%, -60px); opacity: 0; pointer-events: none;
+  transition: transform 0.2s, opacity 0.2s, color 0.15s;
+}
+.ptr.is-ready, .ptr.is-loading { color: var(--accent-text); }
+.ptr.is-loading .icon { animation: ptr-spin 0.8s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ptr.is-loading .icon { animation: none; } }
+
 /* ---------- Meldung ---------- */
 .toast {
   position: fixed; left: 50%; z-index: 60; transform: translate(-50%, 20px);

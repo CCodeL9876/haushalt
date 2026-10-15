@@ -2,6 +2,7 @@
 
 import { changeCode, replaceAll, resetAll, session, state, update } from '../store.js';
 import { updatePersonal } from '../personal.js';
+import { reloadApp } from '../refresh.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { todayKey } from '../dates.js';
 import { addMember } from '../login.js';
@@ -71,8 +72,15 @@ export function openSettings() {
           <label class="btn">Einspielen<input type="file" name="import" accept="application/json,.json" hidden></label>
         </div>
       </div>`,
-    footer: session.mode === 'local' ? `<button type="button" class="btn btn-danger btn-block" data-sheet-action="reset">Alles zurücksetzen</button>` : '',
+    footer: `<button type="button" class="btn btn-block" data-sheet-action="reloadApp">${icon('refresh', 'icon-sm')} App aktualisieren</button>
+      ${session.mode === 'local' ? '<button type="button" class="btn btn-danger btn-block" data-sheet-action="reset">Alles zurücksetzen</button>' : ''}`,
     actions: {
+      // Neueste Version und Daten laden – dasselbe wie oben nach unten ziehen (js/refresh.js)
+      reloadApp(btn) {
+        btn.disabled = true;
+        btn.textContent = 'Wird aktualisiert …';
+        reloadApp();
+      },
       addMember(_, form) {
         const name = form.elements.member.value.trim();
         if (!name) return form.elements.member.focus();

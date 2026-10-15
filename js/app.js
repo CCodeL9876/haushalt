@@ -14,6 +14,7 @@ import { pull, session, setSyncErrorHandler, subscribe } from './store.js';
 import { icon, toast } from './ui.js';
 import { boot, ensureMe } from './login.js';
 import { AccessError } from './remote.js';
+import { setupPullToRefresh } from './refresh.js';
 import einkauf from './views/einkauf.js';
 import todo from './views/todo.js';
 import essen from './views/essen.js';
@@ -121,6 +122,8 @@ boot(() => {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pull(); });
   window.addEventListener('online', () => pull());
 });
+
+setupPullToRefresh();
 
 // Offline-Betrieb und „Zum Home-Bildschirm“ (nur über https oder localhost)
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
