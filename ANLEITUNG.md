@@ -83,6 +83,31 @@ Persönliche Listen brauchen nichts davon: Sie liegen nur auf dem jeweiligen Ger
 („Wer bist du?“), und gehen weder in die Datenbank noch in die Sicherung. Dafür erscheinen sie auch nicht
 auf einem zweiten Gerät derselben Person.
 
+## 7. Claude fragen (Rezeptideen zu vorhandenen Zutaten)
+
+Unter **Essen → Menüideen → Claude fragen** gibt man an, was zu Hause ist (und optional Wünsche wie
+„vegetarisch, schnell“), und bekommt vier Rezeptvorschläge mit Zutaten, Zubereitung und dem, was noch fehlt.
+Ein Vorschlag lässt sich als Menüidee speichern, das Fehlende direkt auf die Einkaufsliste setzen.
+
+Dafür braucht es einen eigenen Schlüssel bei Anthropic (dem Anbieter von Claude) und eine zweite kleine Funktion
+in Supabase. Der Schlüssel liegt nur in Supabase, nie in der App.
+
+1. Auf [platform.claude.com](https://platform.claude.com) ein Konto anlegen, unter **Billing** etwas Guthaben
+   laden (z. B. 5 Dollar) und unter **API Keys** einen Schlüssel erstellen. Optional unter **Limits** ein
+   Monatslimit setzen, damit nie mehr ausgegeben wird als gewollt.
+2. Im Supabase-Dashboard das Haushalt-Projekt öffnen → **Edge Functions** → **Secrets** → neues Secret
+   `ANTHROPIC_API_KEY` mit dem Schlüssel aus Schritt 1.
+3. **Edge Functions** → **Deploy a new function** → **Via Editor**, Name genau `recipe-ideas`, den Inhalt von
+   [supabase/functions/recipe-ideas/index.ts](supabase/functions/recipe-ideas/index.ts) hineinkopieren →
+   **Deploy function**.
+4. Wie bei `recipe-import` die JWT-Prüfung der Funktion ausschalten. Geschützt ist sie trotzdem: Sie antwortet
+   nur mit dem Haushalt-Schlüssel und dem richtigen Zugangscode, also nur euch.
+
+**Kosten:** Eine Anfrage kostet bei Anthropic etwa 5–10 Rappen (Schätzung; abgerechnet wird nach Textlänge).
+**Datenschutz:** An Anthropic gehen nur die eingegebenen Zutaten und Wünsche sowie die Namen eurer Menüideen
+(damit keine doppelt vorgeschlagen werden) – keine Namen von Personen, keine Einkaufs- oder Kostendaten.
+Funktioniert nur im gemeinsamen Haushalt, nicht in der lokalen Version ohne Supabase.
+
 ## Gut zu wissen
 
 - **Code ändern:** In der App unter Haushalt → Zugang. Alle anderen Geräte werden beim nächsten Abgleich

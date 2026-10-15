@@ -8,6 +8,7 @@ import { todayKey } from '../dates.js';
 import { shopIngredients } from './einkauf.js';
 import { importRecipe, normalizeUrl, recipeImportAvailable } from '../recipes.js';
 import { SLOTS, setMeal } from './wochenplan.js';
+import { askRecipeIdeas, ideasAvailable } from '../ai.js';
 
 const splitList = (text, sep) => String(text || '').split(sep).map((x) => x.trim()).filter(Boolean);
 const searchText = (i) => [i.title, ...i.tags, ...i.ingredients].join(' ').toLowerCase();
@@ -31,6 +32,9 @@ function editIdea(id) {
       </label>
       <label class="field"><span>Zutaten (eine pro Zeile)</span>
         <textarea class="textarea" name="ingredients" placeholder="Reis&#10;Zwiebel&#10;Bouillon">${esc(idea?.ingredients.join('\n'))}</textarea>
+      </label>
+      <label class="field"><span>Zubereitung (ein Schritt pro Zeile)</span>
+        <textarea class="textarea" name="steps" placeholder="Zwiebel andünsten&#10;Reis dazugeben …">${esc((idea?.steps || []).join('\n'))}</textarea>
       </label>
       <label class="field"><span>Stichworte (mit Komma getrennt)</span>
         <input class="input" name="tags" value="${esc(idea?.tags.join(', '))}" placeholder="Vegi, Schnell" autocomplete="off">
@@ -83,6 +87,7 @@ function editIdea(id) {
         url: normalizeUrl(data.get('url')),
         title: String(data.get('title')).trim(),
         ingredients: splitList(data.get('ingredients'), /\n/),
+        steps: splitList(data.get('steps'), /\n/),
         tags: splitList(data.get('tags'), ','),
         note: String(data.get('note') || '').trim(),
       };
@@ -92,6 +97,82 @@ function editIdea(id) {
       });
     },
   });
+}
+
+// ---------- Claude fragen ----------
+
+let lastAsk = { ingredients: '', wishes: '' }; // bleibt stehen, falls man nochmals fragen will
+
+const ideaCard = (r, n) => `
+  <article class="card ai-idea">
+    <h3>${esc(r.title)}</h3>
+    ${r.description ? `<p class="small" style="margin:2px 0 6px">${esc(r.description)}</p>` : ''}
+    <div class="muted small">${esc([r.minutes && `${r.minutes} Min.`, r.servings && `${r.servings} Pers.`, `${r.ingredients.length} Zutaten`].filter(Boolean).join(' · '))}</div>
+    ${r.tags.length ? `<div class="chips">${r.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
+    ${r.missing.length ? `<p class="small ai-missing">Fehlt noch: ${esc(r.missing.join(', '))}</p>` : '<p class="small ai-missing">Alles da (ausser Grundzutaten)</p>'}
+    <details class="ai-more"><summary>Zutaten und Zubereitung</summary>
+      <ul>${r.ingredients.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      <ol>${r.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
+    </details>
+    <div class="row">
+      <button type="button" class="btn btn-sm btn-primary" data-sheet-action="save" data-i="${n}">${icon('plus', 'icon-sm')} Als Menüidee</button>
+      ${r.missing.length ? `<button type="button" class="btn btn-sm" data-sheet-action="shop" data-i="${n}">${icon('cart', 'icon-sm')} Fehlendes</button>` : ''}
+    </div>
+  </article>`;
+
+function askClaude() {
+  let results = [];
+  const form = openSheet({
+    title: 'Claude fragen',
+    body: `
+      <label class="field"><span>Was hast du da?</span>
+        <textarea class="textarea" name="ingredients" required maxlength="600" placeholder="z. B. Kartoffeln, Lauch, Rahm, Eier, Speck">${esc(lastAsk.ingredients)}</textarea>
+      </label>
+      <label class="field"><span>Wünsche (optional)</span>
+        <input class="input" name="wishes" maxlength="200" value="${esc(lastAsk.wishes)}" placeholder="z. B. vegetarisch, schnell, für 2" autocomplete="off">
+      </label>
+      <p class="muted small" style="margin:-4px 0 0">${ideasAvailable()
+        ? 'An Claude (Anthropic) gehen nur diese Angaben und die Namen eurer Menüideen, damit nichts doppelt kommt.'
+        : 'Geht nur im gemeinsamen Haushalt mit Supabase – siehe ANLEITUNG.md, „Claude fragen“.'}</p>
+      <div class="ai-results" aria-live="polite"></div>`,
+    submitLabel: 'Ideen holen',
+    onSubmit(data, f) {
+      lastAsk = { ingredients: String(data.get('ingredients')).trim(), wishes: String(data.get('wishes') || '').trim() };
+      const out = f.querySelector('.ai-results');
+      const btn = f.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Claude überlegt …';
+      out.innerHTML = '<p class="muted small ai-wait">Das dauert meist 10–30 Sekunden.</p>';
+      askRecipeIdeas({ ...lastAsk, existing: state.ideas.map((i) => i.title) })
+        .then((ideas) => {
+          results = ideas;
+          out.innerHTML = `<h2 class="section-title">${ideas.length} Vorschläge</h2>${ideas.map(ideaCard).join('')}`;
+          out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        })
+        .catch((err) => { out.innerHTML = `<p class="small amount-minus">${esc(err.message)}</p>`; })
+        .finally(() => {
+          btn.disabled = false;
+          btn.textContent = 'Nochmals fragen';
+        });
+      return false; // Fenster bleibt offen und zeigt die Vorschläge
+    },
+    actions: {
+      save(btn) {
+        const r = results[Number(btn.dataset.i)];
+        if (!r) return;
+        const note = [r.servings && `${r.servings} Personen`, r.minutes && `${r.minutes} Min.`].filter(Boolean).join(' · ');
+        update((s) => { s.ideas.unshift({ id: uid(), title: r.title, ingredients: r.ingredients, steps: r.steps, tags: r.tags, note }); });
+        btn.disabled = true;
+        btn.innerHTML = `${icon('check', 'icon-sm')} Gespeichert`;
+        toast(`„${r.title}“ bei den Menüideen`);
+      },
+      shop(btn) {
+        const r = results[Number(btn.dataset.i)];
+        if (r) shopIngredients(r.missing, `für ${r.title}`);
+      },
+    },
+  });
+  form.elements.ingredients.focus();
 }
 
 function planIdea(idea) {
@@ -119,6 +200,11 @@ export default {
 
   render() {
     return `
+      <button type="button" class="ask-claude" data-action="ask">
+        ${icon('sparkles')}
+        <span><strong>Claude fragen</strong><small>Zutaten angeben, Rezeptideen bekommen</small></span>
+        ${icon('right', 'icon-sm')}
+      </button>
       <div class="search">
         ${icon('search')}
         <input class="input" type="search" data-input="filter" placeholder="Gericht, Zutat oder Stichwort" autocomplete="off" aria-label="Menüideen durchsuchen">
@@ -126,7 +212,7 @@ export default {
       ${state.ideas.length ? [...state.ideas].sort((a, b) => a.title.localeCompare(b.title, 'de')).map((i) => `
         <button type="button" class="card idea" data-action="edit" data-id="${i.id}" data-search="${esc(searchText(i))}">
           <h3>${esc(i.title)}</h3>
-          <div class="muted small">${i.ingredients.length} Zutaten${i.url ? ' · mit Rezept' : ''}</div>
+          <div class="muted small">${i.ingredients.length} Zutaten${i.steps?.length ? ' · mit Zubereitung' : i.url ? ' · mit Rezept' : ''}</div>
           ${i.note ? `<p class="small">${esc(i.note)}</p>` : ''}
           ${i.tags.length ? `<div class="chips">${i.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
         </button>`).join('')
@@ -137,6 +223,7 @@ export default {
 
   actions: {
     edit(el) { editIdea(el.dataset.id); },
+    ask() { askClaude(); },
   },
 
   // Suche filtert direkt in der Seite – kein Neuzeichnen, damit die Tastatur offen bleibt

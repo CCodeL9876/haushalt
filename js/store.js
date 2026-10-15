@@ -10,7 +10,7 @@
 //   terms     [{ id, name, count, lastUsed, aisle? }]   Begriffe für die Vorschläge beim Einkauf: jeder Artikel, der
 //             einmal auf der Liste war; id = Name klein geschrieben (termKey), damit jeder Begriff nur einmal vorkommt.
 //             aisle: von Hand gewählte Abteilung im Laden (sonst am Namen erkannt, siehe js/aisles.js)
-//   ideas     [{ id, title, ingredients: [text], tags: [text], note, url? }]   url: Link zum Rezept (Einlesen: js/recipes.js)
+//   ideas     [{ id, title, ingredients: [text], steps?: [text], tags: [text], note, url? }]   url: Link zum Rezept (Einlesen: js/recipes.js)
 //   plan      { 'JJJJ-MM-TT': { mittag: { title, ideaId }, abend: { … } } }
 //   expenses  [{ id, kind: 'expense' | 'transfer', title, amount (Rappen/Cent), payerId, splitIds, category, date }]
 //             Eine Ausgleichszahlung (transfer) ist „payerId zahlt splitIds[0]“.

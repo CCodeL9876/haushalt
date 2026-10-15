@@ -334,6 +334,26 @@ button { cursor: pointer; }
 .todo-cal { color: var(--accent-text); display: grid; }
 .todo-cal-btn { background: var(--suggest-bg); color: var(--suggest-text); }
 
+/* ---------- Claude fragen (Menüideen) ---------- */
+.ask-claude {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 12px; padding: 12px 14px;
+  border: 0; border-radius: var(--radius); background: var(--suggest-bg); color: var(--suggest-text); text-align: left; box-shadow: var(--shadow);
+}
+.ask-claude > .icon { color: var(--suggest-icon); }
+.ask-claude span { flex: 1; min-width: 0; }
+.ask-claude strong { display: block; font-size: 16px; }
+.ask-claude small { display: block; font-size: 13px; opacity: 0.8; }
+.ai-results .section-title { margin-top: 18px; }
+.ai-idea { box-shadow: inset 0 0 0 1px var(--line); }
+.ai-idea h3 { margin: 0; font-size: 17px; }
+.ai-idea .chips { gap: 6px; margin-top: 8px; }
+.ai-missing { margin: 8px 0 0; color: var(--text-soft); }
+.ai-more { margin: 8px 0 10px; font-size: 14px; }
+.ai-more summary { cursor: pointer; font-weight: 600; color: var(--accent-text); min-height: 32px; display: flex; align-items: center; }
+.ai-more ul, .ai-more ol { margin: 6px 0; padding-left: 20px; }
+.ai-more li { margin: 2px 0; }
+.ai-wait { text-align: center; padding: 18px 0; }
+
 /* ---------- Kosten ---------- */
 .hero-number { font-size: 38px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .bars { display: grid; gap: 12px; margin-top: 14px; }
