@@ -11,6 +11,10 @@ import { SLOTS, setMeal } from './wochenplan.js';
 import { askRecipeIdeas, ideasAvailable } from '../ai.js';
 
 const splitList = (text, sep) => String(text || '').split(sep).map((x) => x.trim()).filter(Boolean);
+// Suchbegriff merken: Die Ansicht wird neu gezeichnet, wenn jemand anderes etwas ändert – die Suche bleibt dann stehen
+let query = '';
+const matches = (i) => !query || searchText(i).includes(query);
+
 const searchText = (i) => [i.title, ...i.tags, ...i.ingredients].join(' ').toLowerCase();
 
 function editIdea(id) {
@@ -207,17 +211,17 @@ export default {
       </button>
       <div class="search">
         ${icon('search')}
-        <input class="input" type="search" data-input="filter" placeholder="Gericht, Zutat oder Stichwort" autocomplete="off" aria-label="Menüideen durchsuchen">
+        <input class="input" type="search" data-input="filter" value="${esc(query)}" placeholder="Gericht, Zutat oder Stichwort" autocomplete="off" aria-label="Menüideen durchsuchen">
       </div>
       ${state.ideas.length ? [...state.ideas].sort((a, b) => a.title.localeCompare(b.title, 'de')).map((i) => `
-        <button type="button" class="card idea" data-action="edit" data-id="${i.id}" data-search="${esc(searchText(i))}">
+        <button type="button" class="card idea" data-action="edit" data-id="${i.id}" data-search="${esc(searchText(i))}" ${matches(i) ? '' : 'hidden'}>
           <h3>${esc(i.title)}</h3>
           <div class="muted small">${i.ingredients.length} Zutaten${i.steps?.length ? ' · mit Zubereitung' : i.url ? ' · mit Rezept' : ''}</div>
           ${i.note ? `<p class="small">${esc(i.note)}</p>` : ''}
           ${i.tags.length ? `<div class="chips">${i.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
         </button>`).join('')
         : `<div class="empty"><strong>Noch keine Ideen</strong>Mit + das erste Lieblingsgericht anlegen.</div>`}
-      <p class="empty" data-no-results hidden>Nichts gefunden.</p>
+      <p class="empty" data-no-results ${query && state.ideas.length && !state.ideas.some(matches) ? '' : 'hidden'}>Nichts gefunden.</p>
       <button type="button" class="fab" data-action="edit" aria-label="Neue Menüidee">${icon('plus')}</button>`;
   },
 
@@ -230,6 +234,7 @@ export default {
   input: {
     filter(el, root) {
       const q = el.value.trim().toLowerCase();
+      query = q;
       let visible = 0;
       for (const card of root.querySelectorAll('[data-search]')) {
         card.hidden = q && !card.dataset.search.includes(q);

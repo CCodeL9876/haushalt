@@ -160,6 +160,11 @@ let synced = new Map(); // Stand, den die Datenbank kennt: 'collection/id' → s
 let queue = Promise.resolve(true);
 let version = 0; // zählt lokale Änderungen – ein Abgleich, der währenddessen lief, wird verworfen
 let onSyncError = () => {};
+// Wer alle Zeilen der Datenbank sehen will (z. B. verschlüsselte persönliche Listen, js/personal.js)
+let onRows = () => {};
+export const setRowsListener = (fn) => { onRows = fn; };
+// Direkter Zugriff auf die Datenbank für Zeilen ausserhalb von state (nur im gemeinsamen Haushalt)
+export const sharedRemote = () => (session.mode === 'shared' && !session.offline ? remote : null);
 export const setSyncErrorHandler = (fn) => { onSyncError = fn; };
 
 const listeners = new Set();
@@ -194,6 +199,7 @@ export async function startShared(r, name, { offline = false } = {}) {
   Object.assign(state, fromRows(rows));
   synced = signatures(state);
   saveCache();
+  onRows(rows);
 }
 
 // Lokale Änderungen hochladen (nacheinander, nie zwei gleichzeitig). Ergibt true, wenn alles oben ist.
@@ -259,8 +265,9 @@ export async function pull() {
     session.offline = true;
     return;
   }
-  if (version !== before) return; // inzwischen lokal geändert → beim nächsten Abgleich
   session.offline = false;
+  onRows(rows);
+  if (version !== before) return; // inzwischen lokal geändert → beim nächsten Abgleich
   const next = fromRows(rows);
   const nextSig = signatures(next);
   const changed = !sameSignatures(nextSig, signatures(state));

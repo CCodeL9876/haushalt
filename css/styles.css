@@ -335,6 +335,7 @@ button { cursor: pointer; }
 .todo-hint { display: flex; align-items: center; gap: 6px; margin: -2px 4px 8px; }
 .todo-hint .icon-sm { width: 15px; height: 15px; color: var(--section-text); }
 .todo-add-list { margin-top: 8px; }
+.todo-sync { margin: 2px 0 0; padding: 0 4px; }
 .todo-head { display: flex; align-items: center; gap: 4px; margin: 0 -8px 10px; }
 .todo-head-title { flex: 1; min-width: 0; text-align: center; }
 .todo-head-title strong { display: block; font-size: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

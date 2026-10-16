@@ -3,7 +3,7 @@
 // in den Apple-Kalender eintragen (js/calendar.js).
 
 import { refresh, state, update, uid } from '../store.js';
-import { personal, updatePersonal } from '../personal.js';
+import { disableSync, enableSync, personal, remoteCopyExists, syncAvailable, syncEnabled, syncWasLost, updatePersonal } from '../personal.js';
 import { addToCalendar, isInCalendar } from '../calendar.js';
 import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
@@ -22,7 +22,24 @@ const SCOPES = {
   personal: { data: personal, change: updatePersonal },
 };
 
-let open = null; // { scope, id } der geöffneten Liste, sonst Übersicht
+// { scope, id } der geöffneten Liste, sonst Übersicht. Bleibt beim Aktualisieren der App erhalten (sessionStorage:
+// gilt nur für dieses Fenster und verschwindet, wenn die App ganz geschlossen wird).
+const OPEN_KEY = 'haushalt.todoOpen';
+let open = (() => {
+  try {
+    const o = JSON.parse(sessionStorage.getItem(OPEN_KEY) || 'null');
+    return o && (o.scope === 'shared' || o.scope === 'personal') && typeof o.id === 'string' ? o : null;
+  } catch {
+    return null;
+  }
+})();
+function setOpen(value) {
+  open = value;
+  try {
+    if (value) sessionStorage.setItem(OPEN_KEY, JSON.stringify(value));
+    else sessionStorage.removeItem(OPEN_KEY);
+  } catch { /* privates Fenster */ }
+}
 
 // Offene zuerst nach Datum (ohne Datum zuletzt), dann die neuesten
 const byDue = (a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (a.time || '99').localeCompare(b.time || '99') || (b.addedAt || 0) - (a.addedAt || 0);
@@ -67,7 +84,99 @@ function overview() {
     </form>`;
   return `
     ${section('shared', shared, 'Geteilt', 'Alle im Haushalt sehen und bearbeiten diese Listen.', 'Neue geteilte Liste')}
-    ${section('personal', mine, 'Nur für mich', 'Nur auf diesem Gerät gespeichert – niemand sonst sieht sie.', 'Neue persönliche Liste')}`;
+    ${section('personal', mine, 'Nur für mich', syncEnabled()
+      ? 'Verschlüsselt auf deinen Geräten abgeglichen – niemand sonst kann sie lesen.'
+      : 'Nur auf diesem Gerät gespeichert – niemand sonst sieht sie.', 'Neue persönliche Liste')}
+    ${syncWasLost() ? '<p class="small amount-minus todo-hint">Auf einem anderen Gerät wurde ein neues Passwort gesetzt. Abgleich hier neu einrichten.</p>' : ''}
+    ${syncAvailable() ? `<button type="button" class="btn btn-ghost btn-sm todo-sync" data-action="sync">${icon('refresh', 'icon-sm')} ${syncEnabled() ? 'Abgleich verwalten' : 'Auf meinen Geräten abgleichen'}</button>` : ''}`;
+}
+
+// ---------- Persönliche Listen auf mehreren Geräten (verschlüsselt, js/personal.js) ----------
+
+function syncSheet() {
+  if (syncEnabled()) {
+    openSheet({
+      title: 'Abgleich',
+      body: `
+        <p class="small">Deine persönlichen Listen werden auf deinen Geräten abgeglichen. In der Datenbank liegen sie nur
+        verschlüsselt mit deinem Passwort – die anderen im Haushalt können sie nicht lesen.</p>
+        <p class="muted small">Auf einem weiteren Gerät: dort unter ToDo „Auf meinen Geräten abgleichen“ wählen und dasselbe Passwort eingeben.</p>`,
+      footer: `
+        <button type="button" class="btn btn-block" data-sheet-action="off">Abgleich auf diesem Gerät beenden</button>
+        <button type="button" class="btn btn-danger btn-block" data-sheet-action="wipe">Beenden und Kopie in der Datenbank löschen</button>`,
+      actions: {
+        async off() {
+          await disableSync();
+          closeSheet();
+          toast('Abgleich beendet – die Listen bleiben auf diesem Gerät');
+        },
+        async wipe() {
+          if (!confirm('Die verschlüsselte Kopie in der Datenbank löschen? Deine anderen Geräte gleichen dann nicht mehr ab; ihre Listen bleiben dort.')) return;
+          try {
+            await disableSync({ removeRemote: true });
+            closeSheet();
+            toast('Abgleich beendet, Kopie gelöscht');
+          } catch {
+            toast('Gerade keine Verbindung – später nochmals versuchen');
+          }
+        },
+      },
+    });
+    return;
+  }
+  const existing = remoteCopyExists();
+  const form = openSheet({
+    title: 'Auf meinen Geräten abgleichen',
+    body: `
+      <p class="small" style="margin-top:0">Deine persönlichen Listen werden mit einem <strong>eigenen Passwort</strong> verschlüsselt und so
+      über die Datenbank auf deine anderen Geräte gebracht. Die anderen im Haushalt sehen nur unlesbaren Text.</p>
+      <label class="field"><span>${existing ? 'Passwort von deinem anderen Gerät' : 'Neues Passwort (mindestens 8 Zeichen)'}</span>
+        <input class="input" type="password" name="password" required minlength="8" autocomplete="${existing ? 'current-password' : 'new-password'}">
+      </label>
+      ${existing ? '' : `<label class="field"><span>Passwort wiederholen</span>
+        <input class="input" type="password" name="repeat" required minlength="8" autocomplete="new-password">
+      </label>`}
+      <p class="muted small">Gut merken: Ohne das Passwort lässt sich die Kopie in der Datenbank nicht mehr öffnen. Die Listen auf diesem Gerät bleiben in jedem Fall.</p>
+      <p class="small amount-minus sync-error" aria-live="polite"></p>`,
+    submitLabel: 'Abgleich einschalten',
+    footer: existing ? '<button type="button" class="btn btn-block" data-sheet-action="fresh" hidden>Passwort vergessen: neu beginnen</button>' : '',
+    onSubmit(data, f) {
+      const password = String(data.get('password'));
+      if (!existing && password !== String(data.get('repeat'))) {
+        f.querySelector('.sync-error').textContent = 'Die beiden Passwörter sind nicht gleich.';
+        return false;
+      }
+      run(f, () => enableSync(password));
+      return false;
+    },
+    actions: {
+      fresh(_, f) {
+        if (!confirm('Die alte Kopie in der Datenbank wird durch die Listen dieses Geräts ersetzt (mit dem eingegebenen Passwort). Deine anderen Geräte müssen danach dieses Passwort eingeben. Weiter?')) return;
+        if (!f.reportValidity()) return;
+        run(f, () => enableSync(String(f.elements.password.value), { replace: true }));
+      },
+    },
+  });
+  form.elements.password.focus();
+}
+
+async function run(form, task) {
+  const btn = form.querySelector('button[type="submit"]');
+  const error = form.querySelector('.sync-error');
+  btn.disabled = true;
+  btn.textContent = 'Wird verschlüsselt …';
+  error.textContent = '';
+  try {
+    await task();
+    closeSheet();
+    toast('Abgleich eingeschaltet');
+  } catch (err) {
+    error.textContent = err.message;
+    if (err.wrongPassword) form.querySelector('[data-sheet-action="fresh"]')?.removeAttribute('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Abgleich einschalten';
+  }
 }
 
 // ---------- Eine Liste ----------
@@ -115,7 +224,7 @@ function current() {
   if (!open) return null;
   const d = SCOPES[open.scope].data();
   const list = d.lists.find((l) => l.id === open.id);
-  if (!list) open = null;
+  if (!list) setOpen(null);
   return list ? { scope: open.scope, list, d, change: SCOPES[open.scope].change } : null;
 }
 
@@ -205,7 +314,7 @@ function editList(cur) {
           d.lists = d.lists.filter((x) => x.id !== list.id);
           d.todos = d.todos.filter((x) => x.listId !== list.id);
         });
-        open = null;
+        setOpen(null);
         closeSheet();
       },
     },
@@ -223,13 +332,14 @@ export default {
   },
 
   actions: {
+    sync() { syncSheet(); },
     openList(el) {
-      open = { scope: el.dataset.scope, id: el.dataset.id };
+      setOpen({ scope: el.dataset.scope, id: el.dataset.id });
       refresh();
       window.scrollTo(0, 0);
     },
     back() {
-      open = null;
+      setOpen(null);
       refresh();
       window.scrollTo(0, 0);
     },
@@ -262,7 +372,7 @@ export default {
       const name = form.elements.name.value.trim();
       if (!name) return;
       const id = uid();
-      open = { scope, id }; // gleich die neue Liste zeigen
+      setOpen({ scope, id }); // gleich die neue Liste zeigen
       SCOPES[scope].change((d) => { d.lists.push({ id, name: name.slice(0, 60), createdAt: Date.now() }); });
       window.scrollTo(0, 0);
       document.getElementById('todo-input')?.focus();

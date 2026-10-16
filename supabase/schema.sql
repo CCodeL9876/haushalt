@@ -24,17 +24,17 @@ revoke all on public.households from anon, authenticated;
 -- Alle Einträge eines Haushalts: eine Zeile pro Eintrag, Inhalt als JSON (Aufbau siehe js/store.js)
 create table if not exists public.items (
   household_key  text not null references public.households (key) on delete cascade,
-  collection     text not null check (collection in ('members', 'shopping', 'terms', 'ideas', 'plan', 'expenses', 'settings', 'todolists', 'todos')),
+  collection     text not null check (collection in ('members', 'shopping', 'terms', 'ideas', 'plan', 'expenses', 'settings', 'todolists', 'todos', 'private')),
   id             text not null check (char_length(id) between 1 and 64),
   data           jsonb not null check (pg_column_size(data) <= 50000),
   updated_at     timestamptz not null default now(),
   primary key (household_key, collection, id)
 );
 alter table public.items enable row level security;
--- Für eine schon bestehende Tabelle: erlaubte Sammlungen auf den aktuellen Stand bringen (neu: todolists, todos)
+-- Für eine schon bestehende Tabelle: erlaubte Sammlungen auf den aktuellen Stand bringen (neu: todolists, todos, private)
 alter table public.items drop constraint if exists items_collection_check;
 alter table public.items add constraint items_collection_check
-  check (collection in ('members', 'shopping', 'terms', 'ideas', 'plan', 'expenses', 'settings', 'todolists', 'todos'));
+  check (collection in ('members', 'shopping', 'terms', 'ideas', 'plan', 'expenses', 'settings', 'todolists', 'todos', 'private'));
 
 create or replace function public.touch_updated_at()
 returns trigger

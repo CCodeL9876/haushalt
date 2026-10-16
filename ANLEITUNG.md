@@ -74,14 +74,17 @@ kann man von Hand einfügen (eine pro Zeile, gern mit Menge: „400 g Kartoffeln
 
 ## 6. ToDo-Listen freischalten (einmalig, für bestehende Datenbanken)
 
-Geteilte ToDo-Listen brauchen zwei neue Sammlungen in der Datenbank. Wer die Datenbank schon vorher eingerichtet hat:
+Geteilte ToDo-Listen (und der Abgleich persönlicher Listen) brauchen neue Sammlungen in der Datenbank. Wer die Datenbank schon vorher eingerichtet hat:
 **SQL Editor** → **New query** → den ganzen Inhalt von [supabase/schema.sql](supabase/schema.sql) nochmals einfügen →
 **Run**. Das ist gefahrlos: Bestehende Daten bleiben, nur die erlaubten Sammlungen werden ergänzt.
 Bis dahin meldet die App beim Speichern einer geteilten Liste „Nicht gespeichert“.
 
-Persönliche Listen brauchen nichts davon: Sie liegen nur auf dem jeweiligen Gerät, getrennt pro Person
-(„Wer bist du?“), und gehen weder in die Datenbank noch in die Sicherung. Dafür erscheinen sie auch nicht
-auf einem zweiten Gerät derselben Person.
+Persönliche Listen liegen zunächst nur auf dem jeweiligen Gerät, getrennt pro Person („Wer bist du?“), und nie
+in der Sicherung. Wer sie auf mehreren eigenen Geräten haben will (z. B. iPhone und iPad), tippt unter ToDo auf
+**„Auf meinen Geräten abgleichen“** und wählt ein eigenes Passwort; auf dem zweiten Gerät dasselbe Passwort
+eingeben. Die Listen gehen dann **verschlüsselt** in die Datenbank (AES-256, Schlüssel aus dem Passwort, direkt
+im Browser) – die anderen im Haushalt und Supabase sehen nur unlesbaren Text. Das Passwort wird nirgends
+gespeichert; vergessen heisst: auf einem Gerät „neu beginnen“ und auf den anderen das neue Passwort eingeben.
 
 ## 7. Claude fragen (Rezeptideen zu vorhandenen Zutaten)
 
