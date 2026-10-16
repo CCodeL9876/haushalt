@@ -1,0 +1,8 @@
+// Farbdesigns für die Auswahl unter Haushalt → Farbdesign – erzeugt von tools/make-palettes.py.
+export const PALETTES = [
+  { id: 'creme', name: 'Creme', swatches: ['#FDFBD4', '#BDB96A', '#C1BFFF', '#CF6DFC'] },
+  { id: 'neon', name: 'Neon', swatches: ['#CCFF00', '#FF6B00', '#F900FF', '#5200FF'] },
+  { id: 'fruehling', name: 'Frühling', swatches: ['#89F336', '#38A711', '#F23598', '#A835F2'] },
+  { id: 'pastell', name: 'Pastell', swatches: ['#81D8D0', '#D99E82', '#D7D982', '#AE82D9'] },
+  { id: 'garten', name: 'Garten', swatches: ['#A8DCAB', '#519755', '#DBAAA7', '#BE91BE'] },
+];

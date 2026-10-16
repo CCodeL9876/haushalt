@@ -60,6 +60,7 @@
   --tile-3-bg: #F3DDFE;
   --tile-3-badge: #E2A8FD;
   --tile-text: #23221A;
+  --tile-badge-text: #1E1530;
 
   --radius-sm: 10px;
   --radius: 14px;
@@ -121,6 +122,9 @@
 }
 
 * { box-sizing: border-box; }
+/* Nie seitlich verschiebbar: was über den Rand ragt, wird abgeschnitten. „clip“ statt „hidden“, damit die
+   oben haftende Kopfzeile (position: sticky) weiter funktioniert */
+html, body { overflow-x: clip; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
@@ -356,7 +360,7 @@ button { cursor: pointer; }
 .list-tile > button:active { filter: brightness(0.96); }
 .tile-count {
   width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center;
-  background: var(--tile-badge); color: #1E1530; font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums;
+  background: var(--tile-badge); color: var(--tile-badge-text); font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums;
 }
 .tile-main { flex: 1; min-width: 0; }
 .tile-main strong { display: block; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -485,6 +489,17 @@ button { cursor: pointer; }
 }
 .who-btn[aria-pressed="true"] { border-color: var(--accent); }
 
+/* ---------- Farbdesign (Haushalt → Farbdesign) ---------- */
+.palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.palette-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px;
+  border: 2px solid var(--line); border-radius: var(--radius-sm); background: var(--card); text-align: left;
+}
+.palette-btn[aria-pressed="true"] { border-color: var(--accent-text); box-shadow: 0 0 0 2px var(--accent-tint); }
+.palette-dots { display: flex; }
+.palette-dots i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--card); margin-right: -6px; }
+.palette-name { font-size: 15px; font-weight: 650; }
+
 /* ---------- Ziehen zum Aktualisieren (js/refresh.js) ---------- */
 .ptr {
   position: fixed; top: calc(var(--safe-top) + 8px); left: 50%; z-index: 30;
@@ -499,11 +514,13 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .ptr.is-loading .icon { animation: none; } }
 
 /* ---------- Meldung ---------- */
+/* Zentriert über left/right + margin statt left: 50% + translate: Safari auf dem iPhone zählt sonst die (auch
+   unsichtbare) Meldung als zu breit, und die Seite lässt sich seitlich verschieben */
 .toast {
-  position: fixed; left: 50%; z-index: 60; transform: translate(-50%, 20px);
+  position: fixed; left: 16px; right: 16px; z-index: 60; transform: translateY(20px);
   bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 18px);
-  max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 999px;
+  width: fit-content; max-width: calc(100% - 32px); margin: 0 auto; padding: 10px 16px; border-radius: 999px;
   background: var(--text); color: var(--bg); font-size: 15px; font-weight: 550;
   opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
 }
-.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.toast.is-visible { opacity: 1; transform: translateY(0); }

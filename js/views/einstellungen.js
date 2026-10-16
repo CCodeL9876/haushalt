@@ -1,4 +1,4 @@
-// Fenster „Haushalt“ (Knopf oben rechts): Personen, Zugang (Link, Code), Währung, Kategorien, Sicherung.
+// Fenster „Haushalt“ (Knopf oben rechts): Personen, Zugang (Link, Code), Farbdesign, Währung, Kategorien, Sicherung.
 
 import { changeCode, replaceAll, resetAll, session, state, update } from '../store.js';
 import { updatePersonal } from '../personal.js';
@@ -9,6 +9,30 @@ import { addMember } from '../login.js';
 import { saveSession, shareLink } from '../session.js';
 import { validCodeChars } from '../remote.js';
 import { aisleLabel, aisleOrder } from '../aisles.js';
+import { PALETTES } from '../palettes.js';
+
+// Farbdesign: jedes Gerät wählt sein eigenes (localStorage). js/palette-boot.js setzt es beim Start, bevor die
+// Seite gezeichnet wird; die Farben selbst stehen in css/palettes.css (erzeugt von tools/make-palettes.py).
+const PALETTE_KEY = 'haushalt.palette';
+const currentPalette = () => {
+  try { return localStorage.getItem(PALETTE_KEY) || 'creme'; } catch { return 'creme'; }
+};
+function applyPalette(id) {
+  try { localStorage.setItem(PALETTE_KEY, id); } catch { /* privates Fenster: gilt bis zum Neuladen */ }
+  if (id === 'creme') document.documentElement.removeAttribute('data-palette');
+  else document.documentElement.setAttribute('data-palette', id);
+  // Statusleiste des iPhones in der neuen Hintergrundfarbe
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = bg;
+}
+const paletteHtml = () => {
+  const cur = currentPalette();
+  return PALETTES.map((p) => `
+    <button type="button" class="palette-btn" data-sheet-action="palette" data-id="${p.id}" aria-pressed="${p.id === cur}">
+      <span class="palette-dots" aria-hidden="true">${p.swatches.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
+      <span class="palette-name">${esc(p.name)}</span>
+    </button>`).join('');
+};
 
 // Reihenfolge der Abteilungen im Laden: Liste mit Pfeilen nach oben/unten
 const aisleListHtml = () => {
@@ -45,6 +69,9 @@ export function openSettings() {
             <button type="button" class="btn" style="width:auto;padding:0 14px" data-sheet-action="code">Ändern</button>
           </div>
         </div>` : ''}
+      <div class="field"><span>Farbdesign <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
+        <div class="palette-grid">${paletteHtml()}</div>
+      </div>
       <label class="field"><span>Währung</span>
         <select class="select" name="currency">${CURRENCIES.map((c) => `<option ${c === state.settings.currency ? 'selected' : ''}>${c}</option>`).join('')}</select>
       </label>
@@ -75,6 +102,10 @@ export function openSettings() {
     footer: `<button type="button" class="btn btn-block" data-sheet-action="reloadApp">${icon('refresh', 'icon-sm')} App aktualisieren</button>
       ${session.mode === 'local' ? '<button type="button" class="btn btn-danger btn-block" data-sheet-action="reset">Alles zurücksetzen</button>' : ''}`,
     actions: {
+      palette(btn) {
+        applyPalette(btn.dataset.id);
+        for (const b of document.querySelectorAll('#sheet .palette-btn')) b.setAttribute('aria-pressed', String(b === btn));
+      },
       // Neueste Version und Daten laden – dasselbe wie oben nach unten ziehen (js/refresh.js)
       reloadApp(btn) {
         btn.disabled = true;

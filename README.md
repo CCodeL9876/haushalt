@@ -9,7 +9,7 @@ Web-App fürs iPhone für den gemeinsamen Haushalt. Reines HTML, CSS und JavaScr
 | Essen → Wochenplan | `js/views/wochenplan.js` | Mo–So, Mittag und Abend; Zutaten der Woche auf die Einkaufsliste |
 | Essen → Menüideen | `js/views/ideen.js` | Gerichte mit Zutaten, Zubereitung und Stichworten, Suche; „Claude fragen“: Rezeptideen zu vorhandenen Zutaten (`js/ai.js`, Supabase-Funktion `recipe-ideas`); „Planen“ und „Einkaufen“; Rezept per Link einlesen (`js/recipes.js`, Supabase-Funktion `recipe-import`); vor dem Einkaufen Zutaten auswählen, Mengen werden zur Notiz (`js/ingredients.js`) |
 | Abrechnung | `js/views/abrechnung.js` | Wer schuldet wem wie viel; fortlaufende Liste aller Rechnungen (ganz oder geteilt) und Zahlungen mit Notiz, Datum, Zahlungsart (Twint, Neon …) und laufendem Stand (`js/settle.js`); `#kosten` führt hierher |
-| Haushalt (oben rechts) | `js/views/einstellungen.js` | Personen, Währung, Zahlungsarten, Sicherung als JSON |
+| Haushalt (oben rechts) | `js/views/einstellungen.js` | Personen, Farbdesign (pro Gerät), Währung, Zahlungsarten, Sicherung als JSON |
 
 ## Starten
 
@@ -39,3 +39,11 @@ ohne Anmeldung und nur lokal (mit Beispieldaten).
 - Essen (`js/views/essen.js`) fasst Wochenplan und Menüideen unter einem Tab zusammen (Umschalter oben); `#woche` und `#ideen` führen direkt zum jeweiligen Teil.
 
 Beim ersten Start sind Beispieldaten drin (Anna, Ben, drei Menüideen). „Haushalt → Alles zurücksetzen“ leert alles.
+
+## Farbdesigns
+
+Standard ist „Creme“ (Farben in `css/styles.css`, `:root`). Weitere Designs wählt jedes Gerät selbst unter
+**Haushalt → Farbdesign**; `js/palette-boot.js` setzt die Wahl beim Start, bevor die Seite gezeichnet wird.
+Die Farbwerte der weiteren Designs erzeugt `tools/make-palettes.py` aus je vier Grundfarben (hell und dunkel,
+mit Kontrastprüfung) nach `css/palettes.css` und `js/palettes.js`. Neues Design: dort in `PALETTES` eintragen
+und `python3 tools/make-palettes.py` ausführen.

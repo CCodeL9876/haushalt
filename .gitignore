@@ -1,2 +1,7 @@
 # Mac-Systemdateien
 .DS_Store
+
+# Sicherungen der Haushaltsdaten (private Daten) – nie ins öffentliche Repository
+haushalt-*.json
+manifest.json
+*.backup.json
