@@ -96,8 +96,15 @@ function editIdea(id) {
         note: String(data.get('note') || '').trim(),
       };
       update((s) => {
-        if (idea) Object.assign(s.ideas.find((i) => i.id === idea.id), values);
-        else s.ideas.unshift({ id: uid(), ...values });
+        const current = idea && s.ideas.find((i) => i.id === idea.id);
+        if (current) {
+          Object.assign(current, values);
+          // Umbenannt: Einträge im Wochenplan, die auf diese Idee zeigen, bekommen den neuen Namen
+          for (const day of Object.values(s.plan)) {
+            for (const meal of Object.values(day)) if (meal?.ideaId === idea.id) meal.title = values.title;
+          }
+        }
+        else if (!idea) s.ideas.unshift({ id: uid(), ...values });
       });
     },
   });

@@ -14,6 +14,8 @@ let weekOffset = 0; // 0 = diese Woche
 
 const ideaByTitle = (title) => state.ideas.find((i) => i.title.toLowerCase() === title.trim().toLowerCase());
 const ideaOf = (meal) => (meal?.ideaId && state.ideas.find((i) => i.id === meal.ideaId)) || null;
+// Name im Plan: der aktuelle Name der verknüpften Menüidee (wurde sie umbenannt, gilt der neue), sonst der eingetragene
+export const mealTitle = (meal) => ideaOf(meal)?.title || meal?.title || '';
 
 export function setMeal(day, slot, title) {
   const idea = ideaByTitle(title);
@@ -34,7 +36,7 @@ function editMeal(day, slot) {
     title: `${fmtShort(day)} · ${slotLabel}`,
     body: `
       <label class="field"><span>Gericht</span>
-        <input class="input" name="title" list="idea-list" value="${esc(meal?.title)}" placeholder="z. B. Gemüsecurry" autocomplete="off">
+        <input class="input" name="title" list="idea-list" value="${esc(mealTitle(meal))}" placeholder="z. B. Gemüsecurry" autocomplete="off">
         <datalist id="idea-list">${state.ideas.map((i) => `<option value="${esc(i.title)}">`).join('')}</datalist>
       </label>
       ${state.ideas.length ? `
@@ -100,7 +102,7 @@ export default {
                 const meal = state.plan[key]?.[s.id];
                 return `<button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'}" data-action="edit" data-day="${key}" data-slot="${s.id}">
                   <span class="slot-label">${s.label}</span>
-                  <span class="slot-title">${meal ? esc(meal.title) : 'Noch nichts geplant'}</span>
+                  <span class="slot-title">${meal ? esc(mealTitle(meal)) : 'Noch nichts geplant'}</span>
                   ${meal ? '' : icon('plus', 'icon-sm')}
                 </button>`;
               }).join('')}
