@@ -237,6 +237,10 @@ function flush() {
   return queue;
 }
 
+// Warten, bis eigene Änderungen oben sind (z. B. bevor die App eine andere Adresse öffnet und laufende
+// Anfragen abbrechen würde). Lokal sofort fertig.
+export const flushNow = () => (session.mode === 'shared' ? flush() : Promise.resolve(true));
+
 // Jede Änderung läuft hierüber: ändern, speichern, Ansicht neu zeichnen.
 export function update(fn) {
   fn(state);

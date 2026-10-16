@@ -268,7 +268,7 @@ function editTodo(cur, id) {
     footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Löschen</button>`,
     onSubmit: (_, form) => save(form),
     actions: {
-      calendar(_, form) {
+      async calendar(btn, form) {
         if (!form.reportValidity()) return;
         if (!form.elements.due.value) {
           toast('Zuerst ein Datum wählen');
@@ -276,9 +276,15 @@ function editTodo(cur, id) {
           return;
         }
         save(form);
-        closeSheet();
         const item = SCOPES[cur.scope].data().todos.find((x) => x.id === id);
-        if (item) addToCalendar(item);
+        if (!item) return closeSheet();
+        btn.disabled = true;
+        btn.lastChild.textContent = 'Wird vorbereitet …';
+        const problem = await addToCalendar(item);
+        btn.disabled = false;
+        btn.lastChild.textContent = 'In Apple-Kalender eintragen';
+        if (problem) return toast(problem);
+        closeSheet();
         refresh(); // Kalender-Zeichen in der Liste
       },
       delete() {

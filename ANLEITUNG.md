@@ -111,6 +111,26 @@ in Supabase. Der Schlüssel liegt nur in Supabase, nie in der App.
 (damit keine doppelt vorgeschlagen werden) – keine Namen von Personen, keine Einkaufs- oder Kostendaten.
 Funktioniert nur im gemeinsamen Haushalt, nicht in der lokalen Version ohne Supabase.
 
+## 8. Apple-Kalender (einmalig einrichten)
+
+Unter ToDo lässt sich ein Eintrag mit Datum über **„In Apple-Kalender eintragen“** in den Kalender übernehmen.
+Das iPhone bietet „Hinzufügen“ aber nur für Kalenderdateien an, die von einem Server kommen – dafür gibt es eine
+kleine Funktion in Supabase:
+
+1. Im Supabase-Dashboard → **Edge Functions** → **Deploy a new function** → **Via Editor**.
+2. Als Namen genau `calendar` eintragen, den Inhalt von
+   [supabase/functions/calendar/index.ts](supabase/functions/calendar/index.ts) hineinkopieren → **Deploy function**.
+3. Wie bei `recipe-import` die **JWT-Prüfung ausschalten** – Safari öffnet die Kalender-Adresse ohne Anmeldung.
+   Geschützt ist sie trotzdem: Nur wer Haushalt-Link und Zugangscode hat, kann solche Adressen erzeugen, und sie
+   gelten nur 10 Minuten.
+
+**Datenschutz:** Titel, Datum und Notiz gehen nur an euer eigenes Supabase-Projekt, verschlüsselt in der Adresse;
+die Funktion speichert nichts. Ein Secret muss nicht eingerichtet werden – die Funktion nutzt das, das Supabase
+jeder Funktion mitgibt.
+
+Ohne diese Funktion (oder ohne Supabase) lädt die App die Kalenderdatei nur herunter – das klappt am Computer,
+am iPhone landet sie höchstens in „Dateien“.
+
 ## Gut zu wissen
 
 - **Code ändern:** In der App unter Haushalt → Zugang. Alle anderen Geräte werden beim nächsten Abgleich
