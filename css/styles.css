@@ -126,7 +126,7 @@ button { cursor: pointer; }
 [hidden] { display: none !important; }
 
 .icon { width: 22px; height: 22px; flex: none; }
-.icon-sm { width: 18px; height: 18px; }
+.icon-sm { width: 18px; height: 18px; flex: none; }
 .icon-xs { width: 13px; height: 13px; vertical-align: -2px; }
 
 /* ---------- Kopfzeile ---------- */
@@ -378,14 +378,15 @@ button { cursor: pointer; }
 .balance-who { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 650; color: var(--text-soft); }
 .balance-card .hero-number { margin-top: 6px; }
 .balance-actions { margin: 0 0 4px; }
-.balance-actions .btn { flex: 1; }
+.balance-actions .btn { flex: 1; padding: 0 10px; }
 .ledger > li { align-items: center; }
 .ledger-kind { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; }
 .ledger-kind.is-payment { background: var(--suggest-bg); color: var(--suggest-icon); }
 .ledger-kind.is-bill { background: var(--chip); color: var(--section-text); }
-.ledger-value { display: grid; justify-items: end; gap: 1px; padding-right: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ledger-value { display: grid; justify-items: end; gap: 1px; max-width: 40%; padding-right: 6px; font-variant-numeric: tabular-nums; text-align: right; }
+.ledger-value > span { white-space: nowrap; }
 .ledger-value > span { font-weight: 650; }
-.ledger-value small { font-size: 12px; }
+.ledger-value small { font-size: 12px; line-height: 1.25; }
 .ledger-pay { color: var(--plus); }
 /* Auswahl als Umschalter (Hälfte | Ganzer Betrag) */
 .seg-radio { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
