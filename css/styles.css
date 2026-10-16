@@ -371,6 +371,8 @@ button { cursor: pointer; }
 .bar-fill { height: 100%; border-radius: 4px; background: var(--bar); min-width: 4px; }
 
 /* ---------- Abrechnung ---------- */
+.kind-hint { margin: 0 0 12px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--accent-tint); color: var(--text-soft); }
+.stand-hint { margin: 4px 0 0; font-weight: 650; color: var(--section-text); min-height: 1.4em; }
 .pay-all { margin-top: 4px; padding: 0; justify-content: flex-start; }
 .balance-card { text-align: center; padding: 18px 16px; }
 .balance-who { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 650; color: var(--text-soft); }
@@ -384,8 +386,7 @@ button { cursor: pointer; }
 .ledger-value { display: grid; justify-items: end; gap: 1px; padding-right: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ledger-value > span { font-weight: 650; }
 .ledger-value small { font-size: 12px; }
-.ledger-up { color: var(--minus); }
-.ledger-down { color: var(--plus); }
+.ledger-pay { color: var(--plus); }
 /* Auswahl als Umschalter (Hälfte | Ganzer Betrag) */
 .seg-radio { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .seg-radio input { position: absolute; opacity: 0; pointer-events: none; }
