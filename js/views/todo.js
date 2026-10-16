@@ -62,12 +62,14 @@ function listRow(scope, list, todos) {
     items.length ? `${items.length} offen` : 'Alles erledigt',
     next ? `nächstes: ${dueLabel(next)}` : '',
   ].filter(Boolean).join(' · ');
+  // Farbige Kachel (Farbe reihum, css: .list-tile) – hebt sich von den hellen ToDo-Punkten ab
   return `
-    <li>
-      <button type="button" class="list-main" data-action="openList" data-scope="${scope}" data-id="${list.id}">
-        ${esc(list.name)}<small class="${items.some(overdue) ? 'amount-minus' : ''}">${esc(info)}</small>
+    <li class="list-tile">
+      <button type="button" data-action="openList" data-scope="${scope}" data-id="${list.id}">
+        <span class="tile-count" aria-label="${items.length} offen">${items.length || icon('check', 'icon-sm')}</span>
+        <span class="tile-main"><strong>${esc(list.name)}</strong><small class="${items.some(overdue) ? 'tile-overdue' : ''}">${esc(info)}</small></span>
+        ${icon('right', 'icon-sm')}
       </button>
-      <span class="muted" aria-hidden="true">${icon('right', 'icon-sm')}</span>
     </li>`;
 }
 
@@ -77,7 +79,7 @@ function overview() {
   const section = (scope, d, title, hint, placeholder) => `
     <h2 class="section-title">${title}</h2>
     ${hint ? `<p class="muted small todo-hint">${icon(scope === 'personal' ? 'lock' : 'users', 'icon-sm')}${hint}</p>` : ''}
-    ${d.lists.length ? `<ul class="list">${d.lists.map((l) => listRow(scope, l, d.todos)).join('')}</ul>` : ''}
+    ${d.lists.length ? `<ul class="list-tiles">${d.lists.map((l) => listRow(scope, l, d.todos)).join('')}</ul>` : ''}
     <form class="add-row todo-add-list" data-form="addList" data-scope="${scope}">
       <input class="input" id="new-list-${scope}" name="name" placeholder="${placeholder}" autocomplete="off" enterkeyhint="done" required maxlength="60">
       <button type="submit" class="btn btn-primary" aria-label="Liste anlegen">${icon('plus')}</button>

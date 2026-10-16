@@ -53,6 +53,13 @@
   --tag-4-bg: #ECEBFF;
   --tag-text: #23221A;
   --tag-4-text: #23221A;
+  --tile-1-bg: #DEDDFF;       /* Kacheln der ToDo-Listen, reihum: Lavendel, Oliv, Lila */
+  --tile-1-badge: #C1BFFF;
+  --tile-2-bg: #EDEAB9;
+  --tile-2-badge: #BDB96A;
+  --tile-3-bg: #F3DDFE;
+  --tile-3-badge: #E2A8FD;
+  --tile-text: #23221A;
 
   --radius-sm: 10px;
   --radius: 14px;
@@ -85,6 +92,8 @@
     --idea-1: #BDB96A; --idea-2: #C1BFFF; --idea-3: #CF6DFC; --idea-4: #8E8A4C;
     --tag-1-bg: #BDB96A; --tag-2-bg: #C1BFFF; --tag-3-bg: #CF6DFC; --tag-4-bg: #2A2840;
     --tag-text: #1A1912; --tag-4-text: #C1BFFF;
+  --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4;
+    --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
     color-scheme: dark;
@@ -336,6 +345,24 @@ button { cursor: pointer; }
 .todo-hint .icon-sm { width: 15px; height: 15px; color: var(--section-text); }
 .todo-add-list { margin-top: 8px; }
 .todo-sync { margin: 2px 0 0; padding: 0 4px; }
+.list-tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.list-tile { --tile-bg: var(--tile-1-bg); --tile-badge: var(--tile-1-badge); }
+.list-tile:nth-child(3n+2) { --tile-bg: var(--tile-2-bg); --tile-badge: var(--tile-2-badge); }
+.list-tile:nth-child(3n+3) { --tile-bg: var(--tile-3-bg); --tile-badge: var(--tile-3-badge); }
+.list-tile > button {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 12px 10px 10px;
+  border: 0; border-radius: var(--radius); background: var(--tile-bg); color: var(--tile-text); text-align: left; box-shadow: var(--shadow);
+}
+.list-tile > button:active { filter: brightness(0.96); }
+.tile-count {
+  width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center;
+  background: var(--tile-badge); color: #1E1530; font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums;
+}
+.tile-main { flex: 1; min-width: 0; }
+.tile-main strong { display: block; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-main small { display: block; font-size: 13px; opacity: 0.75; }
+.tile-main small.tile-overdue { color: var(--minus); opacity: 1; font-weight: 600; }
+.list-tile > button > .icon-sm { opacity: 0.6; }
 .todo-head { display: flex; align-items: center; gap: 4px; margin: 0 -8px 10px; }
 .todo-head-title { flex: 1; min-width: 0; text-align: center; }
 .todo-head-title strong { display: block; font-size: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
