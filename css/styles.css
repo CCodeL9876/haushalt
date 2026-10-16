@@ -293,6 +293,14 @@ button { cursor: pointer; }
 .day-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
 .day-head strong { font-size: 17px; }
 .day.is-today { outline: 2px solid var(--today-ring); }
+.day-head { align-items: center; }
+.day-meta { display: flex; align-items: center; gap: 10px; }
+/* Mittag nur bei Bedarf: kleiner Knopf neben dem Datum */
+.add-mittag {
+  display: inline-flex; align-items: center; gap: 3px; min-height: 28px; padding: 0 10px; border: 0; border-radius: 999px;
+  background: var(--mittag-bg); color: var(--text-soft); font-size: 12px; font-weight: 650;
+  box-shadow: inset 0 0 0 1px var(--mittag-label-bg);
+}
 .today-pill { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--today-pill-bg); color: var(--today-pill-text); font-size: 12px; font-weight: 700; vertical-align: 2px; }
 .slots { display: grid; gap: 8px; }
 .slot {

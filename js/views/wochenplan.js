@@ -83,11 +83,20 @@ export default {
       ${weekOffset ? `<p style="text-align:center;margin:-4px 0 10px"><button type="button" class="btn btn-ghost btn-sm" data-action="week" data-step="0">Zu dieser Woche</button></p>` : ''}
       ${days.map((d) => {
         const key = dateKey(d);
+        // Standard ist nur das Abendessen; Mittag erscheint erst, wenn eines eingetragen ist („+ Mittag“)
+        const hasMittag = Boolean(state.plan[key]?.mittag);
+        const shown = SLOTS.filter((s) => s.id === 'abend' || hasMittag);
         return `
           <section class="card day ${key === today ? 'is-today' : ''}">
-            <div class="day-head"><strong>${fmtWeekday(d)}${key === today ? ' <span class="today-pill">Heute</span>' : ''}</strong><span class="muted small">${fmtDayMonth(d)}</span></div>
+            <div class="day-head">
+              <strong>${fmtWeekday(d)}${key === today ? ' <span class="today-pill">Heute</span>' : ''}</strong>
+              <span class="day-meta">
+                ${hasMittag ? '' : `<button type="button" class="add-mittag" data-action="edit" data-day="${key}" data-slot="mittag" aria-label="Mittagessen für ${fmtWeekday(d)} hinzufügen">${icon('plus', 'icon-xs')} Mittag</button>`}
+                <span class="muted small">${fmtDayMonth(d)}</span>
+              </span>
+            </div>
             <div class="slots">
-              ${SLOTS.map((s) => {
+              ${shown.map((s) => {
                 const meal = state.plan[key]?.[s.id];
                 return `<button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'}" data-action="edit" data-day="${key}" data-slot="${s.id}">
                   <span class="slot-label">${s.label}</span>
