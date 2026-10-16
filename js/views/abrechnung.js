@@ -1,67 +1,297 @@
-// Schuldenverrechnung: Saldo pro Person über alle Ausgaben, Vorschlag für möglichst wenige Ausgleichszahlungen.
-// Eine erledigte Zahlung wird als „transfer“ gespeichert und gleicht den Saldo aus.
+// Abrechnung: Wer schuldet wem wie viel – und eine fortlaufende Liste aller Rechnungen und Zahlungen.
+//  - Rechnung: jemand hat etwas bezahlt. Die Schuld der anderen steigt um den ganzen Betrag (z. B. nur für die
+//    andere Person gekauft) oder um ihren Anteil (gemeinsame Ausgabe, z. B. Wocheneinkauf).
+//  - Zahlung: jemand zahlt der anderen Person Geld zurück (Twint, Neon, Überweisung …) – die Schuld sinkt.
+// Gespeichert in state.expenses wie bisher: Rechnung = kind 'expense' (payerId hat bezahlt, splitIds tragen es),
+// Zahlung = kind 'transfer' (payerId zahlt an splitIds[0]). Neu dazu: note (Was beinhaltet es?) und method.
+// Ältere Einträge aus „Kosten“ erscheinen ganz normal in der Liste.
 
 import { memberById, state, update, uid } from '../store.js';
-import { avatar, esc, icon, money, toast } from '../ui.js';
-import { fmtShort, todayKey } from '../dates.js';
-import { balances, suggestTransfers } from '../settle.js';
+import { avatar, closeSheet, esc, icon, money, openSheet, parseMoney, toast } from '../ui.js';
+import { fmtMonthYear, fmtShort, parseKey, todayKey } from '../dates.js';
+import { balances } from '../settle.js';
+import { currentMember } from '../login.js';
+
+const isPayment = (e) => e.kind === 'transfer';
+const byDateDesc = (a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0);
+const name = (id) => memberById(id)?.name || '–';
+const others = (id) => state.members.filter((m) => m.id !== id);
+
+// Bei zwei Personen: wer schuldet aktuell wem (debtor → creditor) und wie viel. Bei 0 die erste Person als „Gläubiger“.
+function pair() {
+  const [a, b] = state.members;
+  const bal = balances([a, b], state.expenses).get(a.id); // > 0: b schuldet a
+  return bal >= 0 ? { creditor: a, debtor: b, amount: bal } : { creditor: b, debtor: a, amount: -bal };
+}
+
+// Wirkung eines Eintrags auf die Schuld debtor → creditor (+ = Schuld steigt, − = sinkt)
+const effect = (e, p) => balances([p.creditor, p.debtor], [e]).get(p.creditor.id);
+
+function shareLabel(e) {
+  if (isPayment(e)) return '';
+  const split = e.splitIds || [];
+  if (split.length === 1 && split[0] !== e.payerId) return `ganz für ${name(split[0])}`;
+  if (split.includes(e.payerId) && split.length > 1) return split.length === 2 ? 'geteilt (Hälfte)' : `geteilt durch ${split.length}`;
+  return '';
+}
+
+// ---------- Formulare ----------
+
+const methodOptions = (current) => {
+  const list = [...state.settings.methods];
+  if (current && !list.includes(current)) list.push(current); // ältere oder gelöschte Zahlungsart beibehalten
+  return `<option value="">–</option>${list.map((m) => `<option ${m === current ? 'selected' : ''}>${esc(m)}</option>`).join('')}`;
+};
+const memberOptions = (selected, list = state.members) => list.map((m) => `<option value="${m.id}" ${m.id === selected ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
+
+function removeButton(e) {
+  return e ? `<button type="button" class="btn btn-danger btn-block" data-sheet-action="remove">${isPayment(e) ? 'Zahlung' : 'Rechnung'} löschen</button>` : '';
+}
+const removeAction = (e) => () => {
+  if (!confirm(`${isPayment(e) ? 'Diese Zahlung' : 'Diese Rechnung'} löschen?`)) return;
+  update((s) => { s.expenses = s.expenses.filter((x) => x.id !== e.id); });
+  closeSheet();
+};
+
+const amountField = (label, e, hint = '') => `
+  <div class="row">
+    <label class="field"><span>${label} (${esc(state.settings.currency)})</span>
+      <input class="input" name="amount" inputmode="decimal" value="${e ? (e.amount / 100).toFixed(2) : ''}" placeholder="0.00" required autocomplete="off">
+      ${hint}
+    </label>
+    <label class="field"><span>Datum</span>
+      <input class="input" type="date" name="date" value="${esc(e?.date || todayKey())}" required>
+    </label>
+  </div>`;
+
+// Zahlung: from zahlt an to. preset: { from, to, amount } für „Zahlung erfassen“ beim aktuellen Stand
+function editPayment(e, preset = {}) {
+  const from = e?.payerId || preset.from || state.members[0].id;
+  const to = e?.splitIds?.[0] || preset.to || others(from)[0]?.id;
+  // Neue Zahlung: zuletzt benutzte Zahlungsart vorschlagen
+  const lastMethod = [...state.expenses].filter((x) => isPayment(x) && x.method).sort(byDateDesc)[0]?.method;
+  const method = e ? e.method : lastMethod;
+  openSheet({
+    title: e ? 'Zahlung bearbeiten' : 'Zahlung erfassen',
+    body: `
+      ${amountField('Betrag', e, preset.amount ? `<button type="button" class="btn btn-ghost btn-sm pay-all" data-sheet-action="all">Ganzer Betrag: ${money(preset.amount)}</button>` : '')}
+      <div class="row">
+        <label class="field"><span>Von</span><select class="select" name="from">${memberOptions(from)}</select></label>
+        <label class="field"><span>An</span><select class="select" name="to">${memberOptions(to)}</select></label>
+      </div>
+      <label class="field"><span>Bezahlt per</span><select class="select" name="method">${methodOptions(method)}</select></label>
+      <label class="field"><span>Notiz (optional)</span>
+        <input class="input" name="note" value="${esc(e?.note ?? (e && e.title !== 'Ausgleich' ? e.title : ''))}" placeholder="z. B. Miete Oktober, Teil der Ferien" autocomplete="off" maxlength="200">
+      </label>`,
+    submitLabel: 'Speichern',
+    footer: removeButton(e),
+    actions: {
+      remove: e && removeAction(e),
+      all(_, form) { form.elements.amount.value = (preset.amount / 100).toFixed(2); },
+    },
+    onSubmit(data) {
+      const amount = parseMoney(data.get('amount'));
+      const payerId = String(data.get('from'));
+      const toId = String(data.get('to'));
+      if (!amount) { toast('Bitte einen gültigen Betrag eingeben'); return false; }
+      if (payerId === toId) { toast('„Von“ und „An“ müssen verschieden sein'); return false; }
+      const note = String(data.get('note') || '').trim();
+      const values = { kind: 'transfer', title: note || 'Zahlung', note, amount, date: String(data.get('date')), payerId, splitIds: [toId], method: String(data.get('method') || ''), category: '' };
+      save(e, values);
+    },
+  });
+}
+
+// Rechnung: payer hat bezahlt; share 'split' = alle teilen, 'full' = ganz für eine andere Person
+function editBill(e, preset = {}) {
+  const payer = e?.payerId || preset.payer || currentMember()?.id || state.members[0].id;
+  const split = e?.splitIds || [];
+  const full = e ? split.length === 1 && split[0] !== e.payerId : Boolean(preset.full);
+  const forId = full ? (e ? split[0] : preset.forId) : others(payer)[0]?.id;
+  const twoPeople = state.members.length === 2;
+  openSheet({
+    title: e ? 'Rechnung bearbeiten' : 'Rechnung erfassen',
+    body: `
+      ${amountField('Betrag', e)}
+      <label class="field"><span>Was beinhaltet die Rechnung?</span>
+        <input class="input" name="note" value="${esc(e?.note ?? e?.title ?? preset.note ?? '')}" placeholder="z. B. Wocheneinkauf Migros, Stromrechnung" required autocomplete="off" maxlength="200">
+      </label>
+      <label class="field"><span>Bezahlt von</span><select class="select" name="payer">${memberOptions(payer)}</select></label>
+      <div class="field"><span>Wer trägt es?</span>
+        <div class="seg seg-wide" role="radiogroup">
+          <label class="seg-btn seg-radio"><input type="radio" name="share" value="split" ${full ? '' : 'checked'}>${twoPeople ? 'Hälfte' : 'Alle teilen'}</label>
+          <label class="seg-btn seg-radio"><input type="radio" name="share" value="full" ${full ? 'checked' : ''}>Ganzer Betrag</label>
+        </div>
+        <p class="muted small share-hint" style="margin:0"></p>
+        <label class="field share-for" style="margin:8px 0 0" ${full && !twoPeople ? '' : 'hidden'}><span>Ganz für</span>
+          <select class="select" name="forId">${memberOptions(forId, others(payer))}</select>
+        </label>
+      </div>
+      <label class="field"><span>Bezahlt per (optional)</span><select class="select" name="method">${methodOptions(e?.method)}</select></label>`,
+    submitLabel: 'Speichern',
+    footer: removeButton(e),
+    actions: {
+      remove: e && removeAction(e),
+      // Hinweis und Auswahl „Ganz für“ nachführen, wenn sich Betrag, Zahler oder Anteil ändern
+      change(_, form) { billHint(form, twoPeople); },
+    },
+    onSubmit(data) {
+      const amount = parseMoney(data.get('amount'));
+      if (!amount) { toast('Bitte einen gültigen Betrag eingeben'); return false; }
+      const payerId = String(data.get('payer'));
+      const isFull = data.get('share') === 'full';
+      const target = twoPeople ? others(payerId)[0].id : String(data.get('forId'));
+      if (isFull && (!target || target === payerId)) { toast('Bitte wählen, für wen die Rechnung ist'); return false; }
+      const note = String(data.get('note')).trim();
+      const values = {
+        kind: 'expense', title: note, note, amount, date: String(data.get('date')), payerId,
+        splitIds: isFull ? [target] : state.members.map((m) => m.id),
+        method: String(data.get('method') || ''), category: e?.category || '',
+      };
+      save(e, values);
+    },
+  });
+  const form = document.querySelector('#sheet form');
+  form.addEventListener('input', () => billHint(form, twoPeople));
+  billHint(form, twoPeople);
+}
+
+function billHint(form, twoPeople) {
+  const payerId = form.elements.payer.value;
+  const full = form.elements.share.value === 'full';
+  const amount = parseMoney(form.elements.amount.value) || 0;
+  const forSel = form.elements.forId;
+  // „Ganz für“: nur andere Personen als der Zahler
+  if (!twoPeople) {
+    const keep = forSel.value;
+    forSel.innerHTML = memberOptions(others(payerId).some((m) => m.id === keep) ? keep : others(payerId)[0]?.id, others(payerId));
+  }
+  form.querySelector('.share-for').hidden = !full || twoPeople;
+  const n = state.members.length;
+  const who = full ? name(twoPeople ? others(payerId)[0].id : forSel.value) : (twoPeople ? name(others(payerId)[0].id) : 'Jede andere Person');
+  const part = full ? amount : Math.round(amount / n);
+  form.querySelector('.share-hint').textContent = amount
+    ? `${who} schuldet ${name(payerId)} dadurch ${money(part)} mehr.`
+    : full ? 'Die andere Person schuldet den ganzen Betrag.' : `Jede Person trägt ${twoPeople ? 'die Hälfte' : 'den gleichen Anteil'}.`;
+}
+
+function save(e, values) {
+  update((s) => {
+    if (e) Object.assign(s.expenses.find((x) => x.id === e.id), values);
+    else s.expenses.push({ id: uid(), createdAt: Date.now(), ...values });
+  });
+  toast(e ? 'Gespeichert' : isPayment(values) ? 'Zahlung erfasst' : 'Rechnung erfasst');
+}
+
+// ---------- Ansicht ----------
+
+function entryRow(e, p, after) {
+  const pay = isPayment(e);
+  const meta = [
+    fmtShort(e.date),
+    pay ? `${name(e.payerId)} → ${name(e.splitIds?.[0])}` : `bezahlt von ${name(e.payerId)}`,
+    shareLabel(e),
+    e.method,
+  ].filter(Boolean).join(' · ');
+  const title = e.note || e.title || (pay ? 'Zahlung' : 'Rechnung');
+  let right = `<span class="list-value">${money(e.amount)}</span>`;
+  if (p) {
+    const d = effect(e, p);
+    right = `<span class="ledger-value">
+      <span class="${d > 0 ? 'ledger-up' : d < 0 ? 'ledger-down' : 'muted'}">${d === 0 ? money(0) : money(d, { sign: true })}</span>
+      <small class="muted">Stand ${after < 0 ? '−' : ''}${money(Math.abs(after))}</small>
+    </span>`;
+  }
+  return `
+    <li>
+      <span class="ledger-kind ${pay ? 'is-payment' : 'is-bill'}" aria-hidden="true">${icon(pay ? 'arrow' : 'receipt', 'icon-sm')}</span>
+      <button type="button" class="list-main" data-action="edit" data-id="${e.id}" aria-label="${pay ? 'Zahlung' : 'Rechnung'} ${esc(title)} bearbeiten">
+        ${esc(title)}<small>${esc(meta)}${!pay && shareLabel(e).startsWith('geteilt') ? ` · Total ${money(e.amount)}` : ''}</small>
+      </button>
+      ${right}
+    </li>`;
+}
+
+function ledger(p) {
+  const entries = [...state.expenses].sort(byDateDesc);
+  if (!entries.length) return '';
+  // Laufender Stand nach jedem Eintrag (älteste zuerst aufsummieren)
+  const after = new Map();
+  if (p) {
+    let run = 0;
+    for (const e of [...entries].reverse()) {
+      run += effect(e, p);
+      after.set(e.id, run);
+    }
+  }
+  const groups = new Map();
+  for (const e of entries) {
+    const m = (e.date || '').slice(0, 7);
+    if (!groups.has(m)) groups.set(m, []);
+    groups.get(m).push(e);
+  }
+  return [...groups].map(([m, list]) => `
+    <h2 class="section-title">${m ? fmtMonthYear(parseKey(`${m}-01`)) : 'Ohne Datum'}</h2>
+    <ul class="list ledger">${list.map((e) => entryRow(e, p, after.get(e.id))).join('')}</ul>`).join('');
+}
 
 export default {
   id: 'abrechnung',
   title: 'Abrechnung',
-  icon: 'swap',
+  icon: 'wallet',
+  aliases: ['kosten'],
+  enter() {},
 
   render() {
     if (state.members.length < 2) {
       return `<div class="empty"><strong>Mindestens zwei Personen nötig</strong>Personen oben rechts unter „Haushalt“ erfassen.</div>`;
     }
-    const bal = balances(state.members, state.expenses);
-    const transfers = suggestTransfers(bal);
-    const history = state.expenses.filter((e) => e.kind === 'transfer').sort((a, b) => b.date.localeCompare(a.date));
-
-    return `
-      <h2 class="section-title" style="margin-top:4px">Stand</h2>
-      <ul class="list">${state.members.map((m) => {
+    const two = state.members.length === 2;
+    const p = two ? pair() : null;
+    let head;
+    if (p) {
+      head = `
+        <section class="card balance-card">
+          ${p.amount ? `
+            <div class="balance-who">${avatar(p.debtor)}<span>${esc(p.debtor.name)} schuldet ${esc(p.creditor.name)}</span>${avatar(p.creditor)}</div>
+            <div class="hero-number">${money(p.amount)}</div>`
+            : `<div class="balance-who"><span>Ihr seid quitt</span></div><div class="hero-number">${money(0)}</div>`}
+        </section>`;
+    } else {
+      const bal = balances(state.members, state.expenses);
+      head = `<ul class="list">${state.members.map((m) => {
         const v = bal.get(m.id);
-        const label = v > 0 ? 'bekommt' : v < 0 ? 'schuldet' : 'ausgeglichen';
-        return `<li>
-          ${avatar(m)}
-          <span class="list-main">${esc(m.name)}<small>${label}</small></span>
-          <span class="list-value ${v > 0 ? 'amount-plus' : v < 0 ? 'amount-minus' : 'muted'}">${money(v, { sign: true })}</span>
-        </li>`;
-      }).join('')}</ul>
-
-      <h2 class="section-title">So wird ausgeglichen</h2>
-      ${transfers.length ? `<ul class="list">${transfers.map((t) => `
-        <li class="transfer">
-          ${avatar(memberById(t.from))}${icon('arrow', 'icon-sm muted')}${avatar(memberById(t.to))}
-          <span class="list-main">${esc(memberById(t.from).name)} → ${esc(memberById(t.to).name)}<small>${money(t.amount)}</small></span>
-          <button type="button" class="btn btn-sm btn-primary" data-action="settle" data-from="${t.from}" data-to="${t.to}" data-amount="${t.amount}">Bezahlt</button>
-        </li>`).join('')}</ul>`
-        : `<div class="card" style="text-align:center"><strong>Alles ausgeglichen</strong></div>`}
-
-      ${history.length ? `
-        <h2 class="section-title">Bisherige Ausgleichszahlungen</h2>
-        <ul class="list">${history.map((h) => `
-          <li>
-            <span class="list-main">${esc(memberById(h.payerId)?.name || '–')} → ${esc(memberById(h.splitIds[0])?.name || '–')}<small>${fmtShort(h.date)}</small></span>
-            <span class="list-value">${money(h.amount)}</span>
-            <button type="button" class="icon-btn" data-action="undo" data-id="${h.id}" aria-label="Zahlung rückgängig machen">${icon('trash', 'icon-sm')}</button>
-          </li>`).join('')}
-        </ul>` : ''}`;
+        return `<li>${avatar(m)}<span class="list-main">${esc(m.name)}<small>${v > 0 ? 'bekommt' : v < 0 ? 'schuldet' : 'ausgeglichen'}</small></span>
+          <span class="list-value ${v > 0 ? 'amount-plus' : v < 0 ? 'amount-minus' : 'muted'}">${money(v, { sign: true })}</span></li>`;
+      }).join('')}</ul>`;
+    }
+    const list = ledger(p);
+    return `
+      ${head}
+      <div class="row balance-actions">
+        <button type="button" class="btn btn-primary" data-action="newPayment">${icon('arrow', 'icon-sm')} Zahlung</button>
+        <button type="button" class="btn" data-action="newBill">${icon('receipt', 'icon-sm')} Rechnung</button>
+      </div>
+      ${list || `<div class="empty"><strong>Noch keine Einträge</strong>Schuldet jemand schon etwas? Den aktuellen Betrag als Startwert erfassen.
+        <p><button type="button" class="btn btn-sm" data-action="opening" style="margin-top:12px">Startbetrag erfassen</button></p></div>`}`;
   },
 
   actions: {
-    settle(el) {
-      const amount = Number(el.dataset.amount);
-      update((s) => {
-        s.expenses.push({ id: uid(), kind: 'transfer', title: 'Ausgleich', amount, payerId: el.dataset.from, splitIds: [el.dataset.to], category: '', date: todayKey() });
-      });
-      toast(`${money(amount)} als bezahlt erfasst`);
+    newPayment() {
+      const p = state.members.length === 2 ? pair() : null;
+      editPayment(null, p && p.amount ? { from: p.debtor.id, to: p.creditor.id, amount: p.amount } : { from: currentMember()?.id });
     },
-    undo(el) {
-      if (!confirm('Diese Ausgleichszahlung entfernen?')) return;
-      update((s) => { s.expenses = s.expenses.filter((x) => x.id !== el.dataset.id); });
+    newBill() { editBill(null); },
+    // Anfangsstand: eine Rechnung über den ganzen Betrag, die die Schuld auf den heutigen Stand bringt
+    opening() {
+      const me = currentMember() || state.members[0];
+      editBill(null, { payer: me.id, full: true, forId: others(me.id)[0]?.id, note: 'Startbetrag (bisherige Schuld)' });
+    },
+    edit(el) {
+      const e = state.expenses.find((x) => x.id === el.dataset.id);
+      if (!e) return;
+      if (isPayment(e)) editPayment(e);
+      else editBill(e);
     },
   },
 };

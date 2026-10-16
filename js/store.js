@@ -12,9 +12,10 @@
 //             aisle: von Hand gewählte Abteilung im Laden (sonst am Namen erkannt, siehe js/aisles.js)
 //   ideas     [{ id, title, ingredients: [text], steps?: [text], tags: [text], note, url? }]   url: Link zum Rezept (Einlesen: js/recipes.js)
 //   plan      { 'JJJJ-MM-TT': { mittag: { title, ideaId }, abend: { … } } }
-//   expenses  [{ id, kind: 'expense' | 'transfer', title, amount (Rappen/Cent), payerId, splitIds, category, date }]
-//             Eine Ausgleichszahlung (transfer) ist „payerId zahlt splitIds[0]“.
-//   settings  { currency, categories, aisleOrder? }   aisleOrder: Reihenfolge der Abteilungen im Laden
+//   expenses  [{ id, kind: 'expense' | 'transfer', title, note?, amount (Rappen/Cent), payerId, splitIds, method?, category, date, createdAt? }]
+//             Rechnung (expense): payerId hat bezahlt, splitIds tragen es. Zahlung (transfer): payerId zahlt splitIds[0].
+//             method: Zahlungsart (Twint, Neon …), note: was die Rechnung/Zahlung beinhaltet (js/views/abrechnung.js)
+//   settings  { currency, categories, methods, aisleOrder? }   methods: Zahlungsarten in der Abrechnung   aisleOrder: Reihenfolge der Abteilungen im Laden
 //   todolists [{ id, name, createdAt }]                 geteilte ToDo-Listen (persönliche: js/personal.js, nie hier)
 //   todos     [{ id, listId, title, note, done, due?, time?, addedAt }]   due 'JJJJ-MM-TT', time 'HH:MM'
 // In der Datenbank ist jeder Eintrag eine Zeile (collection + id); plan je Tag, settings als eine Zeile „main“.
@@ -28,6 +29,7 @@ const LIST_COLLECTIONS = ['members', 'shopping', 'terms', 'ideas', 'expenses', '
 
 // Dunkle Töne aus Lila, Oliv und Lavendel – weisse Initialen bleiben darauf lesbar
 export const MEMBER_COLORS = ['#8A35C2', '#6B6728', '#4B2F80', '#5E5AB8', '#55531F', '#A23FB0'];
+export const DEFAULT_METHODS = ['Twint', 'Neon', 'Banküberweisung', 'Bar'];
 export const DEFAULT_CATEGORIES = ['Lebensmittel', 'Haushalt', 'Wohnen', 'Freizeit', 'Sonstiges'];
 
 // Schlüssel eines Begriffs: klein geschrieben, ohne Leerzeichen am Rand (höchstens 64 Zeichen, siehe schema.sql)
@@ -45,7 +47,7 @@ function empty() {
     expenses: [],
     todolists: [],
     todos: [],
-    settings: { currency: 'CHF', categories: [...DEFAULT_CATEGORIES] },
+    settings: { currency: 'CHF', categories: [...DEFAULT_CATEGORIES], methods: [...DEFAULT_METHODS] },
   };
 }
 
@@ -71,8 +73,8 @@ function sample() {
     { id: uid(), listId: list.id, title: 'Steuererklärung', note: '', done: false, due: '', time: '', addedAt: Date.now() - 1 },
   ];
   data.expenses = [
-    { id: uid(), kind: 'expense', title: 'Wocheneinkauf', amount: 8640, payerId: a.id, splitIds: [a.id, b.id], category: 'Lebensmittel', date: today },
-    { id: uid(), kind: 'expense', title: 'Putzmittel', amount: 1890, payerId: b.id, splitIds: [a.id, b.id], category: 'Haushalt', date: today },
+    { id: uid(), kind: 'expense', title: 'Wocheneinkauf', note: 'Wocheneinkauf', amount: 8640, payerId: a.id, splitIds: [a.id, b.id], method: 'Twint', category: 'Lebensmittel', date: today },
+    { id: uid(), kind: 'expense', title: 'Putzmittel', note: 'Putzmittel', amount: 1890, payerId: b.id, splitIds: [a.id, b.id], method: 'Bar', category: 'Haushalt', date: today },
   ];
   return data;
 }

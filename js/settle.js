@@ -1,5 +1,4 @@
-// Schuldenverrechnung: Wer hat mehr bezahlt, als ihm anteilig zusteht – und mit welchen
-// möglichst wenigen Zahlungen ist alles ausgeglichen? Alle Beträge in ganzen Rappen/Cent.
+// Schuldenverrechnung: Wer hat mehr bezahlt, als ihm anteilig zusteht? Alle Beträge in ganzen Rappen/Cent.
 
 // Saldo pro Person: positiv = bekommt Geld, negativ = schuldet Geld.
 export function balances(members, expenses) {
@@ -17,30 +16,4 @@ export function balances(members, expenses) {
     }
   }
   return bal;
-}
-
-// Vorschlag: jeweils die grösste Schuld mit dem grössten Guthaben verrechnen.
-// Ergibt höchstens (Personen − 1) Zahlungen.
-export function suggestTransfers(bal) {
-  const debtors = [];
-  const creditors = [];
-  for (const [id, value] of bal) {
-    if (value < 0) debtors.push({ id, value: -value });
-    else if (value > 0) creditors.push({ id, value });
-  }
-  debtors.sort((a, b) => b.value - a.value);
-  creditors.sort((a, b) => b.value - a.value);
-
-  const transfers = [];
-  let i = 0;
-  let j = 0;
-  while (i < debtors.length && j < creditors.length) {
-    const amount = Math.min(debtors[i].value, creditors[j].value);
-    transfers.push({ from: debtors[i].id, to: creditors[j].id, amount });
-    debtors[i].value -= amount;
-    creditors[j].value -= amount;
-    if (debtors[i].value === 0) i += 1;
-    if (creditors[j].value === 0) j += 1;
-  }
-  return transfers;
 }

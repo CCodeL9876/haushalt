@@ -18,11 +18,10 @@ import { setupPullToRefresh } from './refresh.js';
 import einkauf from './views/einkauf.js';
 import todo from './views/todo.js';
 import essen from './views/essen.js';
-import kosten from './views/kosten.js';
 import abrechnung from './views/abrechnung.js';
 import { openSettings } from './views/einstellungen.js';
 
-const VIEWS = [einkauf, todo, essen, kosten, abrechnung];
+const VIEWS = [einkauf, todo, essen, abrechnung];
 
 const root = document.getElementById('view');
 const titleEl = document.getElementById('view-title');

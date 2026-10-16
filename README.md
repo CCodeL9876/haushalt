@@ -8,9 +8,8 @@ Web-App fürs iPhone für den gemeinsamen Haushalt. Reines HTML, CSS und JavaScr
 | ToDo | `js/views/todo.js` | Geteilte Listen (für alle im Haushalt) und persönliche (nur auf diesem Gerät, `js/personal.js`); ToDo mit Datum und Uhrzeit per .ics in den Apple-Kalender (`js/calendar.js`, ohne Server) |
 | Essen → Wochenplan | `js/views/wochenplan.js` | Mo–So, Mittag und Abend; Zutaten der Woche auf die Einkaufsliste |
 | Essen → Menüideen | `js/views/ideen.js` | Gerichte mit Zutaten, Zubereitung und Stichworten, Suche; „Claude fragen“: Rezeptideen zu vorhandenen Zutaten (`js/ai.js`, Supabase-Funktion `recipe-ideas`); „Planen“ und „Einkaufen“; Rezept per Link einlesen (`js/recipes.js`, Supabase-Funktion `recipe-import`); vor dem Einkaufen Zutaten auswählen, Mengen werden zur Notiz (`js/ingredients.js`) |
-| Kosten | `js/views/kosten.js` | Ausgaben pro Monat, Summe nach Kategorie, wer bezahlt / auf wen aufgeteilt |
-| Abrechnung | `js/views/abrechnung.js` | Saldo pro Person, Vorschlag mit möglichst wenigen Zahlungen (`js/settle.js`) |
-| Haushalt (oben rechts) | `js/views/einstellungen.js` | Personen, Währung, Kategorien, Sicherung als JSON |
+| Abrechnung | `js/views/abrechnung.js` | Wer schuldet wem wie viel; fortlaufende Liste aller Rechnungen (ganz oder geteilt) und Zahlungen mit Notiz, Datum, Zahlungsart (Twint, Neon …) und laufendem Stand (`js/settle.js`); `#kosten` führt hierher |
+| Haushalt (oben rechts) | `js/views/einstellungen.js` | Personen, Währung, Zahlungsarten, Sicherung als JSON |
 
 ## Starten
 

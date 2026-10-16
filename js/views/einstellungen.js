@@ -48,8 +48,8 @@ export function openSettings() {
       <label class="field"><span>Währung</span>
         <select class="select" name="currency">${CURRENCIES.map((c) => `<option ${c === state.settings.currency ? 'selected' : ''}>${c}</option>`).join('')}</select>
       </label>
-      <label class="field"><span>Kategorien für Ausgaben (mit Komma getrennt)</span>
-        <input class="input" name="categories" value="${esc(state.settings.categories.join(', '))}" autocomplete="off">
+      <label class="field"><span>Zahlungsarten in der Abrechnung (mit Komma getrennt)</span>
+        <input class="input" name="methods" value="${esc((state.settings.methods || []).join(', '))}" autocomplete="off">
       </label>
       <details class="field aisles-field">
         <summary>Reihenfolge im Laden</summary>
@@ -163,9 +163,9 @@ export function openSettings() {
       },
       async change(el) {
         if (el.name === 'currency') update((s) => { s.settings.currency = el.value; });
-        if (el.name === 'categories') {
-          const list = el.value.split(',').map((x) => x.trim()).filter(Boolean);
-          if (list.length) update((s) => { s.settings.categories = list; });
+        if (el.name === 'methods') {
+          const list = [...new Set(el.value.split(',').map((x) => x.trim().slice(0, 30)).filter(Boolean))];
+          if (list.length) update((s) => { s.settings.methods = list; });
         }
         if (el.name === 'import' && el.files[0]) {
           try {
