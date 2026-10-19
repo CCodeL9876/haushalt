@@ -223,6 +223,11 @@ button { cursor: pointer; }
 .check-field input { width: 22px; height: 22px; accent-color: var(--accent); }
 .row { display: flex; gap: 10px; }
 .row > * { flex: 1; min-width: 0; }
+/* Datum/Uhrzeit: iOS gibt den Feldern sonst eine feste Mindestbreite und zentriert den Wert – nebeneinander
+   (.row) ragen sie dann übereinander hinaus. Ohne eigenes Aussehen halten sie sich an die Breite der Spalte. */
+.input[type="date"], .input[type="time"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; }
+.input::-webkit-date-and-time-value { text-align: left; min-height: 1.4em; }
+.input:disabled { opacity: 0.45; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
@@ -401,6 +406,15 @@ button { cursor: pointer; }
 .todo-head-title strong { display: block; font-size: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .todo-head-title small { font-size: 13px; }
 .todo-cal { color: var(--accent-text); display: grid; }
+/* Zugewiesene Person: Initialen in der Liste und Auswahl „Für wen?“ */
+.todo-who { display: grid; }
+.todo-who .avatar, .todo-assign .avatar { width: 24px; height: 24px; font-size: 11px; }
+.todo-assign { border: 0; padding: 0; margin: 0 0 14px; min-width: 0; }
+.todo-assign legend { padding: 0; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: var(--text-soft); }
+.todo-assign .chip { position: relative; padding-left: 8px; }
+.todo-assign .chip:first-child { padding-left: 12px; }
+.todo-assign .chip:has(input:focus-visible) { outline: 2px solid var(--accent); }
+.todo-time-hint { margin: -8px 0 14px; }
 .todo-cal-btn { background: var(--suggest-bg); color: var(--suggest-text); }
 
 /* ---------- Claude fragen (Menüideen) ---------- */

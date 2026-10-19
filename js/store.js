@@ -17,7 +17,7 @@
 //             method: Zahlungsart (Twint, Neon …), note: was die Rechnung/Zahlung beinhaltet (js/views/abrechnung.js)
 //   settings  { currency, categories, methods, aisleOrder? }   methods: Zahlungsarten in der Abrechnung   aisleOrder: Reihenfolge der Abteilungen im Laden
 //   todolists [{ id, name, createdAt }]                 geteilte ToDo-Listen (persönliche: js/personal.js, nie hier)
-//   todos     [{ id, listId, title, note, done, due?, time?, addedAt }]   due 'JJJJ-MM-TT', time 'HH:MM'
+//   todos     [{ id, listId, title, note, done, due?, time?, assignee?, addedAt }]   due 'JJJJ-MM-TT', time 'HH:MM', assignee = members.id
 // In der Datenbank ist jeder Eintrag eine Zeile (collection + id); plan je Tag, settings als eine Zeile „main“.
 
 import { todayKey } from './dates.js';

@@ -1,11 +1,11 @@
 // ToDo-Listen: geteilte (für den ganzen Haushalt, in state.todolists/todos) und persönliche (nur auf diesem
 // Gerät, js/personal.js). Übersicht aller Listen → Antippen öffnet eine Liste. Ein ToDo mit Datum lässt sich
-// in den Apple-Kalender eintragen (js/calendar.js).
+// in den Apple-Kalender eintragen (js/calendar.js). ToDos in geteilten Listen lassen sich einer Person zuweisen.
 
-import { refresh, state, update, uid } from '../store.js';
+import { memberById, refresh, state, update, uid } from '../store.js';
 import { disableSync, enableSync, personal, remoteCopyExists, syncAvailable, syncEnabled, syncWasLost, updatePersonal } from '../personal.js';
 import { addToCalendar, isInCalendar } from '../calendar.js';
-import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
+import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 
 // Beide Arten gleich behandeln: d = { lists, todos }; Zuweisungen an d.lists/d.todos werden übernommen
@@ -241,16 +241,23 @@ async function run(form, task) {
 
 // ---------- Eine Liste ----------
 
-const todoItem = (t) => `
+// Zugewiesene Person (nur geteilte Listen); gibt es sie nicht mehr, ist das ToDo für niemanden
+const assignee = (t) => (t.assignee ? memberById(t.assignee) : null);
+
+function todoItem(t) {
+  const who = assignee(t);
+  return `
   <li class="${t.done ? 'is-done' : ''}">
     <button type="button" class="check" data-action="toggle" data-id="${t.id}" aria-label="${t.done ? 'Wieder offen' : 'Erledigt'}: ${esc(t.title)}">${icon('check', 'icon-sm')}</button>
-    <button type="button" class="list-main" data-action="edit" data-id="${t.id}" aria-label="${esc(t.title)} bearbeiten">
+    <button type="button" class="list-main" data-action="edit" data-id="${t.id}" aria-label="${esc(t.title)}${who ? ` (für ${esc(who.name)})` : ''} bearbeiten">
       ${esc(t.title)}
       ${t.due || t.note ? `<small>${t.due ? `<span class="${overdue(t) ? 'amount-minus' : ''}">${esc(dueLabel(t))}</span>` : ''}${t.due && t.note ? ' · ' : ''}${esc(t.note)}</small>` : ''}
     </button>
+    ${who ? `<span class="todo-who" title="Für ${esc(who.name)}">${avatar(who)}</span>` : ''}
     ${isInCalendar(t.id) ? `<span class="todo-cal" title="Im Kalender eingetragen">${icon('calendar', 'icon-sm')}</span>` : ''}
     <button type="button" class="icon-btn" data-action="remove" data-id="${t.id}" aria-label="${esc(t.title)} löschen">${icon('x', 'icon-sm')}</button>
   </li>`;
+}
 
 function listView(scope, list, d) {
   const items = d.todos.filter((t) => t.listId === list.id);
@@ -291,6 +298,7 @@ function current() {
 function editTodo(cur, id) {
   const t = cur.d.todos.find((x) => x.id === id);
   if (!t) return;
+  const who = assignee(t)?.id || '';
   // Werte aus dem Formular übernehmen (auch für „In Kalender“, ohne vorher speichern zu müssen)
   const save = (form) => {
     const title = form.elements.title.value.trim();
@@ -303,20 +311,33 @@ function editTodo(cur, id) {
         due: form.elements.due.value,
         time: form.elements.due.value ? form.elements.time.value : '',
         note: form.elements.note.value.trim().slice(0, 500),
+        ...(form.elements.assignee ? { assignee: form.elements.assignee.value } : {}),
       });
     });
     return true;
   };
-  openSheet({
+  // Uhrzeit nur mit Datum (ohne Datum wird sie nicht gespeichert)
+  const timeNeedsDate = (form) => {
+    form.elements.time.disabled = !form.elements.due.value;
+  };
+  const form = openSheet({
     title: 'ToDo',
     body: `
       <label class="field"><span>Was</span>
         <input class="input" name="title" value="${esc(t.title)}" required maxlength="120" autocomplete="off">
       </label>
+      ${cur.scope === 'shared' && state.members.length ? `
+      <fieldset class="field todo-assign"><legend>Für wen?</legend>
+        <div class="chips">
+          <label class="chip chip-toggle"><input type="radio" name="assignee" value="" ${who ? '' : 'checked'}>Alle</label>
+          ${state.members.map((m) => `<label class="chip chip-toggle">${avatar(m)}<input type="radio" name="assignee" value="${m.id}" ${m.id === who ? 'checked' : ''}>${esc(m.name)}</label>`).join('')}
+        </div>
+      </fieldset>` : ''}
       <div class="row">
         <label class="field"><span>Datum</span><input class="input" type="date" name="due" value="${esc(t.due)}"></label>
-        <label class="field"><span>Uhrzeit (optional)</span><input class="input" type="time" name="time" value="${esc(t.time)}"></label>
+        <label class="field"><span>Uhrzeit</span><input class="input" type="time" name="time" value="${esc(t.time)}"></label>
       </div>
+      <p class="muted small todo-time-hint">Uhrzeit freiwillig, geht nur mit Datum.</p>
       <label class="field"><span>Notiz</span>
         <textarea class="textarea" name="note" maxlength="500">${esc(t.note)}</textarea>
       </label>
@@ -324,8 +345,11 @@ function editTodo(cur, id) {
       <p class="muted small" style="margin:8px 0 0">${isInCalendar(t.id) ? 'Schon einmal eingetragen. Änderungen hier übernimmt der Kalender nicht von selbst – bei Bedarf neu eintragen.' : 'Ohne Uhrzeit ganztägig, mit Uhrzeit eine Stunde mit Erinnerung 15 Minuten vorher.'}</p>`,
     submitLabel: 'Speichern',
     footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Löschen</button>`,
-    onSubmit: (_, form) => save(form),
+    onSubmit: (_, f) => save(f),
     actions: {
+      change(el, f) {
+        if (el.name === 'due') timeNeedsDate(f);
+      },
       async calendar(btn, form) {
         if (!form.reportValidity()) return;
         if (!form.elements.due.value) {
@@ -351,6 +375,7 @@ function editTodo(cur, id) {
       },
     },
   });
+  timeNeedsDate(form);
 }
 
 function editList(cur) {
