@@ -106,6 +106,10 @@ document.getElementById('btn-settings').addEventListener('click', openSettings);
 
 subscribe(render);
 window.addEventListener('hashchange', route);
+// Mitteilung angetippt, während die App offen war (sw.js): zum passenden Bereich, z. B. #kuehlschrank
+navigator.serviceWorker?.addEventListener('message', (e) => {
+  if (e.data?.type === 'open' && /^#[a-z]+$/.test(e.data.hash || '')) location.hash = e.data.hash;
+});
 
 setSyncErrorHandler((err) => {
   // Zugangscode inzwischen geändert: neu laden → Anmeldung fragt den neuen Code ab

@@ -47,10 +47,9 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const win = wins.find((w) => w.url.startsWith(self.registration.scope));
-    if (win) {
-      await win.focus();
-      return win.navigate(target).catch(() => {});
-    }
-    return self.clients.openWindow(target);
+    if (!win) return self.clients.openWindow(target);
+    // Offene App: Bereich über eine Nachricht wechseln (js/app.js) – navigate() können nicht alle Browser
+    win.postMessage({ type: 'open', hash: new URL(target).hash });
+    return win.focus().catch(() => {});
   })());
 });

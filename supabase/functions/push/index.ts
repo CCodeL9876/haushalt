@@ -174,8 +174,9 @@ async function reminders() {
     if (!open.length) continue;
     const subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth`);
     if (!subs.length) continue;
-    const todayNames = open.filter((e) => e.kind === 'heute').map((e) => e.name);
-    const tomorrowNames = open.filter((e) => e.kind === 'morgen').map((e) => e.name);
+    // Alle fälligen nennen, nicht nur die neuen: Eine spätere Mitteilung am selben Tag ersetzt die frühere (gleiches tag)
+    const todayNames = entries.filter((e) => e.kind === 'heute').map((e) => e.name);
+    const tomorrowNames = entries.filter((e) => e.kind === 'morgen').map((e) => e.name);
     const body = [
       todayNames.length ? `Heute aufbrauchen: ${list(todayNames)}.` : '',
       tomorrowNames.length ? `Bis morgen aufbrauchen: ${list(tomorrowNames)}.` : '',

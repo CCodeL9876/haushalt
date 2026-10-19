@@ -9,6 +9,7 @@ import { AccessError, Remote, sharingConfigured, validCodeChars } from './remote
 import { cachedName, hasCache, MEMBER_COLORS, session, startLocal, startShared, state, uid, update } from './store.js';
 import { keyFromText, loadSession, logout, myMemberId, saveSession, setMyMemberId, takeKeyFromUrl } from './session.js';
 import { closeSheet, esc, icon, initials, openSheet, safeColor, toast } from './ui.js';
+import { disablePush } from './push.js';
 
 const gate = document.getElementById('gate');
 const appParts = ['.topbar', '#view', '#tabbar'].map((sel) => document.querySelector(sel));
@@ -227,8 +228,9 @@ meBtn.addEventListener('click', () => {
     },
     actions: {
       add(_, form) { addAndChoose(form); },
-      logout() {
+      async logout() {
         if (!confirm('Auf diesem Gerät abmelden? Für die nächste Anmeldung braucht es wieder den Zugangscode.')) return;
+        await disablePush().catch(() => {}); // sonst kämen weiter Mitteilungen dieses Haushalts
         logout();
         location.reload();
       },

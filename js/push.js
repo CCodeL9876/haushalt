@@ -49,10 +49,20 @@ export async function enablePush(memberId) {
       ? 'Mitteilungen sind für diese App ausgeschaltet. Am iPhone: Einstellungen → Mitteilungen → Haushalt → erlauben.'
       : 'Mitteilungen wurden nicht erlaubt.');
   }
-  const reg = await navigator.serviceWorker.ready;
-  const sub = (await reg.pushManager.getSubscription())
-    || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64url(PUSH_PUBLIC_KEY) }));
-  await save(sub, memberId);
+  // Ohne Service Worker (z. B. nicht über https) würde ready nie fertig
+  const reg = await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Die App ist noch nicht bereit – bitte neu laden und nochmals versuchen.')), 15000)),
+  ]);
+  const existing = await reg.pushManager.getSubscription();
+  const sub = existing || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64url(PUSH_PUBLIC_KEY) }));
+  try {
+    await save(sub, memberId);
+  } catch (err) {
+    // Supabase kennt das Gerät nicht → auch hier wieder abmelden, sonst stünde „eingeschaltet“ da
+    if (!existing) await sub.unsubscribe().catch(() => {});
+    throw err;
+  }
 }
 
 export async function disablePush() {
