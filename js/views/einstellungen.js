@@ -3,6 +3,7 @@
 import { changeCode, replaceAll, resetAll, session, state, update } from '../store.js';
 import { updatePersonal } from '../personal.js';
 import { reloadApp } from '../refresh.js';
+import { openTerms } from '../terms.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { todayKey } from '../dates.js';
 import { addMember } from '../login.js';
@@ -84,12 +85,10 @@ export function openSettings() {
         <ul class="list aisle-order">${aisleListHtml()}</ul>
         <button type="button" class="btn btn-ghost btn-sm" data-sheet-action="resetAisles" style="margin-top:6px">Standard-Reihenfolge</button>
       </details>
-      <details class="field terms-field"${state.terms.length ? '' : ' hidden'}>
-        <summary>Einkaufsbegriffe <span class="muted">(${state.terms.length})</span></summary>
-        <p class="muted small" style="margin:6px 0 8px">Werden beim Einkauf vorgeschlagen, häufige zuerst. Falsch geschriebene hier löschen.</p>
-        <div class="chips">${[...state.terms].sort((a, b) => a.name.localeCompare(b.name, 'de')).map((t) => `
-          <span class="chip term-chip">${esc(t.name)}<button type="button" class="term-x" data-sheet-action="removeTerm" data-id="${esc(t.id)}" aria-label="${esc(t.name)} vergessen">${icon('x', 'icon-sm')}</button></span>`).join('')}</div>
-      </details>
+      <div class="field"><span>Einkaufsbegriffe</span>
+        <p class="muted small" style="margin:0 0 8px">Vorschläge beim Einkauf: neue erfassen, Abteilung im Laden ändern, umbenennen oder löschen.</p>
+        <button type="button" class="btn btn-block" data-sheet-action="terms">${icon('cart', 'icon-sm')} Einkaufsbegriffe verwalten (${state.terms.length})</button>
+      </div>
       <div class="field"><span>Daten</span>
         <p class="muted small" style="margin:0 0 8px">${session.mode === 'shared'
           ? 'Gemeinsam gespeichert für alle im Haushalt. Einspielen ersetzt die Daten für alle.'
@@ -142,14 +141,7 @@ export function openSettings() {
         update((s) => { delete s.settings.aisleOrder; });
         document.querySelector('#sheet .aisle-order').innerHTML = aisleListHtml();
       },
-      // Begriff vergessen: nur der Chip verschwindet, das Fenster bleibt an derselben Stelle
-      removeTerm(btn) {
-        const id = btn.dataset.id;
-        update((s) => { s.terms = s.terms.filter((t) => t.id !== id); });
-        btn.closest('.term-chip')?.remove();
-        const count = document.querySelector('#sheet .terms-field summary .muted');
-        if (count) count.textContent = `(${state.terms.length})`;
-      },
+      terms() { openTerms(); },
       export() {
         const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
         const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `haushalt-${todayKey()}.json` });

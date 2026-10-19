@@ -6,6 +6,7 @@ import { refresh, state, update, uid, termKey } from '../store.js';
 import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { AISLES, aisleLabel, aisleOf, aisleOrder } from '../aisles.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
+import { openTerms } from '../terms.js';
 
 // Sortierung der offenen Artikel – jedes Gerät merkt sich seine: 'laden' (nach Abteilungen) oder 'neu'
 const SORT_KEY = 'haushalt.shopSort';
@@ -166,12 +167,16 @@ export default {
       </form>
       <div class="suggest" id="shop-suggest" aria-label="Vorschläge – antippen setzt den Artikel auf die Liste">${suggestionsHtml('')}</div>
       ${open.length ? `
-        <div class="seg" role="group" aria-label="Sortierung">
-          <button type="button" class="seg-btn" data-action="sort" data-sort="laden" aria-pressed="${mode === 'laden'}">Nach Laden</button>
-          <button type="button" class="seg-btn" data-action="sort" data-sort="neu" aria-pressed="${mode === 'neu'}">Neueste</button>
+        <div class="shop-tools">
+          <div class="seg" role="group" aria-label="Sortierung">
+            <button type="button" class="seg-btn" data-action="sort" data-sort="laden" aria-pressed="${mode === 'laden'}">Nach Laden</button>
+            <button type="button" class="seg-btn" data-action="sort" data-sort="neu" aria-pressed="${mode === 'neu'}">Neueste</button>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="terms">${icon('settings', 'icon-sm')} Begriffe</button>
         </div>
         ${openHtml}`
-        : `<div class="empty"><strong>Alles eingekauft</strong>Neue Artikel oben eintragen.</div>`}
+        : `<div class="empty"><strong>Alles eingekauft</strong>Neue Artikel oben eintragen.
+          <p><button type="button" class="btn btn-ghost btn-sm" data-action="terms">${icon('settings', 'icon-sm')} Einkaufsbegriffe verwalten</button></p></div>`}
       ${done.length ? `
         <h2 class="section-title">Erledigt (${done.length})
           <button type="button" class="btn btn-ghost btn-sm" data-action="clearDone">Aufräumen</button>
@@ -202,6 +207,7 @@ export default {
       fresh.focus();
       document.getElementById('shop-suggest').innerHTML = suggestionsHtml(keep);
     },
+    terms() { openTerms(); },
     sort(el) {
       try { localStorage.setItem(SORT_KEY, el.dataset.sort); } catch { /* privates Fenster */ }
       refresh();
