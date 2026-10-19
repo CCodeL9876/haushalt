@@ -15,9 +15,11 @@
 //   expenses  [{ id, kind: 'expense' | 'transfer', title, note?, amount (Rappen/Cent), payerId, splitIds, method?, category, date, createdAt? }]
 //             Rechnung (expense): payerId hat bezahlt, splitIds tragen es. Zahlung (transfer): payerId zahlt splitIds[0].
 //             method: Zahlungsart (Twint, Neon …), note: was die Rechnung/Zahlung beinhaltet (js/views/abrechnung.js)
-//   settings  { currency, categories, methods, aisleOrder? }   methods: Zahlungsarten in der Abrechnung   aisleOrder: Reihenfolge der Abteilungen im Laden
+//   settings  { currency, categories, methods, aisleOrder?, fridgeDays? }   methods: Zahlungsarten in der Abrechnung   aisleOrder: Reihenfolge der Abteilungen im Laden
+//             fridgeDays: { 'pesto': 5 } zuletzt gewählte Haltbarkeit im Kühlschrank (js/fridge.js)
 //   todolists [{ id, name, createdAt }]                 geteilte ToDo-Listen (persönliche: js/personal.js, nie hier)
 //   todos     [{ id, listId, title, note, done, due?, time?, assignee?, addedAt }]   due 'JJJJ-MM-TT', time 'HH:MM', assignee = members.id
+//   fridge    [{ id, name, useBy, addedAt, from? }]   Reste im Kühlschrank: useBy 'JJJJ-MM-TT' = aufbrauchen bis, from = Gericht
 // In der Datenbank ist jeder Eintrag eine Zeile (collection + id); plan je Tag, settings als eine Zeile „main“.
 
 import { todayKey } from './dates.js';
@@ -25,7 +27,7 @@ import { AccessError } from './remote.js';
 
 const LOCAL_KEY = 'haushalt.v1';
 const CACHE_PREFIX = 'haushalt.cache.';
-const LIST_COLLECTIONS = ['members', 'shopping', 'terms', 'ideas', 'expenses', 'todolists', 'todos'];
+const LIST_COLLECTIONS = ['members', 'shopping', 'terms', 'ideas', 'expenses', 'todolists', 'todos', 'fridge'];
 
 // Dunkle Töne aus Lila, Oliv und Lavendel – weisse Initialen bleiben darauf lesbar
 export const MEMBER_COLORS = ['#8A35C2', '#6B6728', '#4B2F80', '#5E5AB8', '#55531F', '#A23FB0'];
@@ -47,6 +49,7 @@ function empty() {
     expenses: [],
     todolists: [],
     todos: [],
+    fridge: [],
     settings: { currency: 'CHF', categories: [...DEFAULT_CATEGORIES], methods: [...DEFAULT_METHODS] },
   };
 }
@@ -111,6 +114,7 @@ function normalize(saved) {
     expenses: Array.isArray(saved.expenses) ? saved.expenses : base.expenses,
     todolists: Array.isArray(saved.todolists) ? saved.todolists : base.todolists,
     todos: Array.isArray(saved.todos) ? saved.todos : base.todos,
+    fridge: Array.isArray(saved.fridge) ? saved.fridge : base.fridge,
     settings: { ...base.settings, ...(saved.settings || {}) },
   };
 }
@@ -216,9 +220,9 @@ function flush() {
     }
     if (!upserts.length && !Object.keys(removals).length) return true;
     try {
-      // ToDo-Listen in eigener Anfrage zuletzt: Ist die Datenbank noch nicht auf dem neuen Stand (schema.sql),
-      // scheitert nur diese – alles andere ist dann schon oben
-      const late = (r) => r.collection === 'todolists' || r.collection === 'todos';
+      // Neuere Sammlungen (ToDo, Kühlschrank) in eigener Anfrage zuletzt: Ist die Datenbank noch nicht auf dem
+      // neuen Stand (schema.sql), scheitert nur diese – alles andere ist dann schon oben
+      const late = (r) => ['todolists', 'todos', 'fridge'].includes(r.collection);
       await remote.upsert(upserts.filter((r) => !late(r)));
       await remote.upsert(upserts.filter(late));
       await remote.remove(removals);

@@ -131,6 +131,13 @@ jeder Funktion mitgibt.
 Ohne diese Funktion (oder ohne Supabase) lädt die App die Kalenderdatei nur herunter – das klappt am Computer,
 am iPhone landet sie höchstens in „Dateien“.
 
+## 9. Kühlschrank freischalten (einmalig, für bestehende Datenbanken)
+
+Unter **Essen → Kühlschrank** werden Reste mit „aufbrauchen bis“ erfasst. Dafür braucht die Datenbank eine neue
+Sammlung: **SQL Editor** → **New query** → den ganzen Inhalt von [supabase/schema.sql](supabase/schema.sql) nochmals
+einfügen → **Run**. Das ist gefahrlos: Bestehende Daten bleiben. Bis dahin meldet die App beim Erfassen eines Rests
+„Nicht gespeichert“.
+
 ## Gut zu wissen
 
 - **Code ändern:** In der App unter Haushalt → Zugang. Alle anderen Geräte werden beim nächsten Abgleich

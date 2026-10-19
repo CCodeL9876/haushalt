@@ -1,9 +1,12 @@
 // Wochenmenüplan: Montag bis Sonntag, je Mittag und Abend. Gerichte frei eintragen oder aus den Menüideen wählen.
+// Oben ein Hinweis auf Reste im Kühlschrank; beim Gericht lassen sich Reste dorthin eintragen (js/fridge.js).
 
 import { refresh, state, update } from '../store.js';
 import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { addDays, dateKey, fmtDayMonth, fmtShort, fmtWeekday, isoWeek, startOfWeek, todayKey } from '../dates.js';
 import { shopIngredients } from './einkauf.js';
+import { isStaple, splitIngredient } from '../ingredients.js';
+import { addToFridge, fridgeSorted, isUrgent, leftLabel, suggestDays } from '../fridge.js';
 
 export const SLOTS = [
   { id: 'mittag', label: 'Mittag' },
@@ -29,6 +32,55 @@ export function setMeal(day, slot, title) {
   return idea;
 }
 
+// Reste eines Gerichts in den Kühlschrank: das Gericht selbst oder einzelne Zutaten der Menüidee (z. B. Pesto)
+function leftovers(meal) {
+  const title = mealTitle(meal);
+  const seen = new Set([title.toLowerCase()]);
+  const names = [title];
+  for (const line of ideaOf(meal)?.ingredients || []) {
+    const { name } = splitIngredient(line);
+    if (!name || isStaple(name) || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    names.push(name);
+  }
+  const form = openSheet({
+    title: 'Reste in den Kühlschrank',
+    body: `
+      <p class="muted small" style="margin:0 0 10px">Was ist von „${esc(title)}“ übrig geblieben?</p>
+      <div class="pick-list">${names.map((name, n) => `
+        <label class="pick-row">
+          <input type="checkbox" name="i${n}">
+          <span class="list-main">${esc(name)}<small>${n === 0 ? 'das Gericht selbst · ' : ''}hält etwa ${suggestDays(name)} ${suggestDays(name) === 1 ? 'Tag' : 'Tage'}</small></span>
+        </label>`).join('')}
+      </div>
+      <label class="field" style="margin-top:12px"><span>Anderes (optional)</span>
+        <input class="input" name="other" maxlength="80" autocomplete="off" placeholder="z. B. Parmesan, Sauce">
+      </label>`,
+    submitLabel: 'In den Kühlschrank',
+    onSubmit(data) {
+      const chosen = names.filter((_, n) => data.get(`i${n}`));
+      const other = String(data.get('other') || '').split(',').map((x) => x.trim()).filter(Boolean);
+      const count = addToFridge([...chosen, ...other].map((name) => ({ name, from: name === title ? '' : title })));
+      if (!count) return false;
+      toast(count === 1 ? `${[...chosen, ...other][0]} im Kühlschrank` : `${count} Reste im Kühlschrank`);
+    },
+  });
+  form.querySelector('input[type="checkbox"]')?.focus();
+}
+
+// Hinweis oben im Wochenplan: was im Kühlschrank wartet, das Dringendste zuerst (antippen → Kühlschrank)
+function fridgeHint() {
+  const items = fridgeSorted();
+  if (!items.length) return '';
+  const shown = items.slice(0, 3);
+  const more = items.length - shown.length;
+  return `<button type="button" class="card fridge-hint${items.some(isUrgent) ? ' is-urgent' : ''}" data-action="essenPart" data-part="kuehlschrank">
+    <span class="list-main"><strong>Im Kühlschrank</strong>
+      <small>${shown.map((f) => `${esc(f.name)} (${esc(leftLabel(f).replace(/ · bis .*/, ''))})`).join(', ')}${more > 0 ? ` und ${more} weitere` : ''}</small>
+    </span>${icon('right', 'icon-sm')}
+  </button>`;
+}
+
 function editMeal(day, slot) {
   const meal = state.plan[day]?.[slot];
   const slotLabel = SLOTS.find((s) => s.id === slot).label;
@@ -45,9 +97,11 @@ function editMeal(day, slot) {
         </div>` : ''}
       <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>`,
     submitLabel: 'Speichern',
-    footer: meal ? `<button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Eintrag entfernen</button>` : '',
+    footer: meal ? `<button type="button" class="btn btn-block" data-sheet-action="leftovers">Reste in den Kühlschrank</button>
+      <button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Eintrag entfernen</button>` : '',
     actions: {
       pick(btn, form) { form.elements.title.value = btn.dataset.title; },
+      leftovers() { leftovers(meal); },
       clear() { setMeal(day, slot, ''); closeSheet(); },
     },
     onSubmit(data) {
@@ -67,6 +121,7 @@ function editMeal(day, slot) {
 export default {
   id: 'woche',
   title: 'Wochenplan',
+  short: 'Woche', // im Umschalter unter Essen (vier Teile müssen auf die iPhone-Breite passen)
   icon: 'calendar',
 
   render() {
@@ -74,6 +129,7 @@ export default {
     const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
     const today = todayKey();
     return `
+      ${fridgeHint()}
       <div class="week-nav">
         <button type="button" class="icon-btn" data-action="week" data-step="-1" aria-label="Vorherige Woche">${icon('left')}</button>
         <div style="text-align:center">

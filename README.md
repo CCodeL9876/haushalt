@@ -6,7 +6,8 @@ Web-App fürs iPhone für den gemeinsamen Haushalt. Reines HTML, CSS und JavaScr
 |---|---|---|
 | Einkauf | `js/views/einkauf.js` | Einkaufsliste; mehrere Artikel mit Komma auf einmal; gemerkte Begriffe als Vorschläge beim Tippen (häufige zuerst, auch Zutaten der Menüideen); „Nach Laden“ gruppiert nach Abteilungen (`js/aisles.js`, Reihenfolge unter Haushalt anpassbar); „Begriffe“: Vorschläge erfassen, umbenennen, Abteilung ändern, löschen (`js/terms.js`); Stern markiert Wichtiges, steht zuoberst |
 | ToDo | `js/views/todo.js` | Geteilte Listen (für alle im Haushalt) und persönliche (auf dem Gerät, auf Wunsch mit eigenem Passwort verschlüsselt über mehrere eigene Geräte abgeglichen, `js/personal.js`); ToDos in geteilten Listen einer Person zuweisen („Für wen?“, Initialen in der Liste); ToDo mit Datum und Uhrzeit in den Apple-Kalender (`js/calendar.js`, am iPhone über die Supabase-Funktion `calendar`) |
-| Essen → Wochenplan | `js/views/wochenplan.js` | Mo–So, Mittag und Abend; Zutaten der Woche auf die Einkaufsliste |
+| Essen → Wochenplan | `js/views/wochenplan.js` | Mo–So, Mittag und Abend; Zutaten der Woche auf die Einkaufsliste; oben Hinweis auf Reste im Kühlschrank; beim Gericht „Reste in den Kühlschrank“ |
+| Essen → Kühlschrank | `js/views/kuehlschrank.js` | Reste und Angebrochenes mit „aufbrauchen bis“, Dringendes zuoberst; Haltbarkeit vorgeschlagen (Richtwerte bzw. zuletzt gewählt, `js/fridge.js`); Schnellwahl für früher Erfasstes; Reste gehen bei „Claude fragen“ als vorhandene Zutaten mit |
 | Essen → Menüideen | `js/views/ideen.js` | Gerichte mit Zutaten, Zubereitung und Stichworten, Suche; „Claude fragen“: Rezeptideen zu vorhandenen Zutaten (`js/ai.js`, Supabase-Funktion `recipe-ideas`); „Planen“ und „Einkaufen“; Rezept per Link einlesen (`js/recipes.js`, Supabase-Funktion `recipe-import`); vor dem Einkaufen Zutaten auswählen, Mengen werden zur Notiz (`js/ingredients.js`) |
 | Abrechnung | `js/views/abrechnung.js` | Wer schuldet wem wie viel; fortlaufende Liste aller Rechnungen (ganz oder geteilt) und Zahlungen mit Notiz, Datum, Zahlungsart (Twint, Neon …) und laufendem Stand (`js/settle.js`); `#kosten` führt hierher |
 | Haushalt (oben rechts) | `js/views/einstellungen.js` | Personen, Farbdesign (pro Gerät), Währung, Zahlungsarten, Sicherung als JSON |
@@ -36,7 +37,7 @@ ohne Anmeldung und nur lokal (mit Beispieldaten).
 - `js/refresh.js` – Aktualisieren bei offener App: oben nach unten ziehen oder Haushalt → „App aktualisieren“ (lädt neueste Version und Daten).
 - `js/ui.js` – Symbole, Geldbeträge (intern in Rappen), Bottom-Sheet, Meldungen.
 - Neuer Bereich: Datei in `js/views/` anlegen und in `VIEWS` in `js/app.js` eintragen.
-- Essen (`js/views/essen.js`) fasst Wochenplan, Menüideen und Statistik (`js/views/statistik.js`: wie oft welches Gericht im Plan stand, 3 Monate / 12 Monate / alle) unter einem Tab zusammen (Umschalter oben); `#woche` und `#ideen` führen direkt zum jeweiligen Teil.
+- Essen (`js/views/essen.js`) fasst Wochenplan, Kühlschrank, Menüideen und Statistik (`js/views/statistik.js`: wie oft welches Gericht im Plan stand, 3 Monate / 12 Monate / alle) unter einem Tab zusammen (Umschalter oben); `#woche`, `#kuehlschrank` und `#ideen` führen direkt zum jeweiligen Teil.
 
 Beim ersten Start sind Beispieldaten drin (Anna, Ben, drei Menüideen). „Haushalt → Alles zurücksetzen“ leert alles.
 

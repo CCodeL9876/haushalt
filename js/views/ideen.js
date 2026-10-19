@@ -144,7 +144,7 @@ function askClaude() {
     title: 'Claude fragen',
     body: `
       <label class="field"><span>Was hast du da?</span>
-        <textarea class="textarea" name="ingredients" required maxlength="600" placeholder="z. B. Kartoffeln, Lauch, Rahm, Eier, Speck">${esc(lastAsk.ingredients)}</textarea>
+        <textarea class="textarea" name="ingredients" required maxlength="600" placeholder="z. B. Kartoffeln, Lauch, Rahm, Eier, Speck">${esc(lastAsk.ingredients || state.fridge.map((f) => f.name).join(', '))}</textarea>
       </label>
       <label class="field"><span>Wünsche (optional)</span>
         <input class="input" name="wishes" maxlength="200" value="${esc(lastAsk.wishes)}" placeholder="z. B. vegetarisch, schnell, für 2" autocomplete="off">
@@ -214,6 +214,7 @@ function planIdea(idea) {
 export default {
   id: 'ideen',
   title: 'Menüideen',
+  short: 'Ideen',
   icon: 'book',
 
   render() {

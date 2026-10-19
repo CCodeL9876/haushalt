@@ -253,6 +253,7 @@ button { cursor: pointer; }
 /* Umschalter über die ganze Breite (Essen: Wochenplan | Menüideen) */
 .seg-wide { display: flex; margin-bottom: 14px; }
 .seg-wide .seg-btn { flex: 1; min-width: 0; min-height: 36px; padding: 0 6px; }
+.seg-parts .seg-btn { flex: 1 1 auto; } /* Essen: vier Teile – längere Namen (Kühlschrank) bekommen mehr Platz */
 .aisle-title {
   display: flex; align-items: center; gap: 8px;
   margin: 16px 4px 6px; font-size: 13px; font-weight: 650; color: var(--section-text); text-transform: uppercase; letter-spacing: 0.04em;
@@ -416,6 +417,18 @@ button { cursor: pointer; }
 .todo-assign .chip:has(input:focus-visible) { outline: 2px solid var(--accent); }
 .todo-time-hint { margin: -8px 0 14px; }
 .todo-cal-btn { background: var(--suggest-bg); color: var(--suggest-text); }
+
+/* ---------- Kühlschrank (Essen) ---------- */
+.fridge-list .is-urgent .check { border-color: var(--minus); }
+.fridge-note { margin: 14px 4px 0; }
+.chip.is-on { background: var(--accent); color: var(--on-accent); }
+/* Hinweis oben im Wochenplan */
+.fridge-hint {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 12px; padding: 10px 14px;
+  border: 0; text-align: left; color: inherit;
+}
+.fridge-hint strong { display: block; font-size: 15px; }
+.fridge-hint.is-urgent { box-shadow: inset 3px 0 0 var(--minus), var(--shadow); }
 
 /* ---------- Claude fragen (Menüideen) ---------- */
 .ask-claude {
