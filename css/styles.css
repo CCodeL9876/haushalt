@@ -377,6 +377,19 @@ button { cursor: pointer; }
 .tile-main small { display: block; font-size: 13px; opacity: 0.75; }
 .tile-main small.tile-overdue { color: var(--minus); opacity: 1; font-weight: 600; }
 .list-tile > button > .icon-sm { opacity: 0.6; }
+/* Titel mit mehreren Knöpfen (Anordnen, Neue Liste) */
+.title-tools { display: flex; gap: 2px; margin-left: auto; }
+.section-title .title-tools .btn { margin-left: 0; padding: 0 6px; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+.section-title:has(.title-tools) { white-space: nowrap; }
+@media (max-width: 360px) { .title-tools .btn-label { display: none; } }
+/* Anordnen: Kachel ohne Öffnen, mit Pfeilen */
+.list-tile.is-arranging .tile-row {
+  display: flex; align-items: center; gap: 4px; min-height: 56px; padding: 6px 6px 6px 14px;
+  border-radius: var(--radius); background: var(--tile-bg); color: var(--tile-text); box-shadow: var(--shadow);
+  outline: 2px dashed var(--tile-badge); outline-offset: -2px;
+}
+.list-tile.is-arranging .icon-btn { color: var(--tile-text); }
+.list-tile.is-arranging .icon-btn[disabled] { opacity: 0.25; }
 .todo-head { display: flex; align-items: center; gap: 4px; margin: 0 -8px 10px; }
 .todo-head-title { flex: 1; min-width: 0; text-align: center; }
 .todo-head-title strong { display: block; font-size: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

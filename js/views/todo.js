@@ -55,13 +55,41 @@ const overdue = (t) => !t.done && t.due && t.due < todayKey();
 
 // ---------- Übersicht ----------
 
-function listRow(scope, list, todos) {
+// Reihenfolge der Listen: selbst gewählt (order), sonst in der Reihenfolge des Anlegens
+const listOrder = (l) => (Number.isFinite(l.order) ? l.order : 1e6 + (l.createdAt || 0) / 1e9);
+const sortedLists = (lists) => [...lists].sort((a, b) => listOrder(a) - listOrder(b));
+let arranging = null; // 'shared' | 'personal' – Abschnitt, dessen Listen gerade angeordnet werden
+
+// Liste um eine Stelle verschieben und die Reihenfolge aller Listen dieses Abschnitts festhalten
+function moveList(scope, id, dir) {
+  SCOPES[scope].change((d) => {
+    const lists = sortedLists(d.lists);
+    const i = lists.findIndex((l) => l.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= lists.length) return;
+    [lists[i], lists[j]] = [lists[j], lists[i]];
+    lists.forEach((l, n) => { l.order = n; });
+  });
+}
+
+function listRow(scope, list, todos, pos = {}) {
   const items = todos.filter((t) => t.listId === list.id && !t.done).sort(byDue);
   const next = items.find((t) => t.due);
   const info = [
     items.length ? `${items.length} offen` : 'Alles erledigt',
     next ? `nächstes: ${dueLabel(next)}` : '',
   ].filter(Boolean).join(' · ');
+  // Beim Anordnen: Pfeile statt Öffnen
+  if (arranging === scope) {
+    return `
+    <li class="list-tile is-arranging">
+      <div class="tile-row">
+        <span class="tile-main"><strong>${esc(list.name)}</strong><small>${esc(info)}</small></span>
+        <button type="button" class="icon-btn" data-action="moveList" data-scope="${scope}" data-id="${list.id}" data-dir="-1" aria-label="${esc(list.name)} nach oben"${pos.first ? ' disabled' : ''}>${icon('up', 'icon-sm')}</button>
+        <button type="button" class="icon-btn" data-action="moveList" data-scope="${scope}" data-id="${list.id}" data-dir="1" aria-label="${esc(list.name)} nach unten"${pos.last ? ' disabled' : ''}>${icon('down', 'icon-sm')}</button>
+      </div>
+    </li>`;
+  }
   // Farbige Kachel (Farbe reihum, css: .list-tile) – hebt sich von den hellen ToDo-Punkten ab
   return `
     <li class="list-tile">
@@ -76,14 +104,19 @@ function listRow(scope, list, todos) {
 function overview() {
   const shared = SCOPES.shared.data();
   const mine = SCOPES.personal.data();
-  const section = (scope, d, title, hint) => `
-    <h2 class="section-title">${title}
-      <button type="button" class="btn btn-ghost btn-sm" data-action="newList" data-scope="${scope}">${icon('plus', 'icon-sm')} Neue Liste</button>
-    </h2>
-    <p class="muted small todo-hint">${icon(scope === 'personal' ? 'lock' : 'users', 'icon-sm')}${hint}</p>
-    ${d.lists.length
-      ? `<ul class="list-tiles">${d.lists.map((l) => listRow(scope, l, d.todos)).join('')}</ul>`
+  const section = (scope, d, title, hint) => {
+    const lists = sortedLists(d.lists);
+    const tools = arranging === scope
+      ? `<button type="button" class="btn btn-primary btn-sm" data-action="arrange" data-scope="">Fertig</button>`
+      : `${lists.length > 1 ? `<button type="button" class="btn btn-ghost btn-sm" data-action="arrange" data-scope="${scope}" aria-label="Listen anordnen">${icon('sort', 'icon-sm')}<span class="btn-label"> Anordnen</span></button>` : ''}
+         <button type="button" class="btn btn-ghost btn-sm" data-action="newList" data-scope="${scope}">${icon('plus', 'icon-sm')} Neue Liste</button>`;
+    return `
+    <h2 class="section-title">${title}<span class="title-tools">${tools}</span></h2>
+    <p class="muted small todo-hint">${icon(scope === 'personal' ? 'lock' : 'users', 'icon-sm')}${arranging === scope ? 'Mit den Pfeilen verschieben, dann „Fertig“' : hint}</p>
+    ${lists.length
+      ? `<ul class="list-tiles">${lists.map((l, n) => listRow(scope, l, d.todos, { first: n === 0, last: n === lists.length - 1 })).join('')}</ul>`
       : `<button type="button" class="todo-empty" data-action="newList" data-scope="${scope}">Noch keine Liste – hier eine anlegen</button>`}`;
+  };
   return `
     ${section('shared', shared, 'Geteilt', 'Für alle im Haushalt')}
     ${section('personal', mine, 'Nur für mich', syncEnabled() ? 'Nur für dich – verschlüsselt auf deinen Geräten' : 'Nur für dich – auf diesem Gerät')}
@@ -106,7 +139,11 @@ function newList(scope) {
       if (!name) return false;
       const id = uid();
       setOpen({ scope, id }); // gleich die neue Liste zeigen
-      SCOPES[scope].change((d) => { d.lists.push({ id, name: name.slice(0, 60), createdAt: Date.now() }); });
+      SCOPES[scope].change((d) => {
+        // ans Ende der selbst gewählten Reihenfolge
+        const max = Math.max(-1, ...d.lists.map((l) => (Number.isFinite(l.order) ? l.order : -1)));
+        d.lists.push({ id, name: name.slice(0, 60), createdAt: Date.now(), ...(max >= 0 ? { order: max + 1 } : {}) });
+      });
       window.scrollTo(0, 0);
       setTimeout(() => document.getElementById('todo-input')?.focus());
     },
@@ -363,6 +400,11 @@ export default {
   actions: {
     sync() { syncSheet(); },
     newList(el) { newList(el.dataset.scope); },
+    arrange(el) {
+      arranging = el.dataset.scope || null;
+      refresh();
+    },
+    moveList(el) { moveList(el.dataset.scope, el.dataset.id, Number(el.dataset.dir)); },
     openList(el) {
       setOpen({ scope: el.dataset.scope, id: el.dataset.id });
       refresh();
