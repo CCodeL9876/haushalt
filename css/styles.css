@@ -253,6 +253,12 @@ button { cursor: pointer; }
   margin: 16px 4px 6px; font-size: 13px; font-weight: 650; color: var(--section-text); text-transform: uppercase; letter-spacing: 0.04em;
 }
 .aisle-title::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--section-dot); flex: none; }
+.star-title { color: var(--accent-text); }
+.star-title .icon-xs { fill: currentColor; }
+.star-title::before { display: none; }
+.star-btn { color: var(--muted); opacity: 0.55; }
+.star-btn.is-on { color: var(--accent-text); opacity: 1; }
+.star-btn.is-on .icon-sm { fill: currentColor; }
 .shop-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .shop-tools .seg { margin: 0; }
 .shop-tools + .aisle-title { margin-top: 4px; }

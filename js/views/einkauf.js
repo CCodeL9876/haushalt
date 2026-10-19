@@ -42,6 +42,7 @@ export function addToShopping(entries, note = '') {
       if (existing && !existing.done) continue;
       if (existing) {
         existing.done = false;
+        delete existing.star;
         existing.note = itemNote || existing.note;
       } else {
         s.shopping.unshift({ id: uid(), name, note: itemNote, done: false, addedAt: Date.now() });
@@ -136,6 +137,7 @@ const item = (i) => `
     ${i.done
       ? `<span class="list-main">${esc(i.name)}${i.note ? `<small>${esc(i.note)}</small>` : ''}</span>`
       : `<button type="button" class="list-main" data-action="aisle" data-id="${i.id}" aria-label="${esc(i.name)} – Abteilung ändern">${esc(i.name)}${i.note ? `<small>${esc(i.note)}</small>` : ''}</button>`}
+    ${i.done ? '' : `<button type="button" class="icon-btn star-btn${i.star ? ' is-on' : ''}" data-action="star" data-id="${i.id}" aria-pressed="${Boolean(i.star)}" aria-label="${esc(i.name)} ${i.star ? 'nicht mehr wichtig' : 'als wichtig markieren'}">${icon('star', 'icon-sm')}</button>`}
     <button type="button" class="icon-btn" data-action="remove" data-id="${i.id}" aria-label="${esc(i.name)} löschen">${icon('x', 'icon-sm')}</button>
   </li>`;
 
@@ -149,10 +151,16 @@ export default {
     const done = state.shopping.filter((i) => i.done);
     const mode = sortMode();
     // Nach Abteilungen in der Reihenfolge des Ladens, innerhalb einer Abteilung alphabetisch
-    let openHtml = `<ul class="list">${open.map(item).join('')}</ul>`;
+    // Mit Stern markierte Artikel stehen zuoberst unter „Wichtig“, der Rest wie gewählt sortiert
+    const starred = open.filter((i) => i.star);
+    const rest = open.filter((i) => !i.star);
+    const starHtml = starred.length ? `
+      <h3 class="aisle-title star-title">${icon('star', 'icon-xs')} Wichtig</h3>
+      <ul class="list">${starred.map(item).join('')}</ul>` : '';
+    let openHtml = rest.length ? `${starred.length ? '<h3 class="aisle-title">Übrige</h3>' : ''}<ul class="list">${rest.map(item).join('')}</ul>` : '';
     if (mode === 'laden') {
       const groups = new Map(aisleOrder(state.settings).map((id) => [id, []]));
-      for (const i of open) groups.get(aisleOf(i.name, state.terms)).push(i);
+      for (const i of rest) groups.get(aisleOf(i.name, state.terms)).push(i);
       openHtml = [...groups]
         .filter(([, items]) => items.length)
         .map(([id, items]) => `
@@ -160,6 +168,7 @@ export default {
           <ul class="list">${items.sort((a, b) => a.name.localeCompare(b.name, 'de')).map(item).join('')}</ul>`)
         .join('');
     }
+    openHtml = starHtml + openHtml;
     return `
       <form class="add-row" data-form="add">
         <input class="input" id="shop-input" name="name" placeholder="Was brauchen wir?" autocomplete="off" enterkeyhint="done" required data-input="suggest">
@@ -242,7 +251,18 @@ export default {
     toggle(el) {
       update((s) => {
         const i = s.shopping.find((x) => x.id === el.dataset.id);
-        if (i) i.done = !i.done;
+        if (i) {
+          i.done = !i.done;
+          delete i.star; // erledigt: Markierung weg, damit sie beim nächsten Mal nicht stehen bleibt
+        }
+      });
+    },
+    star(el) {
+      update((s) => {
+        const i = s.shopping.find((x) => x.id === el.dataset.id);
+        if (!i) return;
+        if (i.star) delete i.star;
+        else i.star = true;
       });
     },
     remove(el) {

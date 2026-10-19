@@ -4,7 +4,7 @@ Web-App fürs iPhone für den gemeinsamen Haushalt. Reines HTML, CSS und JavaScr
 
 | Bereich | Datei | Was |
 |---|---|---|
-| Einkauf | `js/views/einkauf.js` | Einkaufsliste; mehrere Artikel mit Komma auf einmal; gemerkte Begriffe als Vorschläge beim Tippen (häufige zuerst, auch Zutaten der Menüideen); „Nach Laden“ gruppiert nach Abteilungen (`js/aisles.js`, Reihenfolge unter Haushalt anpassbar); „Begriffe“: Vorschläge erfassen, umbenennen, Abteilung ändern, löschen (`js/terms.js`) |
+| Einkauf | `js/views/einkauf.js` | Einkaufsliste; mehrere Artikel mit Komma auf einmal; gemerkte Begriffe als Vorschläge beim Tippen (häufige zuerst, auch Zutaten der Menüideen); „Nach Laden“ gruppiert nach Abteilungen (`js/aisles.js`, Reihenfolge unter Haushalt anpassbar); „Begriffe“: Vorschläge erfassen, umbenennen, Abteilung ändern, löschen (`js/terms.js`); Stern markiert Wichtiges, steht zuoberst |
 | ToDo | `js/views/todo.js` | Geteilte Listen (für alle im Haushalt) und persönliche (auf dem Gerät, auf Wunsch mit eigenem Passwort verschlüsselt über mehrere eigene Geräte abgeglichen, `js/personal.js`); ToDo mit Datum und Uhrzeit in den Apple-Kalender (`js/calendar.js`, am iPhone über die Supabase-Funktion `calendar`) |
 | Essen → Wochenplan | `js/views/wochenplan.js` | Mo–So, Mittag und Abend; Zutaten der Woche auf die Einkaufsliste |
 | Essen → Menüideen | `js/views/ideen.js` | Gerichte mit Zutaten, Zubereitung und Stichworten, Suche; „Claude fragen“: Rezeptideen zu vorhandenen Zutaten (`js/ai.js`, Supabase-Funktion `recipe-ideas`); „Planen“ und „Einkaufen“; Rezept per Link einlesen (`js/recipes.js`, Supabase-Funktion `recipe-import`); vor dem Einkaufen Zutaten auswählen, Mengen werden zur Notiz (`js/ingredients.js`) |

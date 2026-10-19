@@ -6,7 +6,7 @@
 //
 // Aufbau des Datensatzes:
 //   members   [{ id, name, color, createdAt }]
-//   shopping  [{ id, name, note, done, addedAt }]
+//   shopping  [{ id, name, note, done, addedAt, star? }]   star: als wichtig markiert (steht zuoberst)
 //   terms     [{ id, name, count, lastUsed, aisle? }]   Begriffe für die Vorschläge beim Einkauf: jeder Artikel, der
 //             einmal auf der Liste war; id = Name klein geschrieben (termKey), damit jeder Begriff nur einmal vorkommt.
 //             aisle: von Hand gewählte Abteilung im Laden (sonst am Namen erkannt, siehe js/aisles.js)
