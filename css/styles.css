@@ -269,6 +269,8 @@ button { cursor: pointer; }
 .pick-row:last-child { border-bottom: 0; }
 .pick-row input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
 .import-status a { color: var(--accent-text); font-weight: 600; }
+.link-field summary { font-size: 14px; font-weight: 600; color: var(--text-soft); cursor: pointer; min-height: 32px; }
+.recipe-link { color: var(--accent-text); font-weight: 600; }
 .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--tag-1-bg); color: var(--tag-text); font-size: 12px; font-weight: 600; }
 .tag:nth-child(4n+2) { background: var(--tag-2-bg); }
 .tag:nth-child(4n+3) { background: var(--tag-3-bg); }
@@ -304,10 +306,13 @@ button { cursor: pointer; }
 /* ---------- Wochenplan ---------- */
 .week-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .week-nav strong { font-size: 17px; }
-.day { padding: 12px 14px; }
-.day-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.day { padding: 10px 12px; margin-bottom: 10px; }
+.day-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
 .day-head strong { font-size: 17px; }
 .day.is-today { outline: 2px solid var(--today-ring); }
+/* Vergangene Tage zurücknehmen, damit der Blick auf heute und die kommenden Tage fällt */
+.day.is-past { opacity: 0.6; }
+.day.is-past:focus-within, .day.is-past:active { opacity: 1; }
 .day-head { align-items: center; }
 .day-meta { display: flex; align-items: center; gap: 10px; }
 /* Mittag nur bei Bedarf: kleiner Knopf neben dem Datum */
@@ -347,9 +352,12 @@ button { cursor: pointer; }
 .idea .chips { gap: 6px; margin-top: 8px; }
 
 /* ---------- ToDo ---------- */
-.todo-hint { display: flex; align-items: center; gap: 6px; margin: -2px 4px 8px; }
+.todo-hint { display: flex; align-items: center; gap: 6px; margin: -4px 4px 8px; }
 .todo-hint .icon-sm { width: 15px; height: 15px; color: var(--section-text); }
-.todo-add-list { margin-top: 8px; }
+.todo-empty {
+  display: block; width: 100%; min-height: 56px; padding: 0 14px; border: 1.5px dashed var(--line); border-radius: var(--radius);
+  background: transparent; color: var(--muted); font-size: 15px; text-align: left;
+}
 .todo-sync { margin: 2px 0 0; padding: 0 4px; }
 .list-tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .list-tile { --tile-bg: var(--tile-1-bg); --tile-badge: var(--tile-1-badge); }
@@ -504,6 +512,13 @@ button { cursor: pointer; }
   font-size: 17px; font-weight: 600;
 }
 .who-btn[aria-pressed="true"] { border-color: var(--accent); }
+
+/* ---------- Haushalt-Fenster: Gruppen ---------- */
+.settings-group {
+  margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 13px; font-weight: 650; color: var(--section-text); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.settings-group:first-child { border-top: 0; padding-top: 0; }
 
 /* ---------- Farbdesign (Haushalt → Farbdesign) ---------- */
 .palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }

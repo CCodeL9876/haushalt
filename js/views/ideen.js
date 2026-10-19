@@ -19,33 +19,40 @@ const searchText = (i) => [i.title, ...i.tags, ...i.ingredients].join(' ').toLow
 
 function editIdea(id) {
   const idea = state.ideas.find((i) => i.id === id);
-  openSheet({
-    title: idea ? idea.title : 'Neue Menüidee',
-    body: `
-      <div class="field"><span>Rezept-Link</span>
-        <div class="add-row" style="margin-bottom:6px">
-          <input class="input" type="url" name="url" value="${esc(idea?.url)}" placeholder="https://… z. B. Betty Bossi, Swissmilk, Fooby" inputmode="url" autocomplete="off" autocapitalize="off">
+  // Rezept-Link: bei einer neuen Idee zuoberst (einlesen statt abtippen), sonst unten – selten gebraucht
+  const linkHtml = `
+      <details class="field link-field">
+        <summary>Rezept-Link${safeLink(idea?.url) ? '' : ' (optional) – einlesen statt abtippen'}</summary>
+        <div class="add-row" style="margin:8px 0 6px">
+          <input class="input" type="text" name="url" value="${esc(idea?.url)}" placeholder="https://… z. B. Betty Bossi, Swissmilk, Fooby" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false">
           <button type="button" class="btn" data-sheet-action="import" style="width:auto;padding:0 14px">Einlesen</button>
         </div>
         <p class="muted small import-status" style="margin:0">${recipeImportAvailable()
-          ? (safeLink(idea?.url) ? `<a href="${esc(safeLink(idea.url))}" target="_blank" rel="noopener noreferrer">Rezept öffnen ↗</a>` : 'Link einfügen und „Einlesen“ – Name und Zutaten werden übernommen.')
+          ? 'Link einfügen und „Einlesen“ – Name und Zutaten werden übernommen.'
           : 'Einlesen braucht das Supabase-Projekt (ANLEITUNG.md). Den Link kannst du trotzdem speichern.'}</p>
-      </div>
+      </details>
+      ${safeLink(idea?.url) ? `<p class="small" style="margin:-6px 0 12px"><a class="recipe-link" href="${esc(safeLink(idea.url))}" target="_blank" rel="noopener noreferrer">Rezept öffnen ↗</a></p>` : ''}
+`;
+  openSheet({
+    title: idea ? idea.title : 'Neue Menüidee',
+    body: `
+      ${idea ? '' : linkHtml}
       <label class="field"><span>Name</span>
         <input class="input" name="title" value="${esc(idea?.title)}" required autocomplete="off" placeholder="z. B. Risotto">
       </label>
       <label class="field"><span>Zutaten (eine pro Zeile)</span>
-        <textarea class="textarea" name="ingredients" placeholder="Reis&#10;Zwiebel&#10;Bouillon">${esc(idea?.ingredients.join('\n'))}</textarea>
+        <textarea class="textarea" name="ingredients" placeholder="Reis&#10;Zwiebel&#10;Bouillon">${esc((idea?.ingredients || []).join('\n'))}</textarea>
       </label>
       <label class="field"><span>Zubereitung (ein Schritt pro Zeile)</span>
         <textarea class="textarea" name="steps" placeholder="Zwiebel andünsten&#10;Reis dazugeben …">${esc((idea?.steps || []).join('\n'))}</textarea>
       </label>
       <label class="field"><span>Stichworte (mit Komma getrennt)</span>
-        <input class="input" name="tags" value="${esc(idea?.tags.join(', '))}" placeholder="Vegi, Schnell" autocomplete="off">
+        <input class="input" name="tags" value="${esc((idea?.tags || []).join(', '))}" placeholder="Vegi, Schnell" autocomplete="off">
       </label>
       <label class="field"><span>Notiz</span>
         <input class="input" name="note" value="${esc(idea?.note)}" placeholder="Tipp, Beilage, Portionen …" autocomplete="off">
-      </label>`,
+      </label>
+      ${idea ? linkHtml : ''}`,
     submitLabel: 'Speichern',
     footer: idea ? `
       <div class="row">
@@ -211,11 +218,11 @@ export default {
 
   render() {
     return `
-      <button type="button" class="ask-claude" data-action="ask">
+${ideasAvailable() ? `<button type="button" class="ask-claude" data-action="ask">
         ${icon('sparkles')}
         <span><strong>Claude fragen</strong><small>Zutaten angeben, Rezeptideen bekommen</small></span>
         ${icon('right', 'icon-sm')}
-      </button>
+      </button>` : ''}
       <div class="search">
         ${icon('search')}
         <input class="input" type="search" data-input="filter" value="${esc(query)}" placeholder="Gericht, Zutat oder Stichwort" autocomplete="off" aria-label="Menüideen durchsuchen">

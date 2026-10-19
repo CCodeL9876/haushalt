@@ -76,21 +76,42 @@ function listRow(scope, list, todos) {
 function overview() {
   const shared = SCOPES.shared.data();
   const mine = SCOPES.personal.data();
-  const section = (scope, d, title, hint, placeholder) => `
-    <h2 class="section-title">${title}</h2>
-    ${hint ? `<p class="muted small todo-hint">${icon(scope === 'personal' ? 'lock' : 'users', 'icon-sm')}${hint}</p>` : ''}
-    ${d.lists.length ? `<ul class="list-tiles">${d.lists.map((l) => listRow(scope, l, d.todos)).join('')}</ul>` : ''}
-    <form class="add-row todo-add-list" data-form="addList" data-scope="${scope}">
-      <input class="input" id="new-list-${scope}" name="name" placeholder="${placeholder}" autocomplete="off" enterkeyhint="done" required maxlength="60">
-      <button type="submit" class="btn btn-primary" aria-label="Liste anlegen">${icon('plus')}</button>
-    </form>`;
+  const section = (scope, d, title, hint) => `
+    <h2 class="section-title">${title}
+      <button type="button" class="btn btn-ghost btn-sm" data-action="newList" data-scope="${scope}">${icon('plus', 'icon-sm')} Neue Liste</button>
+    </h2>
+    <p class="muted small todo-hint">${icon(scope === 'personal' ? 'lock' : 'users', 'icon-sm')}${hint}</p>
+    ${d.lists.length
+      ? `<ul class="list-tiles">${d.lists.map((l) => listRow(scope, l, d.todos)).join('')}</ul>`
+      : `<button type="button" class="todo-empty" data-action="newList" data-scope="${scope}">Noch keine Liste – hier eine anlegen</button>`}`;
   return `
-    ${section('shared', shared, 'Geteilt', 'Alle im Haushalt sehen und bearbeiten diese Listen.', 'Neue geteilte Liste')}
-    ${section('personal', mine, 'Nur für mich', syncEnabled()
-      ? 'Verschlüsselt auf deinen Geräten abgeglichen – niemand sonst kann sie lesen.'
-      : 'Nur auf diesem Gerät gespeichert – niemand sonst sieht sie.', 'Neue persönliche Liste')}
+    ${section('shared', shared, 'Geteilt', 'Für alle im Haushalt')}
+    ${section('personal', mine, 'Nur für mich', syncEnabled() ? 'Nur für dich – verschlüsselt auf deinen Geräten' : 'Nur für dich – auf diesem Gerät')}
     ${syncWasLost() ? '<p class="small amount-minus todo-hint">Auf einem anderen Gerät wurde ein neues Passwort gesetzt. Abgleich hier neu einrichten.</p>' : ''}
     ${syncAvailable() ? `<button type="button" class="btn btn-ghost btn-sm todo-sync" data-action="sync">${icon('refresh', 'icon-sm')} ${syncEnabled() ? 'Abgleich verwalten' : 'Auf meinen Geräten abgleichen'}</button>` : ''}`;
+}
+
+// Neue Liste: Name abfragen, dann gleich öffnen
+function newList(scope) {
+  const form = openSheet({
+    title: scope === 'personal' ? 'Neue persönliche Liste' : 'Neue geteilte Liste',
+    body: `
+      <label class="field"><span>Name</span>
+        <input class="input" name="name" required maxlength="60" autocomplete="off" placeholder="${scope === 'personal' ? 'z. B. Geschenke, Arbeit' : 'z. B. Putzplan, Ferien'}">
+      </label>
+      <p class="muted small" style="margin:0">${scope === 'personal' ? 'Nur du siehst diese Liste.' : 'Alle im Haushalt sehen und bearbeiten diese Liste.'}</p>`,
+    submitLabel: 'Anlegen',
+    onSubmit(data) {
+      const name = String(data.get('name')).trim();
+      if (!name) return false;
+      const id = uid();
+      setOpen({ scope, id }); // gleich die neue Liste zeigen
+      SCOPES[scope].change((d) => { d.lists.push({ id, name: name.slice(0, 60), createdAt: Date.now() }); });
+      window.scrollTo(0, 0);
+      setTimeout(() => document.getElementById('todo-input')?.focus());
+    },
+  });
+  form.elements.name.focus();
 }
 
 // ---------- Persönliche Listen auf mehreren Geräten (verschlüsselt, js/personal.js) ----------
@@ -341,6 +362,7 @@ export default {
 
   actions: {
     sync() { syncSheet(); },
+    newList(el) { newList(el.dataset.scope); },
     openList(el) {
       setOpen({ scope: el.dataset.scope, id: el.dataset.id });
       refresh();
@@ -375,16 +397,6 @@ export default {
   },
 
   submit: {
-    addList(form) {
-      const scope = form.dataset.scope;
-      const name = form.elements.name.value.trim();
-      if (!name) return;
-      const id = uid();
-      setOpen({ scope, id }); // gleich die neue Liste zeigen
-      SCOPES[scope].change((d) => { d.lists.push({ id, name: name.slice(0, 60), createdAt: Date.now() }); });
-      window.scrollTo(0, 0);
-      document.getElementById('todo-input')?.focus();
-    },
     addTodo(form) {
       const cur = current();
       const title = form.elements.title.value.trim();

@@ -10,7 +10,7 @@
 
 import { memberById, state, update, uid } from '../store.js';
 import { avatar, closeSheet, esc, icon, money, openSheet, parseMoney, toast } from '../ui.js';
-import { fmtMonthYear, fmtShort, parseKey, todayKey } from '../dates.js';
+import { fmtDayMonth, fmtMonthYear, parseKey, todayKey } from '../dates.js';
 import { balances } from '../settle.js';
 import { currentMember } from '../login.js';
 
@@ -33,7 +33,7 @@ function shareLabel(e) {
   if (isPayment(e)) return '';
   const split = e.splitIds || [];
   if (split.length === 1 && split[0] !== e.payerId) return `ganz für ${name(split[0])}`;
-  if (split.includes(e.payerId) && split.length > 1) return split.length === 2 ? 'geteilt (Hälfte)' : `geteilt durch ${split.length}`;
+  if (split.includes(e.payerId) && split.length > 1) return `${split.length === 2 ? 'Hälfte' : `1/${split.length}`} von ${money(e.amount)}`;
   return '';
 }
 
@@ -228,8 +228,8 @@ function entryRow(e, p, after) {
   const title = e.note || (e.title === 'Ausgleich' ? '' : e.title) || kind;
   const meta = [
     title === kind ? '' : kind, // ohne Notiz steht die Art schon als Titel da
-    fmtShort(e.date),
-    pay ? `${name(e.payerId)} → ${name(e.splitIds?.[0])}` : `bezahlt von ${name(e.payerId)}`,
+    e.date ? fmtDayMonth(parseKey(e.date)) : '',
+    pay ? `${name(e.payerId)} → ${name(e.splitIds?.[0])}` : `${name(e.payerId)} bezahlt`,
     shareLabel(e),
     e.method,
   ].filter(Boolean).join(' · ');
@@ -249,7 +249,7 @@ function entryRow(e, p, after) {
     <li>
       <span class="ledger-kind ${pay ? 'is-payment' : 'is-bill'}" aria-hidden="true">${icon(pay ? 'arrow' : 'receipt', 'icon-sm')}</span>
       <button type="button" class="list-main" data-action="edit" data-id="${e.id}" aria-label="${pay ? 'Rückzahlung' : 'Rechnung'} ${esc(title)} bearbeiten">
-        ${esc(title)}<small>${esc(meta)}${!pay && shareLabel(e).startsWith('geteilt') ? ` · Total ${money(e.amount)}` : ''}</small>
+        ${esc(title)}<small>${esc(meta)}</small>
       </button>
       ${right}
     </li>`;

@@ -89,7 +89,7 @@ export default {
         const hasMittag = Boolean(state.plan[key]?.mittag);
         const shown = SLOTS.filter((s) => s.id === 'abend' || hasMittag);
         return `
-          <section class="card day ${key === today ? 'is-today' : ''}">
+          <section class="card day ${key === today ? 'is-today' : ''} ${key < today ? 'is-past' : ''}">
             <div class="day-head">
               <strong>${fmtWeekday(d)}${key === today ? ' <span class="today-pill">Heute</span>' : ''}</strong>
               <span class="day-meta">

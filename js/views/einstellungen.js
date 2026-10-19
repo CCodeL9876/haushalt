@@ -73,23 +73,23 @@ export function openSettings() {
       <div class="field"><span>Farbdesign <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
         <div class="palette-grid">${paletteHtml()}</div>
       </div>
-      <label class="field"><span>Währung</span>
-        <select class="select" name="currency">${CURRENCIES.map((c) => `<option ${c === state.settings.currency ? 'selected' : ''}>${c}</option>`).join('')}</select>
-      </label>
-      <label class="field"><span>Zahlungsarten in der Abrechnung (mit Komma getrennt)</span>
-        <input class="input" name="methods" value="${esc((state.settings.methods || []).join(', '))}" autocomplete="off">
-      </label>
+      <h3 class="settings-group">Einkauf</h3>
+      <button type="button" class="btn btn-block" data-sheet-action="terms" style="margin-bottom:10px">${icon('cart', 'icon-sm')} Einkaufsbegriffe verwalten (${state.terms.length})</button>
       <details class="field aisles-field">
         <summary>Reihenfolge im Laden</summary>
         <p class="muted small" style="margin:6px 0 8px">So ist die Einkaufsliste bei „Nach Laden“ sortiert. An euren Laden anpassen: Abteilungen nach oben oder unten schieben.</p>
         <ul class="list aisle-order">${aisleListHtml()}</ul>
         <button type="button" class="btn btn-ghost btn-sm" data-sheet-action="resetAisles" style="margin-top:6px">Standard-Reihenfolge</button>
       </details>
-      <div class="field"><span>Einkaufsbegriffe</span>
-        <p class="muted small" style="margin:0 0 8px">Vorschläge beim Einkauf: neue erfassen, Abteilung im Laden ändern, umbenennen oder löschen.</p>
-        <button type="button" class="btn btn-block" data-sheet-action="terms">${icon('cart', 'icon-sm')} Einkaufsbegriffe verwalten (${state.terms.length})</button>
-      </div>
-      <div class="field"><span>Daten</span>
+      <h3 class="settings-group">Abrechnung</h3>
+      <label class="field"><span>Währung</span>
+        <select class="select" name="currency">${CURRENCIES.map((c) => `<option ${c === state.settings.currency ? 'selected' : ''}>${c}</option>`).join('')}</select>
+      </label>
+      <label class="field"><span>Zahlungsarten (mit Komma getrennt)</span>
+        <input class="input" name="methods" value="${esc((state.settings.methods || []).join(', '))}" autocomplete="off">
+      </label>
+      <h3 class="settings-group">Daten</h3>
+      <div class="field">
         <p class="muted small" style="margin:0 0 8px">${session.mode === 'shared'
           ? 'Gemeinsam gespeichert für alle im Haushalt. Einspielen ersetzt die Daten für alle.'
           : 'Ohne Anmeldung nur auf diesem Gerät gespeichert (Supabase noch nicht eingerichtet, siehe ANLEITUNG.md).'}</p>
