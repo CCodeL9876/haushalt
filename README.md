@@ -36,7 +36,7 @@ ohne Anmeldung und nur lokal (mit Beispieldaten).
 - `js/refresh.js` – Aktualisieren bei offener App: oben nach unten ziehen oder Haushalt → „App aktualisieren“ (lädt neueste Version und Daten).
 - `js/ui.js` – Symbole, Geldbeträge (intern in Rappen), Bottom-Sheet, Meldungen.
 - Neuer Bereich: Datei in `js/views/` anlegen und in `VIEWS` in `js/app.js` eintragen.
-- Essen (`js/views/essen.js`) fasst Wochenplan und Menüideen unter einem Tab zusammen (Umschalter oben); `#woche` und `#ideen` führen direkt zum jeweiligen Teil.
+- Essen (`js/views/essen.js`) fasst Wochenplan, Menüideen und Statistik (`js/views/statistik.js`: wie oft welches Gericht im Plan stand, 3 Monate / 12 Monate / alle) unter einem Tab zusammen (Umschalter oben); `#woche` und `#ideen` führen direkt zum jeweiligen Teil.
 
 Beim ersten Start sind Beispieldaten drin (Anna, Ben, drei Menüideen). „Haushalt → Alles zurücksetzen“ leert alles.
 

@@ -112,6 +112,7 @@ def light_tokens(p):
         'tile-3-bg': mix(c3, WHITE, 0.7), 'tile-3-badge': mix(c3, WHITE, 0.25), 'tile-text': ink,
     }
     t['tile-badge-text'] = badge_text([t['tile-1-badge'], t['tile-2-badge'], t['tile-3-badge']], ink)
+    t['stat-bar'] = ensure(acc, card, 3)  # Balken der Statistik: Fläche, braucht 3:1 auf der Karte
     r, g, b = rgb(ink)
     t['shadow'] = f'0 1px 2px rgba({r}, {g}, {b}, 0.08), 0 4px 14px rgba({r}, {g}, {b}, 0.06)'
     t['shadow-lg'] = f'0 -10px 40px rgba({r}, {g}, {b}, 0.18)'
@@ -150,6 +151,7 @@ def dark_tokens(p):
         'shadow': '0 1px 3px rgba(0, 0, 0, 0.45)', 'shadow-lg': '0 -10px 40px rgba(0, 0, 0, 0.5)',
     }
     t['tile-badge-text'] = badge_text([c2, c1, c3], dark_ink)
+    t['stat-bar'] = ensure(dacc, card, 3, WHITE)
     return t
 
 
@@ -168,7 +170,8 @@ CHECKS = [('text', 'bg', 7), ('text', 'card', 7), ('muted', 'card', 4.5), ('acce
           ('week-btn-text', 'week-btn-bg', 4.5), ('tile-text', 'tile-1-bg', 4.5), ('tile-text', 'tile-2-bg', 4.5),
           ('tile-text', 'tile-3-bg', 4.5), ('tile-badge-text', 'tile-1-badge', 4.5),
           ('tile-badge-text', 'tile-2-badge', 4.5), ('tile-badge-text', 'tile-3-badge', 4.5),
-          ('tag-text', 'tag-1-bg', 4.5), ('tag-text', 'tag-2-bg', 4.5), ('tag-text', 'tag-3-bg', 4.5)]
+          ('tag-text', 'tag-1-bg', 4.5), ('tag-text', 'tag-2-bg', 4.5), ('tag-text', 'tag-3-bg', 4.5),
+          ('stat-bar', 'card', 3)]
 
 
 def report(name, mode, t):

@@ -61,6 +61,7 @@
   --tile-3-badge: #E2A8FD;
   --tile-text: #23221A;
   --tile-badge-text: #1E1530;
+  --stat-bar: #A64FD6;       /* Balken der Statistik (Kontrast ≥ 3:1 auf --card) */
 
   --radius-sm: 10px;
   --radius: 14px;
@@ -93,8 +94,8 @@
     --idea-1: #BDB96A; --idea-2: #C1BFFF; --idea-3: #CF6DFC; --idea-4: #8E8A4C;
     --tag-1-bg: #BDB96A; --tag-2-bg: #C1BFFF; --tag-3-bg: #CF6DFC; --tag-4-bg: #2A2840;
     --tag-text: #1A1912; --tag-4-text: #C1BFFF;
-  --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4;
-    --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4;
+  --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4; --stat-bar: #C064F0;
+    --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4; --stat-bar: #C064F0;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
     color-scheme: dark;
@@ -246,7 +247,7 @@ button { cursor: pointer; }
 .seg-btn[aria-pressed="true"] { background: var(--seg-active-bg); color: var(--seg-active-text); box-shadow: var(--shadow); }
 /* Umschalter über die ganze Breite (Essen: Wochenplan | Menüideen) */
 .seg-wide { display: flex; margin-bottom: 14px; }
-.seg-wide .seg-btn { flex: 1; min-height: 36px; }
+.seg-wide .seg-btn { flex: 1; min-width: 0; min-height: 36px; padding: 0 6px; }
 .aisle-title {
   display: flex; align-items: center; gap: 8px;
   margin: 16px 4px 6px; font-size: 13px; font-weight: 650; color: var(--section-text); text-transform: uppercase; letter-spacing: 0.04em;
@@ -393,6 +394,20 @@ button { cursor: pointer; }
 .ai-more ul, .ai-more ol { margin: 6px 0; padding-left: 20px; }
 .ai-more li { margin: 2px 0; }
 .ai-wait { text-align: center; padding: 18px 0; }
+
+/* ---------- Statistik (Essen) ---------- */
+.stat-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-tile { display: grid; gap: 2px; margin: 0; }
+.stat-number { font-size: 30px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stat-list { list-style: none; margin: 0; padding: 6px 16px; }
+.stat-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
+.stat-row:first-child { border-top: 0; }
+.stat-name { min-width: 0; font-weight: 600; }
+.stat-name small { display: block; font-weight: 400; font-size: 12px; }
+.stat-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Balken: eine Farbe (nur Grösse zählt), dünn, abgerundetes Ende, ohne Hintergrundspur */
+.stat-bar { grid-column: 1 / -1; height: 8px; }
+.stat-bar > span { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--stat-bar); }
 
 /* ---------- Kosten ---------- */
 .hero-number { font-size: 38px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }

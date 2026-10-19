@@ -58,6 +58,7 @@
   --tile-3-badge: #FA40FF;
   --tile-text: #1D2400;
   --tile-badge-text: #1D2400;
+  --stat-bar: #5200FF;
   --shadow: 0 1px 2px rgba(29, 36, 0, 0.08), 0 4px 14px rgba(29, 36, 0, 0.06);
   --shadow-lg: 0 -10px 40px rgba(29, 36, 0, 0.18);
   color-scheme: light;
@@ -121,6 +122,7 @@
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
     --tile-badge-text: #060012;
+    --stat-bar: #CCFF00;
   color-scheme: dark;
 }
 }
@@ -182,6 +184,7 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
   --tile-badge-text: #060012;
+  --stat-bar: #CCFF00;
   color-scheme: dark;
 }
 
@@ -242,6 +245,7 @@
   --tile-3-badge: #6ABD4C;
   --tile-text: #132208;
   --tile-badge-text: #132208;
+  --stat-bar: #A835F2;
   --shadow: 0 1px 2px rgba(19, 34, 8, 0.08), 0 4px 14px rgba(19, 34, 8, 0.06);
   --shadow-lg: 0 -10px 40px rgba(19, 34, 8, 0.18);
   color-scheme: light;
@@ -305,6 +309,7 @@
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
     --tile-badge-text: #0A1104;
+    --stat-bar: #A835F2;
   color-scheme: dark;
 }
 }
@@ -366,6 +371,7 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
   --tile-badge-text: #0A1104;
+  --stat-bar: #A835F2;
   color-scheme: dark;
 }
 
@@ -426,6 +432,7 @@
   --tile-3-badge: #A0E2DC;
   --tile-text: #1E1E12;
   --tile-badge-text: #1E1E12;
+  --stat-bar: #AA7FD4;
   --shadow: 0 1px 2px rgba(30, 30, 18, 0.08), 0 4px 14px rgba(30, 30, 18, 0.06);
   --shadow-lg: 0 -10px 40px rgba(30, 30, 18, 0.18);
   color-scheme: light;
@@ -489,6 +496,7 @@
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
     --tile-badge-text: #090F0F;
+    --stat-bar: #AE82D9;
   color-scheme: dark;
 }
 }
@@ -550,6 +558,7 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
   --tile-badge-text: #090F0F;
+  --stat-bar: #AE82D9;
   color-scheme: dark;
 }
 
@@ -610,6 +619,7 @@
   --tile-3-badge: #BEE5C0;
   --tile-text: #1B141B;
   --tile-badge-text: #1B141B;
+  --stat-bar: #519755;
   --shadow: 0 1px 2px rgba(27, 20, 27, 0.08), 0 4px 14px rgba(27, 20, 27, 0.06);
   --shadow-lg: 0 -10px 40px rgba(27, 20, 27, 0.18);
   color-scheme: light;
@@ -673,6 +683,7 @@
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
     --tile-badge-text: #0C0F0C;
+    --stat-bar: #519755;
   color-scheme: dark;
 }
 }
@@ -734,5 +745,6 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
   --tile-badge-text: #0C0F0C;
+  --stat-bar: #519755;
   color-scheme: dark;
 }
