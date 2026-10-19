@@ -1,4 +1,4 @@
-// Fenster „Haushalt“ (Knopf oben rechts): Personen, Zugang (Link, Code), Farbdesign, Währung, Kategorien, Sicherung.
+// Fenster „Haushalt“ (Knopf oben rechts): Personen, Zugang (Link, Code), Mitteilungen, Farbdesign, Währung, Kategorien, Sicherung.
 
 import { changeCode, replaceAll, resetAll, session, state, update } from '../store.js';
 import { updatePersonal } from '../personal.js';
@@ -6,7 +6,8 @@ import { reloadApp } from '../refresh.js';
 import { openTerms } from '../terms.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { todayKey } from '../dates.js';
-import { addMember } from '../login.js';
+import { addMember, currentMember } from '../login.js';
+import { currentSubscription, disablePush, enablePush, isIos, isStandalone, permission, pushConfigured, pushSupported, testPush } from '../push.js';
 import { saveSession, shareLink } from '../session.js';
 import { validCodeChars } from '../remote.js';
 import { aisleLabel, aisleOrder } from '../aisles.js';
@@ -47,6 +48,29 @@ const aisleListHtml = () => {
 
 const CURRENCIES = ['CHF', 'EUR', 'USD', 'GBP'];
 
+// Mitteilungen auf diesem Gerät (js/push.js). Der Stand ist erst nach einer Abfrage bekannt – darum wird der
+// Inhalt nach dem Öffnen nachgetragen.
+async function fillPush(box) {
+  if (!box) return;
+  let html;
+  if (!pushSupported()) {
+    html = isIos() && !isStandalone()
+      ? '<p class="muted small push-text">Am iPhone gehen Mitteilungen nur in der App vom Home-Bildschirm: in Safari unten auf Teilen → „Zum Home-Bildschirm“, dann die App von dort öffnen (ab iOS 16.4).</p>'
+      : '<p class="muted small push-text">Dieser Browser kann keine Mitteilungen empfangen.</p>';
+  } else if (permission() === 'denied') {
+    html = '<p class="muted small push-text">Mitteilungen sind für diese App ausgeschaltet. Am iPhone: Einstellungen → Mitteilungen → Haushalt → erlauben, dann hier einschalten.</p>';
+  } else if (permission() === 'granted' && (await currentSubscription().catch(() => null))) {
+    html = `<p class="small push-text">${icon('check', 'icon-sm')} Auf diesem Gerät eingeschaltet.</p>
+      <div class="row">
+        <button type="button" class="btn" data-sheet-action="pushTest">Probe senden</button>
+        <button type="button" class="btn" data-sheet-action="pushOff">Ausschalten</button>
+      </div>`;
+  } else {
+    html = `<button type="button" class="btn btn-block" data-sheet-action="pushOn">Mitteilungen einschalten</button>`;
+  }
+  box.innerHTML = html;
+}
+
 export function openSettings() {
   openSheet({
     title: 'Haushalt',
@@ -69,6 +93,11 @@ export function openSettings() {
             <input class="input" type="password" name="newCode" placeholder="Neuer Zugangscode" autocomplete="new-password" autocapitalize="off">
             <button type="button" class="btn" style="width:auto;padding:0 14px" data-sheet-action="code">Ändern</button>
           </div>
+        </div>` : ''}
+      ${session.mode === 'shared' && pushConfigured() ? `
+        <div class="field"><span>Mitteilungen <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
+          <p class="muted small" style="margin:0 0 8px">Erinnert an Reste im Kühlschrank: am Vortag und am letzten Tag, jeweils um 17 Uhr.</p>
+          <div class="push-box"></div>
         </div>` : ''}
       <div class="field"><span>Farbdesign <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
         <div class="palette-grid">${paletteHtml()}</div>
@@ -101,6 +130,32 @@ export function openSettings() {
     footer: `<button type="button" class="btn btn-block" data-sheet-action="reloadApp">${icon('refresh', 'icon-sm')} App aktualisieren</button>
       ${session.mode === 'local' ? '<button type="button" class="btn btn-danger btn-block" data-sheet-action="reset">Alles zurücksetzen</button>' : ''}`,
     actions: {
+      async pushOn(btn) {
+        btn.disabled = true;
+        try {
+          await enablePush(currentMember()?.id);
+          toast('Mitteilungen eingeschaltet');
+        } catch (err) {
+          toast(err.message);
+        }
+        fillPush(btn.closest('.push-box'));
+      },
+      async pushOff(btn) {
+        btn.disabled = true;
+        await disablePush().catch(() => {});
+        toast('Mitteilungen ausgeschaltet');
+        fillPush(btn.closest('.push-box'));
+      },
+      async pushTest(btn) {
+        btn.disabled = true;
+        try {
+          await testPush();
+          toast('Probe verschickt – kommt in ein paar Sekunden');
+        } catch (err) {
+          toast(err.message);
+        }
+        btn.disabled = false;
+      },
       palette(btn) {
         applyPalette(btn.dataset.id);
         for (const b of document.querySelectorAll('#sheet .palette-btn')) b.setAttribute('aria-pressed', String(b === btn));
@@ -210,4 +265,5 @@ export function openSettings() {
     e.preventDefault();
     document.querySelector('#sheet [data-sheet-action="addMember"]').click();
   });
+  fillPush(document.querySelector('#sheet .push-box'));
 }

@@ -429,6 +429,9 @@ button { cursor: pointer; }
 }
 .fridge-hint strong { display: block; font-size: 15px; }
 .fridge-hint.is-urgent { box-shadow: inset 3px 0 0 var(--minus), var(--shadow); }
+/* Mitteilungen (Haushalt-Fenster) */
+.push-text { display: flex; align-items: flex-start; gap: 6px; margin: 0 0 8px; }
+.push-text .icon-sm { flex: none; color: var(--plus); margin-top: 1px; }
 
 /* ---------- Claude fragen (Menüideen) ---------- */
 .ask-claude {

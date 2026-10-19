@@ -12,7 +12,8 @@
 
 import { pull, session, setSyncErrorHandler, subscribe } from './store.js';
 import { icon, toast } from './ui.js';
-import { boot, ensureMe } from './login.js';
+import { boot, currentMember, ensureMe } from './login.js';
+import { refreshPush } from './push.js';
 import { AccessError } from './remote.js';
 import { setupPullToRefresh } from './refresh.js';
 import einkauf from './views/einkauf.js';
@@ -116,6 +117,7 @@ setSyncErrorHandler((err) => {
 boot(() => {
   route();
   if (session.mode !== 'shared') return;
+  refreshPush(currentMember()?.id); // Push-Abo dieses Geräts in Supabase auffrischen (js/push.js)
   // Änderungen der anderen holen: regelmässig und sobald die App wieder in den Vordergrund kommt
   setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 15000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pull(); });

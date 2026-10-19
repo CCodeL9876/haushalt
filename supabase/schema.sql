@@ -148,3 +148,81 @@ create policy items_own_household on public.items
   with check (household_key = (select public.request_header('x-hh-key')) and (select public.household_access_ok()));
 
 grant select, insert, update, delete on public.items to anon, authenticated;
+
+-- ---------- Push-Mitteilungen (js/push.js, supabase/functions/push) ----------
+-- Jedes Gerät, das Mitteilungen erlaubt hat, mit seinem „Push-Abo“ (Adresse beim Dienst von Apple/Google/Mozilla
+-- und Schlüssel zum Verschlüsseln). Die App kommt nur über die zwei Funktionen unten heran, die Funktion „push“
+-- liest mit dem Service-Schlüssel.
+create table if not exists public.push_subscriptions (
+  endpoint       text primary key check (char_length(endpoint) between 20 and 1000),
+  household_key  text not null references public.households (key) on delete cascade,
+  member_id      text check (char_length(member_id) <= 64),
+  p256dh         text not null check (char_length(p256dh) between 40 and 200),
+  auth           text not null check (char_length(auth) between 10 and 100),
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+alter table public.push_subscriptions enable row level security;
+revoke all on public.push_subscriptions from anon, authenticated;
+
+-- Was schon verschickt wurde (z. B. „fridge:<id>:2026-10-20“), damit jede Erinnerung nur einmal kommt
+create table if not exists public.push_sent (
+  household_key  text not null references public.households (key) on delete cascade,
+  ref            text not null check (char_length(ref) <= 200),
+  sent_at        timestamptz not null default now(),
+  primary key (household_key, ref)
+);
+alter table public.push_sent enable row level security;
+revoke all on public.push_sent from anon, authenticated;
+
+-- Gerät anmelden bzw. auf den neuesten Stand bringen (gleiche Adresse = gleiches Gerät)
+create or replace function public.push_subscribe(p_endpoint text, p_p256dh text, p_auth text, p_member text)
+returns boolean
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  k text := public.request_header('x-hh-key');
+begin
+  if not public.household_access_ok() then
+    raise exception 'Zugangscode stimmt nicht';
+  end if;
+  if p_endpoint !~ '^https://' then
+    raise exception 'ungültige Push-Adresse';
+  end if;
+  -- Schutz vor Missbrauch: höchstens 30 Geräte pro Haushalt
+  if (select count(*) from public.push_subscriptions where household_key = k and endpoint <> p_endpoint) >= 30 then
+    raise exception 'zu viele Geräte für Mitteilungen';
+  end if;
+  insert into public.push_subscriptions (endpoint, household_key, member_id, p256dh, auth)
+  values (p_endpoint, k, nullif(p_member, ''), p_p256dh, p_auth)
+  on conflict (endpoint) do update
+    set household_key = excluded.household_key, member_id = excluded.member_id,
+        p256dh = excluded.p256dh, auth = excluded.auth, updated_at = now();
+  return true;
+end
+$$;
+
+create or replace function public.push_unsubscribe(p_endpoint text)
+returns boolean
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.household_access_ok() then
+    raise exception 'Zugangscode stimmt nicht';
+  end if;
+  delete from public.push_subscriptions
+   where endpoint = p_endpoint and household_key = public.request_header('x-hh-key');
+  return true;
+end
+$$;
+
+revoke all on function public.push_subscribe(text, text, text, text) from public;
+revoke all on function public.push_unsubscribe(text) from public;
+grant execute on function public.push_subscribe(text, text, text, text) to anon, authenticated;
+grant execute on function public.push_unsubscribe(text) to anon, authenticated;

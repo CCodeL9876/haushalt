@@ -138,6 +138,32 @@ Sammlung: **SQL Editor** → **New query** → den ganzen Inhalt von [supabase/s
 einfügen → **Run**. Das ist gefahrlos: Bestehende Daten bleiben. Bis dahin meldet die App beim Erfassen eines Rests
 „Nicht gespeichert“.
 
+## 10. Push-Mitteilungen (einmalig einrichten)
+
+Die App erinnert per Mitteilung an Reste im Kühlschrank: **am Vortag** („bis morgen aufbrauchen“) und **am
+letzten Tag** („heute aufbrauchen“), jeweils ab 17 Uhr, an alle Geräte im Haushalt, die Mitteilungen eingeschaltet
+haben. Verschickt werden sie von einer Funktion in Supabase, die ein Zeitplan jede Stunde aufruft.
+
+1. **Datenbank:** SQL Editor → New query → den ganzen Inhalt von [supabase/schema.sql](supabase/schema.sql)
+   nochmals einfügen → **Run** (neu: Tabellen für die Geräte und für schon Verschicktes).
+2. **Geheimer Schlüssel:** Edge Functions → **Secrets** → neues Secret `VAPID_PRIVATE_KEY` mit dem geheimen
+   Schlüssel. Er gehört zum öffentlichen Schlüssel `PUSH_PUBLIC_KEY` in [js/config.js](js/config.js) und steht
+   bewusst nirgends im Code. Ist er verloren, ein neues Schlüsselpaar erzeugen (P-256, z. B. mit
+   `npx web-push generate-vapid-keys`), den öffentlichen Teil in `js/config.js` **und** in
+   `supabase/functions/push/index.ts` ersetzen und auf jedem Gerät Mitteilungen aus- und wieder einschalten.
+3. **Funktion:** Edge Functions → **Deploy a new function** → **Via Editor**, Name genau `push`, den Inhalt von
+   [supabase/functions/push/index.ts](supabase/functions/push/index.ts) hineinkopieren → **Deploy function**.
+   Danach wie bei `recipe-import` die **JWT-Prüfung ausschalten**.
+4. **Zeitplan:** SQL Editor → New query → den Inhalt von [supabase/push-cron.sql](supabase/push-cron.sql)
+   einfügen → **Run**. (Falls eine Meldung zu `pg_cron` oder `pg_net` kommt: unter **Integrations** „Cron“ und
+   „pg_net“ aktivieren und nochmals ausführen.)
+5. **Auf jedem iPhone:** die App **vom Home-Bildschirm** öffnen (in Safari: Teilen → „Zum Home-Bildschirm“; ab
+   iOS 16.4) → oben rechts **Haushalt** → **Mitteilungen einschalten** → erlauben → **Probe senden**.
+
+**Datenschutz:** In Supabase liegt pro Gerät nur die Adresse beim Push-Dienst (Apple, Google oder Mozilla) mit
+Schlüssel. Der Inhalt jeder Mitteilung (z. B. „Heute aufbrauchen: Reis“) wird für das Gerät verschlüsselt; der
+Push-Dienst kann ihn nicht lesen.
+
 ## Gut zu wissen
 
 - **Code ändern:** In der App unter Haushalt → Zugang. Alle anderen Geräte werden beim nächsten Abgleich
