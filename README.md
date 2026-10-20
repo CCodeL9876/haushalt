@@ -10,7 +10,7 @@ Web-App fürs iPhone für den gemeinsamen Haushalt. Reines HTML, CSS und JavaScr
 | Essen → Kühlschrank | `js/views/kuehlschrank.js` | Reste und Angebrochenes mit „aufbrauchen bis“, Dringendes zuoberst; Haltbarkeit vorgeschlagen (Richtwerte bzw. zuletzt gewählt, `js/fridge.js`); Schnellwahl für früher Erfasstes; Reste gehen bei „Claude fragen“ als vorhandene Zutaten mit |
 | Essen → Menüideen | `js/views/ideen.js` | Gerichte mit Zutaten, Zubereitung und Stichworten, Suche; „Claude fragen“: Rezeptideen zu vorhandenen Zutaten (`js/ai.js`, Supabase-Funktion `recipe-ideas`); „Planen“ und „Einkaufen“; Rezept per Link einlesen (`js/recipes.js`, Supabase-Funktion `recipe-import`); vor dem Einkaufen Zutaten auswählen, Mengen werden zur Notiz (`js/ingredients.js`) |
 | Abrechnung | `js/views/abrechnung.js` | Wer schuldet wem wie viel; fortlaufende Liste aller Rechnungen (ganz oder geteilt) und Zahlungen mit Notiz, Datum, Zahlungsart (Twint, Neon …) und laufendem Stand (`js/settle.js`); `#kosten` führt hierher |
-| Haushalt (oben rechts) | `js/views/einstellungen.js` | Personen, Farbdesign (pro Gerät), Währung, Zahlungsarten, Sicherung als JSON |
+| Haushalt (oben rechts) | `js/views/einstellungen.js` | Personen, Hell/Dunkel (Automatisch, Hell, Dunkel – pro Gerät), Farbdesign (pro Gerät), Währung, Zahlungsarten, Sicherung als JSON |
 
 ## Starten
 

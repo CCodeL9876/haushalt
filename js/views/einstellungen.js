@@ -27,6 +27,28 @@ function applyPalette(id) {
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = bg;
 }
+// Hell/Dunkel pro Gerät: 'auto' folgt der Einstellung des iPhones, 'light'/'dark' gilt immer (data-theme auf <html>,
+// die Farben dafür stehen schon in css/styles.css und css/palettes.css)
+const THEME_KEY = 'haushalt.theme';
+const currentTheme = () => {
+  try { return localStorage.getItem(THEME_KEY) || 'auto'; } catch { return 'auto'; }
+};
+function applyTheme(mode) {
+  try {
+    if (mode === 'auto') localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, mode);
+  } catch { /* privates Fenster: gilt bis zum Neuladen */ }
+  if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', mode);
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = bg;
+}
+const themeHtml = () => {
+  const cur = currentTheme();
+  return [['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']].map(([id, label]) => `
+    <button type="button" class="seg-btn" data-sheet-action="theme" data-id="${id}" aria-pressed="${id === cur}">${label}</button>`).join('');
+};
+
 const paletteHtml = () => {
   const cur = currentPalette();
   return PALETTES.map((p) => `
@@ -100,6 +122,8 @@ export function openSettings() {
           <div class="push-box"></div>
         </div>` : ''}
       <div class="field"><span>Farbdesign <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
+        <div class="seg seg-wide theme-seg" role="group" aria-label="Hell oder dunkel">${themeHtml()}</div>
+        <p class="muted small theme-hint" style="margin:-6px 0 10px">${currentTheme() === 'auto' ? 'Folgt der Einstellung des iPhones (hell am Tag, dunkel am Abend, falls so eingestellt).' : 'Gilt immer, unabhängig von der Einstellung des iPhones.'}</p>
         <div class="palette-grid">${paletteHtml()}</div>
       </div>
       <h3 class="settings-group">Einkauf</h3>
@@ -155,6 +179,13 @@ export function openSettings() {
           toast(err.message);
         }
         btn.disabled = false;
+      },
+      theme(btn) {
+        applyTheme(btn.dataset.id);
+        for (const b of document.querySelectorAll('#sheet .theme-seg .seg-btn')) b.setAttribute('aria-pressed', String(b === btn));
+        document.querySelector('#sheet .theme-hint').textContent = btn.dataset.id === 'auto'
+          ? 'Folgt der Einstellung des iPhones (hell am Tag, dunkel am Abend, falls so eingestellt).'
+          : 'Gilt immer, unabhängig von der Einstellung des iPhones.';
       },
       palette(btn) {
         applyPalette(btn.dataset.id);
