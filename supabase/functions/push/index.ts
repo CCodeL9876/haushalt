@@ -9,6 +9,8 @@
 //    Jede Erinnerung nur einmal (Tabelle push_sent). Ohne Fälliges passiert nichts – darum ohne Anmeldung.
 //  - POST { test: true, endpoint, kind? } – von der App (mit Haushalt-Schlüssel und Zugangscode): Probe an dieses
 //    Gerät; kind 'todo' schickt die Morgen-Erinnerung so, wie sie jetzt aussähe.
+//  - POST { assigned: todoId, by: memberId } – von der App, nachdem jemand ein ToDo einer Person zugewiesen hat:
+//    Mitteilung an die Geräte dieser Person. Titel, Liste und Person liest die Funktion selbst aus der Datenbank.
 //
 // Geräte stehen in push_subscriptions (schema.sql). Verschickt wird nach dem Web-Push-Standard: Inhalt
 // verschlüsselt für das Gerät (RFC 8291, aes128gcm), Absender ausgewiesen mit VAPID (RFC 8292). Alles mit WebCrypto,
@@ -312,10 +314,7 @@ async function reminders() {
   return { todo: await todoReminders(), eve: await eveReminders(), fridge: await fridgeReminders() };
 }
 
-async function test(req) {
-  const household = await householdOk(req);
-  if (!household) return json({ error: 'Nur für angemeldete Haushalte.' }, 403);
-  const body = await req.json().catch(() => ({}));
+async function test(household, body) {
   const endpoint = String(body?.endpoint || '');
   const subs = await db(`push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}&household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth,household_key,todo_scope,todo_list,todo_name,todo_items`);
   if (!subs?.length) return json({ error: 'Dieses Gerät ist für Mitteilungen nicht angemeldet.' }, 404);
@@ -333,12 +332,54 @@ async function test(req) {
   return ok ? json({ ok: true }) : json({ error: 'Der Push-Dienst hat die Mitteilung nicht angenommen.' }, 502);
 }
 
+// ---------- ToDo zugewiesen ----------
+
+const ASSIGN_PAUSE_MS = 10 * 60 * 1000; // dasselbe ToDo an dieselbe Person höchstens alle 10 Minuten melden
+const fmtDay = (day) => new Intl.DateTimeFormat('de-CH', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${day}T12:00:00Z`));
+
+async function item(household, collection, id) {
+  if (!id) return null;
+  const rows = await db(`items?household_key=eq.${encodeURIComponent(household)}&collection=eq.${collection}&id=eq.${encodeURIComponent(id)}&select=data`);
+  return rows?.[0]?.data || null;
+}
+
+async function assigned(household, body) {
+  const todoId = String(body?.assigned || '').slice(0, 64);
+  const byId = String(body?.by || '').slice(0, 64);
+  const todo = await item(household, 'todos', todoId);
+  if (!todo?.assignee || todo.done) return json({ skipped: 'nicht (mehr) zugewiesen' });
+  if (todo.assignee === byId) return json({ skipped: 'sich selbst zugewiesen' });
+  const ref = `assign:${todoId}:${todo.assignee}`;
+  const recent = await db(`push_sent?household_key=eq.${encodeURIComponent(household)}&ref=eq.${encodeURIComponent(ref)}&sent_at=gt.${new Date(Date.now() - ASSIGN_PAUSE_MS).toISOString()}&select=ref`);
+  if (recent?.length) return json({ skipped: 'eben schon gemeldet' });
+  const subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}&member_id=eq.${encodeURIComponent(todo.assignee)}&select=endpoint,p256dh,auth`);
+  if (!subs?.length) return json({ skipped: 'Person hat keine Mitteilungen eingeschaltet' });
+  const [by, list] = await Promise.all([item(household, 'members', byId), item(household, 'todolists', todo.listId)]);
+  const when = todo.due ? ` · ${fmtDay(todo.due)}${todo.time ? `, ${todo.time}` : ''}` : '';
+  const payload = {
+    title: list?.name ? `ToDo · ${String(list.name).slice(0, 40)}` : 'ToDo',
+    body: `${by?.name ? `${String(by.name).slice(0, 30)} hat dir` : 'Dir wurde'} „${String(todo.title || '').slice(0, 80)}“ zugewiesen${when}`,
+    url: /^[a-z0-9]+$/i.test(todo.listId || '') ? `#todo/shared/${todo.listId}` : '#todo', // öffnet die Liste
+    tag: `assign-${todoId}`,
+  };
+  const results = await Promise.all(subs.map((s) => send(s, payload)));
+  if (!results.some(Boolean)) return json({ error: 'Der Push-Dienst hat die Mitteilung nicht angenommen.' }, 502);
+  await db('push_sent', { method: 'POST', body: [{ household_key: household, ref, sent_at: new Date().toISOString() }], prefer: 'resolution=merge-duplicates,return=minimal' });
+  return json({ ok: true });
+}
+
 async function handle(req) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'nicht erlaubt' }, 405);
   try {
-    if (req.headers.get('x-hh-key')) return await test(req);
     const body = await req.json().catch(() => ({}));
+    // Aufrufe aus der App: nur mit Haushalt-Schlüssel und richtigem Zugangscode
+    if (req.headers.get('x-hh-key')) {
+      const household = await householdOk(req);
+      if (!household) return json({ error: 'Nur für angemeldete Haushalte.' }, 403);
+      if (body?.assigned) return await assigned(household, body);
+      return await test(household, body);
+    }
     if (body?.run === 'reminders') return json(await reminders());
     return json({ error: 'unbekannter Auftrag' }, 400);
   } catch (err) {

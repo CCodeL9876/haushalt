@@ -9,7 +9,7 @@ import { AccessError, Remote, sharingConfigured, validCodeChars } from './remote
 import { cachedName, hasCache, MEMBER_COLORS, session, startLocal, startShared, state, uid, update } from './store.js';
 import { keyFromText, loadSession, logout, myMemberId, saveSession, setMyMemberId, takeKeyFromUrl } from './session.js';
 import { closeSheet, esc, icon, initials, openSheet, safeColor, toast } from './ui.js';
-import { disablePush } from './push.js';
+import { disablePush, refreshPush } from './push.js';
 
 const gate = document.getElementById('gate');
 const appParts = ['.topbar', '#view', '#tabbar'].map((sel) => document.querySelector(sel));
@@ -184,7 +184,10 @@ function chooseMe(id) {
   setMyMemberId(session.key, id);
   const wasStarted = started;
   finish();
-  if (wasStarted) toast(`Hallo ${currentMember()?.name}!`);
+  if (wasStarted) {
+    toast(`Hallo ${currentMember()?.name}!`);
+    refreshPush(id); // Mitteilungen dieses Geräts gehören jetzt zu dieser Person (z. B. „ToDo zugewiesen“)
+  }
 }
 
 // ---------- Initialen oben rechts ----------

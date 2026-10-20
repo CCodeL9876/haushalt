@@ -140,7 +140,7 @@ einfügen → **Run**. Das ist gefahrlos: Bestehende Daten bleiben. Bis dahin me
 
 ## 10. Push-Mitteilungen (einmalig einrichten)
 
-Die App verschickt drei Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten
+Die App verschickt vier Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten
 aufruft:
 
 - **Morgen-Erinnerung (ToDo):** pro Gerät einstellbar unter **ToDo → Morgen-Erinnerung** – eine Liste, Uhrzeit
@@ -150,6 +150,8 @@ aufruft:
   jeweils ab 17 Uhr, an alle Geräte im Haushalt, die Mitteilungen eingeschaltet haben.
 - **Vortag (ToDo):** ab 18 Uhr für ToDos in geteilten Listen mit „Am Vortag erinnern“, die morgen fällig sind –
   z. B. Altpapier oder Grüngut aus dem Abfuhrplan. An alle Geräte im Haushalt mit Mitteilungen.
+- **ToDo zugewiesen:** Weist jemand in einer geteilten Liste eine Aufgabe einer anderen Person zu, bekommt diese
+  Person eine Mitteilung – auf den Geräten, auf denen sie unter „Wer bist du?“ gewählt ist.
 
 1. **Datenbank:** SQL Editor → New query → den ganzen Inhalt von [supabase/schema.sql](supabase/schema.sql)
    nochmals einfügen → **Run** (neu: Tabellen für die Geräte und für schon Verschicktes).

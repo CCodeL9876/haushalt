@@ -6,8 +6,9 @@ import { memberById, refresh, state, update, uid } from '../store.js';
 import { disableSync, enableSync, personal, remoteCopyExists, syncAvailable, syncEnabled, syncWasLost, updatePersonal } from '../personal.js';
 import { addToCalendar, isInCalendar } from '../calendar.js';
 import { openReminder, reminderSummary } from '../reminder.js';
-import { pushConfigured } from '../push.js';
+import { notifyAssigned, pushConfigured } from '../push.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
+import { currentMember } from '../login.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 import { REPEAT_CHOICES, formatDates, nextDue, parseDates, parseIcs, repeatChoice, repeatFromChoice, repeatLabel } from '../repeat.js';
 
@@ -344,9 +345,11 @@ function editTodo(cur, id) {
       if (!form.elements.due.value) { toast('Bitte ein Datum fürs nächste Mal wählen'); return false; }
       repeat = repeatFromChoice(choice);
     }
+    let before = '';
     cur.change((d) => {
       const item = d.todos.find((x) => x.id === id);
       if (!item) return;
+      before = item.assignee || '';
       Object.assign(item, {
         title: title.slice(0, 120),
         due: form.elements.due.value,
@@ -359,6 +362,10 @@ function editTodo(cur, id) {
       if (form.elements.remind?.checked && item.due) item.remind = true;
       else delete item.remind;
     });
+    // Neu einer anderen Person zugewiesen → Mitteilung an sie (js/push.js)
+    const to = form.elements.assignee?.value || '';
+    const me = currentMember()?.id;
+    if (to && to !== before && to !== me) notifyAssigned(id, me);
     return true;
   };
   // Datumsliste nur bei „Nach Plan“, Erinnerung nur mit Datum

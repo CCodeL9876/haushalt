@@ -119,7 +119,7 @@ export function openSettings() {
         </div>` : ''}
       ${session.mode === 'shared' && pushConfigured() ? `
         <div class="field"><span>Mitteilungen <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
-          <p class="muted small" style="margin:0 0 8px">Erinnert an Reste im Kühlschrank: am Vortag und am letzten Tag, jeweils um 17 Uhr.</p>
+          <p class="muted small" style="margin:0 0 8px">Für Reste im Kühlschrank, ToDo-Erinnerungen und wenn dir jemand ein ToDo zuweist.</p>
           <div class="push-box"></div>
         </div>` : ''}
       <div class="field"><span>Farbdesign <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>

@@ -4,7 +4,7 @@
 // Am iPhone nur in der App vom Home-Bildschirm (ab iOS 16.4), nicht in Safari selbst.
 
 import { PUSH_PUBLIC_KEY, SUPABASE_ANON_KEY, SUPABASE_URL } from './config.js';
-import { session } from './store.js';
+import { flushNow, session } from './store.js';
 import { loadSession } from './session.js';
 
 const fromB64url = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
@@ -86,6 +86,16 @@ export async function testPush() {
   if (res.status === 404 && !data?.error) throw new Error('Die Funktion „push“ ist in Supabase noch nicht eingerichtet (ANLEITUNG.md).');
   if (res.status === 401) throw new Error('Supabase lehnt ab – bei „push“ die JWT-Prüfung ausschalten (ANLEITUNG.md).');
   if (!res.ok) throw new Error(data?.error || `Fehler ${res.status}`);
+}
+
+// ToDo wurde einer Person zugewiesen: Supabase-Funktion „push“ benachrichtigt deren Geräte. Vorher die Änderung
+// hochladen – die Funktion liest Titel und Person aus der Datenbank. Still: Klappt es nicht, fehlt nur die Mitteilung.
+export async function notifyAssigned(todoId, byId) {
+  if (!pushConfigured()) return;
+  try {
+    if (!(await flushNow())) return;
+    await fetch(`${SUPABASE_URL}/functions/v1/push`, { method: 'POST', headers: headers(), body: JSON.stringify({ assigned: todoId, by: byId || '' }), signal: AbortSignal.timeout(20000) });
+  } catch { /* offline o. Ä. */ }
 }
 
 // Beim Start: Ist dieses Gerät angemeldet, das Abo in Supabase auffrischen (falls es dort fehlt oder der
