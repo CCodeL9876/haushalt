@@ -258,13 +258,17 @@ function mealsText(meals) {
 
 function untilHtml(open, hidden, until) {
   // Tage, ab denen Artikel gebraucht werden (nur heute und später)
-  const days = [...new Set(open.map(neededFrom).filter((d) => d && d >= todayKey()))].sort();
-  if (!days.length || (days.length === 1 && days[0] === todayKey() && !until)) return '';
+  const today = todayKey();
+  const days = [...new Set(open.map(neededFrom).filter((d) => d && d >= today))].sort();
+  const last = days.at(-1);
+  // Wählbar: heute und jeder Tag, an dem etwas gebraucht wird – ausser dem letzten (dort wäre ohnehin alles da)
+  const choices = [...new Set([today, ...days])].sort().filter((d) => d < last);
+  if (!choices.length) return '';
   return `<div class="until-bar">
     <span class="muted small">Einkaufen für</span>
     <div class="chips">
       <button type="button" class="chip until-chip" data-action="until" data-until="" aria-pressed="${!until}">alle Tage</button>
-      ${days.slice(0, -1).map((d) => `<button type="button" class="chip until-chip" data-action="until" data-until="${d}" aria-pressed="${d === until}">bis ${esc(dayLabel(d))}</button>`).join('')}
+      ${choices.map((d) => `<button type="button" class="chip until-chip" data-action="until" data-until="${d}" aria-pressed="${d === until}">bis ${esc(dayLabel(d))}</button>`).join('')}
     </div>
     ${hidden ? `<p class="muted small until-hint">${hidden} ${hidden === 1 ? 'Zutat' : 'Zutaten'} für spätere Menüs ausgeblendet</p>` : ''}
   </div>`;
