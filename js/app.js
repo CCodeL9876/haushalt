@@ -23,12 +23,14 @@ import essen from './views/essen.js';
 import abrechnung from './views/abrechnung.js';
 import { openSettings } from './views/einstellungen.js';
 
-const VIEWS = [einkauf, todo, essen, abrechnung];
+// Reihenfolge der Tab-Leiste: Einkauf neben Essen. Start (und unbekannte Adressen) bleibt der Einkauf.
+const VIEWS = [todo, einkauf, essen, abrechnung];
+const START = einkauf;
 
 const root = document.getElementById('view');
 const titleEl = document.getElementById('view-title');
 const tabbar = document.getElementById('tabbar');
-let current = VIEWS[0];
+let current = START;
 
 tabbar.innerHTML = VIEWS.map((v) => `<a class="tab" href="#${v.id}" data-tab="${v.id}">${icon(v.icon)}<span>${v.tab || v.title}</span></a>`).join('');
 
@@ -65,7 +67,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeC
 function route() {
   // Adresse wie #todo/shared/<id>: Bereich vor dem ersten „/“, der Rest geht an enter() der Ansicht
   const [id, ...rest] = location.hash.slice(1).split('/');
-  const next = VIEWS.find((v) => v.id === id || v.aliases?.includes(id)) || VIEWS[0];
+  const next = VIEWS.find((v) => v.id === id || v.aliases?.includes(id)) || START;
   if (next.aliases?.includes(id) || rest.length) next.enter?.(id, rest);
   const changed = next !== current;
   current = next;
