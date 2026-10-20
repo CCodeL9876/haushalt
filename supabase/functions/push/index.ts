@@ -1,9 +1,12 @@
 // Supabase Edge Function „push“: verschickt Push-Mitteilungen an die Geräte eines Haushalts.
 //
-//  - POST { run: 'reminders' } – vom Zeitplan (supabase/push-cron.sql), jede Stunde. Ab 17 Uhr (Schweizer Zeit)
-//    erinnert sie an Reste im Kühlschrank: am Vortag („bis morgen aufbrauchen“) und am letzten Tag („heute“).
+//  - POST { run: 'reminders' } – vom Zeitplan (supabase/push-cron.sql), alle 5 Minuten:
+//    · Morgen-Erinnerung: pro Gerät zur gewählten Uhrzeit und an den gewählten Wochentagen die offenen ToDos einer
+//      Liste (fällig bis heute oder ohne Datum). Ist nichts offen, kommt keine Mitteilung.
+//    · Kühlschrank: ab 17 Uhr (Schweizer Zeit) Reste am Vortag („bis morgen aufbrauchen“) und am letzten Tag („heute“).
 //    Jede Erinnerung nur einmal (Tabelle push_sent). Ohne Fälliges passiert nichts – darum ohne Anmeldung.
-//  - POST { test: true, endpoint } – von der App (mit Haushalt-Schlüssel und Zugangscode): Probe an dieses Gerät.
+//  - POST { test: true, endpoint, kind? } – von der App (mit Haushalt-Schlüssel und Zugangscode): Probe an dieses
+//    Gerät; kind 'todo' schickt die Morgen-Erinnerung so, wie sie jetzt aussähe.
 //
 // Geräte stehen in push_subscriptions (schema.sql). Verschickt wird nach dem Web-Push-Standard: Inhalt
 // verschlüsselt für das Gerät (RFC 8291, aes128gcm), Absender ausgewiesen mit VAPID (RFC 8292). Alles mit WebCrypto,
@@ -140,17 +143,19 @@ async function send(sub, payload) {
 
 // ---------- Erinnerungen ----------
 
-// Datum und Stunde in der Schweiz (Sommer-/Winterzeit richtig)
+// Datum, Uhrzeit und Wochentag (1 = Montag … 7 = Sonntag) in der Schweiz (Sommer-/Winterzeit richtig)
 function local(date = new Date()) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
     .formatToParts(date).map((x) => [x.type, x.value]));
-  return { day: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) };
+  const day = `${p.year}-${p.month}-${p.day}`;
+  const weekday = new Date(`${day}T12:00:00Z`).getUTCDay() || 7;
+  return { day, hour: Number(p.hour), minutes: Number(p.hour) * 60 + Number(p.minute), weekday };
 }
 const nextDay = (day) => new Date(Date.parse(`${day}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
 
 const list = (names) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} und ${names.at(-1)}` : names[0]);
 
-async function reminders() {
+async function fridgeReminders() {
   const now = local();
   if (now.hour < REMIND_HOUR) return { skipped: 'vor 17 Uhr' };
   const today = now.day;
@@ -192,12 +197,97 @@ async function reminders() {
   return { households: sent };
 }
 
+// ---------- Morgen-Erinnerung an eine ToDo-Liste ----------
+
+const clip = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
+
+// Offene ToDos, die heute dran sind: fällig bis heute (Überfälliges zuerst) oder ohne Datum
+function dueToday(todos, today) {
+  return todos
+    .filter((t) => t && !t.done && clip(t.title, 120) && (!t.due || t.due <= today))
+    .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (a.time || '99').localeCompare(b.time || '99') || (a.addedAt || 0) - (b.addedAt || 0));
+}
+
+// Liste und ToDos eines Geräts: geteilte aus der Datenbank, persönliche aus todo_items (von der App hinterlegt)
+async function todoContent(sub, cache) {
+  if (sub.todo_scope === 'personal') {
+    return { name: clip(sub.todo_name, 80) || 'ToDo', todos: Array.isArray(sub.todo_items) ? sub.todo_items : [] };
+  }
+  const key = `${sub.household_key}/${sub.todo_list}`;
+  if (!cache.has(key)) {
+    const hh = encodeURIComponent(sub.household_key);
+    const list = encodeURIComponent(sub.todo_list);
+    const [lists, todos] = await Promise.all([
+      db(`items?household_key=eq.${hh}&collection=eq.todolists&id=eq.${list}&select=data`),
+      db(`items?household_key=eq.${hh}&collection=eq.todos&data->>listId=eq.${list}&select=data`),
+    ]);
+    // Liste gelöscht: nichts schicken
+    cache.set(key, lists?.length ? { name: clip(lists[0].data?.name, 80) || 'ToDo', todos: todos.map((t) => t.data) } : null);
+  }
+  return cache.get(key);
+}
+
+function todoPayload(sub, content, today) {
+  const open = dueToday(content.todos, today);
+  if (!open.length) return null;
+  const line = (t) => `${clip(t.title, 60)}${t.due && t.due < today ? ' (überfällig)' : t.due === today && t.time ? ` (${t.time})` : ''}`;
+  const shown = open.slice(0, 4).map(line);
+  if (open.length > 4) shown.push(`+${open.length - 4} weitere`);
+  return {
+    title: `${content.name}: heute zu tun (${open.length})`,
+    body: shown.join(' · '),
+    url: `#todo/${sub.todo_scope}/${sub.todo_list}`,
+    tag: `todo-${sub.todo_list}`,
+  };
+}
+
+const sha = async (text) => b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(text)))).slice(0, 22);
+
+async function todoReminders() {
+  const now = local();
+  const subs = await db('push_subscriptions?todo_list=not.is.null&select=endpoint,p256dh,auth,household_key,todo_scope,todo_list,todo_name,todo_time,todo_days,todo_items');
+  const cache = new Map();
+  let sent = 0;
+  for (const sub of subs || []) {
+    const days = String(sub.todo_days || '').split(',').map(Number);
+    const [h, m] = String(sub.todo_time || '').split(':').map(Number);
+    const at = h * 60 + m;
+    // Zur gewählten Zeit (der Zeitplan läuft alle 5 Minuten; eine Stunde Spielraum, falls ein Lauf ausfällt)
+    if (!days.includes(now.weekday) || !(now.minutes >= at && now.minutes < at + 60)) continue;
+    const ref = `todo:${await sha(sub.endpoint)}:${now.day}`;
+    const done = await db(`push_sent?household_key=eq.${encodeURIComponent(sub.household_key)}&ref=eq.${encodeURIComponent(ref)}&select=ref`);
+    if (done?.length) continue;
+    const content = await todoContent(sub, cache);
+    const payload = content && todoPayload(sub, content, now.day);
+    if (payload && !(await send(sub, payload))) continue; // nicht angenommen: beim nächsten Lauf nochmals
+    if (payload) sent += 1;
+    // Auch ohne Mitteilung (leere Liste) als erledigt merken: später am Morgen kommt nichts mehr nach
+    await db('push_sent', { method: 'POST', body: [{ household_key: sub.household_key, ref }], prefer: 'resolution=ignore-duplicates,return=minimal' });
+  }
+  return { sent };
+}
+
+async function reminders() {
+  return { todo: await todoReminders(), fridge: await fridgeReminders() };
+}
+
 async function test(req) {
   const household = await householdOk(req);
   if (!household) return json({ error: 'Nur für angemeldete Haushalte.' }, 403);
-  const endpoint = String((await req.json().catch(() => ({})))?.endpoint || '');
-  const subs = await db(`push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}&household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth`);
+  const body = await req.json().catch(() => ({}));
+  const endpoint = String(body?.endpoint || '');
+  const subs = await db(`push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}&household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth,household_key,todo_scope,todo_list,todo_name,todo_items`);
   if (!subs?.length) return json({ error: 'Dieses Gerät ist für Mitteilungen nicht angemeldet.' }, 404);
+  if (body?.kind === 'todo') {
+    // Morgen-Erinnerung jetzt, so wie sie heute aussähe
+    const sub = subs[0];
+    if (!sub.todo_list) return json({ error: 'Die Morgen-Erinnerung ist auf diesem Gerät nicht eingerichtet.' }, 400);
+    const content = await todoContent(sub, new Map());
+    if (!content) return json({ error: 'Die gewählte Liste gibt es nicht mehr.' }, 404);
+    const payload = todoPayload(sub, content, local().day);
+    if (!payload) return json({ empty: true });
+    return (await send(sub, payload)) ? json({ ok: true }) : json({ error: 'Der Push-Dienst hat die Mitteilung nicht angenommen.' }, 502);
+  }
   const ok = await send(subs[0], { title: 'Haushalt', body: 'Mitteilungen funktionieren 🎉', url: '#kuehlschrank', tag: 'test' });
   return ok ? json({ ok: true }) : json({ error: 'Der Push-Dienst hat die Mitteilung nicht angenommen.' }, 502);
 }

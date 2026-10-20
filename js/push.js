@@ -1,4 +1,4 @@
-// Push-Mitteilungen auf diesem Gerät (z. B. Erinnerungen an Reste im Kühlschrank).
+// Push-Mitteilungen auf diesem Gerät (Morgen-Erinnerung an eine ToDo-Liste, Reste im Kühlschrank).
 // Einschalten: Erlaubnis fragen → beim Push-Dienst des Browsers anmelden („Abo“) → Abo in Supabase speichern
 // (push_subscribe, schema.sql). Verschickt wird von der Supabase-Funktion „push“; angezeigt vom Service Worker (sw.js).
 // Am iPhone nur in der App vom Home-Bildschirm (ab iOS 16.4), nicht in Safari selbst.
@@ -96,4 +96,55 @@ export async function refreshPush(memberId) {
     const sub = await currentSubscription();
     if (sub) await save(sub, memberId);
   } catch { /* beim nächsten Start wieder */ }
+}
+
+// ---------- Morgen-Erinnerung an eine ToDo-Liste ----------
+// Pro Gerät: { scope: 'shared' | 'personal', listId, time: 'HH:MM', days: [1…7] }. Gespeichert in Supabase
+// (push_todo_reminder, schema.sql) und als Kopie auf dem Gerät für die Anzeige.
+
+const reminderKey = () => `haushalt.todoReminder.${session.key}`;
+export function todoReminder() {
+  try {
+    const r = JSON.parse(localStorage.getItem(reminderKey()) || 'null');
+    return r && r.listId ? r : null;
+  } catch {
+    return null;
+  }
+}
+
+// Was von einer persönlichen Liste in Supabase hinterlegt wird: nur die offenen ToDos, nur Titel/Datum/Zeit
+export const reminderItems = (todos, listId) => todos
+  .filter((t) => t.listId === listId && !t.done)
+  .slice(0, 50)
+  .map((t) => ({ title: String(t.title || '').slice(0, 120), due: t.due || '', time: t.time || '', addedAt: t.addedAt || 0 }));
+
+// reminder = null schaltet aus. name und items nur bei persönlichen Listen nötig.
+export async function saveTodoReminder(reminder, { name = '', items = [] } = {}) {
+  const sub = await currentSubscription();
+  if (!sub) throw new Error('Zuerst Mitteilungen auf diesem Gerät einschalten.');
+  await rpc('push_todo_reminder', {
+    p_endpoint: sub.endpoint,
+    p_scope: reminder?.scope || '',
+    p_list: reminder?.listId || '',
+    p_name: reminder?.scope === 'personal' ? name : '',
+    p_time: reminder?.time || '',
+    p_days: reminder ? reminder.days.join(',') : '',
+    p_items: reminder?.scope === 'personal' ? items : null,
+  });
+  try {
+    if (reminder) localStorage.setItem(reminderKey(), JSON.stringify(reminder));
+    else localStorage.removeItem(reminderKey());
+  } catch { /* privates Fenster */ }
+}
+
+// Probe der Morgen-Erinnerung: { ok } oder { empty } (Liste hat heute nichts → es käme keine Mitteilung)
+export async function testTodoReminder() {
+  const sub = await currentSubscription();
+  if (!sub) throw new Error('Mitteilungen sind auf diesem Gerät nicht eingeschaltet.');
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/push`, { method: 'POST', headers: headers(), body: JSON.stringify({ test: true, kind: 'todo', endpoint: sub.endpoint }), signal: AbortSignal.timeout(20000) })
+    .catch(() => { throw new Error('Keine Verbindung – später nochmals versuchen.'); });
+  const data = await res.json().catch(() => null);
+  if (res.status === 404 && !data?.error) throw new Error('Die Funktion „push“ ist in Supabase noch nicht eingerichtet (ANLEITUNG.md).');
+  if (!res.ok) throw new Error(data?.error || `Fehler ${res.status}`);
+  return data || {};
 }

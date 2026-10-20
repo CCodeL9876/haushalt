@@ -226,3 +226,48 @@ revoke all on function public.push_subscribe(text, text, text, text) from public
 revoke all on function public.push_unsubscribe(text) from public;
 grant execute on function public.push_subscribe(text, text, text, text) to anon, authenticated;
 grant execute on function public.push_unsubscribe(text) to anon, authenticated;
+
+-- ---------- Morgen-Erinnerung an eine ToDo-Liste (js/push.js, Funktion „push“) ----------
+-- Pro Gerät eine Liste, Uhrzeit (Schweizer Zeit) und Wochentage (1 = Montag … 7 = Sonntag). Bei einer geteilten
+-- Liste liest die Funktion die ToDos selbst; eine persönliche Liste liegt nur auf dem Gerät (bzw. verschlüsselt),
+-- darum hinterlegt die App deren offene ToDos hier in todo_items – nur für die gewählte Liste.
+alter table public.push_subscriptions add column if not exists todo_scope text check (todo_scope in ('shared', 'personal'));
+alter table public.push_subscriptions add column if not exists todo_list text check (char_length(todo_list) <= 64);
+alter table public.push_subscriptions add column if not exists todo_name text check (char_length(todo_name) <= 80);
+alter table public.push_subscriptions add column if not exists todo_time text check (todo_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$');
+alter table public.push_subscriptions add column if not exists todo_days text check (todo_days ~ '^[1-7](,[1-7]){0,6}$');
+alter table public.push_subscriptions add column if not exists todo_items jsonb check (pg_column_size(todo_items) <= 20000);
+
+-- Erinnerung für dieses Gerät setzen; p_list = '' schaltet sie aus
+create or replace function public.push_todo_reminder(p_endpoint text, p_scope text, p_list text, p_name text, p_time text, p_days text, p_items jsonb)
+returns boolean
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  k text := public.request_header('x-hh-key');
+  off boolean := coalesce(p_list, '') = '';
+begin
+  if not public.household_access_ok() then
+    raise exception 'Zugangscode stimmt nicht';
+  end if;
+  update public.push_subscriptions
+     set todo_scope = case when off then null else p_scope end,
+         todo_list  = case when off then null else p_list end,
+         todo_name  = case when off then null else left(p_name, 80) end,
+         todo_time  = case when off then null else p_time end,
+         todo_days  = case when off then null else p_days end,
+         todo_items = case when off or p_scope <> 'personal' then null else p_items end,
+         updated_at = now()
+   where endpoint = p_endpoint and household_key = k;
+  if not found then
+    raise exception 'Dieses Gerät ist für Mitteilungen nicht angemeldet';
+  end if;
+  return true;
+end
+$$;
+
+revoke all on function public.push_todo_reminder(text, text, text, text, text, text, jsonb) from public;
+grant execute on function public.push_todo_reminder(text, text, text, text, text, text, jsonb) to anon, authenticated;

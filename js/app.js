@@ -14,6 +14,7 @@ import { pull, session, setSyncErrorHandler, subscribe } from './store.js';
 import { icon, toast } from './ui.js';
 import { boot, currentMember, ensureMe } from './login.js';
 import { refreshPush } from './push.js';
+import { refreshReminder } from './reminder.js';
 import { AccessError } from './remote.js';
 import { setupPullToRefresh } from './refresh.js';
 import einkauf from './views/einkauf.js';
@@ -62,9 +63,10 @@ function syncThemeColor() {
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeColor);
 
 function route() {
-  const id = location.hash.slice(1);
+  // Adresse wie #todo/shared/<id>: Bereich vor dem ersten „/“, der Rest geht an enter() der Ansicht
+  const [id, ...rest] = location.hash.slice(1).split('/');
   const next = VIEWS.find((v) => v.id === id || v.aliases?.includes(id)) || VIEWS[0];
-  if (next.aliases?.includes(id)) next.enter?.(id);
+  if (next.aliases?.includes(id) || rest.length) next.enter?.(id, rest);
   const changed = next !== current;
   current = next;
   // Bereich als Merkmal am <html>, z. B. für eigene Farben pro Bereich (css/styles.css, :root[data-view=…])
@@ -73,7 +75,7 @@ function route() {
   titleEl.textContent = current.title;
   document.title = `${current.title} · Haushalt`;
   // Alte Adresse (#woche) durch die des Tabs ersetzen, damit Zurück/Neuladen stimmt
-  if (id !== current.id && next.aliases?.includes(id)) history.replaceState(null, '', `#${current.id}`);
+  if ((id !== current.id && next.aliases?.includes(id)) || rest.length) history.replaceState(null, '', `#${current.id}`);
   for (const tab of tabbar.children) {
     if (tab.dataset.tab === current.id) tab.setAttribute('aria-current', 'page');
     else tab.removeAttribute('aria-current');
@@ -108,7 +110,7 @@ subscribe(render);
 window.addEventListener('hashchange', route);
 // Mitteilung angetippt, während die App offen war (sw.js): zum passenden Bereich, z. B. #kuehlschrank
 navigator.serviceWorker?.addEventListener('message', (e) => {
-  if (e.data?.type === 'open' && /^#[a-z]+$/.test(e.data.hash || '')) location.hash = e.data.hash;
+  if (e.data?.type === 'open' && /^#[a-z]+(\/[a-z]+\/[a-z0-9]+)?$/i.test(e.data.hash || '')) location.hash = e.data.hash;
 });
 
 setSyncErrorHandler((err) => {
@@ -122,6 +124,7 @@ boot(() => {
   route();
   if (session.mode !== 'shared') return;
   refreshPush(currentMember()?.id); // Push-Abo dieses Geräts in Supabase auffrischen (js/push.js)
+  refreshReminder(); // persönliche Liste der Morgen-Erinnerung nachführen (js/reminder.js)
   // Änderungen der anderen holen: regelmässig und sobald die App wieder in den Vordergrund kommt
   setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 15000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pull(); });

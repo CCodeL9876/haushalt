@@ -60,12 +60,18 @@ export function personal() {
   return data;
 }
 
+// Wer wissen muss, wenn sich persönliche Listen ändern (z. B. die Morgen-Erinnerung, js/push.js)
+const changeListeners = new Set();
+export const onPersonalChange = (fn) => changeListeners.add(fn);
+const changed = () => changeListeners.forEach((fn) => { try { fn(data); } catch { /* egal */ } });
+
 export function updatePersonal(fn) {
   load();
   fn(data);
   writeJson(loadedKey, data);
   refresh('local');
   if (syncSettings()) scheduleUpload();
+  changed();
 }
 
 // ---------- Verschlüsselter Abgleich ----------
@@ -145,6 +151,7 @@ setRowsListener(async (rows) => {
     writeJson(loadedKey, data);
     writeJson(syncKey(), { ...settings, syncedAt: latestRow.updatedAt });
     refresh('remote');
+    changed();
   } catch {
     // Passwort wurde auf einem anderen Gerät neu gesetzt: hier nicht mehr lesbar → Abgleich auf diesem Gerät aus
     writeJson(syncKey(), null);

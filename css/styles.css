@@ -371,6 +371,14 @@ button { cursor: pointer; }
   background: transparent; color: var(--muted); font-size: 15px; text-align: left;
 }
 .todo-sync { margin: 2px 0 0; padding: 0 4px; }
+.reminder-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 18px; padding: 12px 14px;
+  border: 0; border-radius: var(--radius); background: var(--card); color: var(--text); text-align: left; box-shadow: var(--shadow);
+}
+.reminder-row > .icon { color: var(--accent-text); }
+.reminder-row span { flex: 1; min-width: 0; }
+.reminder-row strong { display: block; }
+.reminder-row small { display: block; color: var(--muted); font-size: 13px; }
 .list-tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .list-tile { --tile-bg: var(--tile-1-bg); --tile-badge: var(--tile-1-badge); }
 .list-tile:nth-child(3n+2) { --tile-bg: var(--tile-2-bg); --tile-badge: var(--tile-2-badge); }

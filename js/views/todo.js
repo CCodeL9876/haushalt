@@ -5,6 +5,8 @@
 import { memberById, refresh, state, update, uid } from '../store.js';
 import { disableSync, enableSync, personal, remoteCopyExists, syncAvailable, syncEnabled, syncWasLost, updatePersonal } from '../personal.js';
 import { addToCalendar, isInCalendar } from '../calendar.js';
+import { openReminder, reminderSummary } from '../reminder.js';
+import { pushConfigured } from '../push.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 
@@ -121,7 +123,13 @@ function overview() {
     ${section('shared', shared, 'Geteilt', 'Für alle im Haushalt')}
     ${section('personal', mine, 'Nur für mich', syncEnabled() ? 'Nur für dich – verschlüsselt auf deinen Geräten' : 'Nur für dich – auf diesem Gerät')}
     ${syncWasLost() ? '<p class="small amount-minus todo-hint">Auf einem anderen Gerät wurde ein neues Passwort gesetzt. Abgleich hier neu einrichten.</p>' : ''}
-    ${syncAvailable() ? `<button type="button" class="btn btn-ghost btn-sm todo-sync" data-action="sync">${icon('refresh', 'icon-sm')} ${syncEnabled() ? 'Abgleich verwalten' : 'Auf meinen Geräten abgleichen'}</button>` : ''}`;
+    ${syncAvailable() ? `<button type="button" class="btn btn-ghost btn-sm todo-sync" data-action="sync">${icon('refresh', 'icon-sm')} ${syncEnabled() ? 'Abgleich verwalten' : 'Auf meinen Geräten abgleichen'}</button>` : ''}
+    ${pushConfigured() ? `
+      <button type="button" class="reminder-row" data-action="reminder">
+        ${icon('bell')}
+        <span><strong>Morgen-Erinnerung</strong><small>${esc(reminderSummary() || 'Jeden Morgen die ToDos einer Liste als Mitteilung')}</small></span>
+        ${icon('right', 'icon-sm')}
+      </button>` : ''}`;
 }
 
 // Neue Liste: Name abfragen, dann gleich öffnen
@@ -412,10 +420,18 @@ function editList(cur) {
   });
 }
 
+// Nach dem Speichern der Morgen-Erinnerung die Übersicht auffrischen
+document.addEventListener('reminderchange', () => refresh());
+
 export default {
   id: 'todo',
   title: 'ToDo',
   icon: 'listCheck',
+
+  // Direkt in eine Liste, z. B. aus der Morgen-Erinnerung: #todo/shared/<id> oder #todo/personal/<id>
+  enter(_, [scope, id] = []) {
+    if ((scope === 'shared' || scope === 'personal') && id) setOpen({ scope, id });
+  },
 
   render() {
     const cur = current();
@@ -425,6 +441,7 @@ export default {
   actions: {
     sync() { syncSheet(); },
     newList(el) { newList(el.dataset.scope); },
+    reminder() { openReminder(); },
     arrange(el) {
       arranging = el.dataset.scope || null;
       refresh();

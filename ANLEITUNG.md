@@ -140,9 +140,14 @@ einfügen → **Run**. Das ist gefahrlos: Bestehende Daten bleiben. Bis dahin me
 
 ## 10. Push-Mitteilungen (einmalig einrichten)
 
-Die App erinnert per Mitteilung an Reste im Kühlschrank: **am Vortag** („bis morgen aufbrauchen“) und **am
-letzten Tag** („heute aufbrauchen“), jeweils ab 17 Uhr, an alle Geräte im Haushalt, die Mitteilungen eingeschaltet
-haben. Verschickt werden sie von einer Funktion in Supabase, die ein Zeitplan jede Stunde aufruft.
+Die App verschickt zwei Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten
+aufruft:
+
+- **Morgen-Erinnerung (ToDo):** pro Gerät einstellbar unter **ToDo → Morgen-Erinnerung** – eine Liste, Uhrzeit
+  (Standard 7:45) und Wochentage. Die Mitteilung nennt die ToDos, die heute dran sind (fällig bis heute oder ohne
+  Datum, Überfälliges zuerst). Ist nichts offen, kommt keine. Antippen öffnet direkt die Liste.
+- **Kühlschrank:** Reste **am Vortag** („bis morgen aufbrauchen“) und **am letzten Tag** („heute aufbrauchen“),
+  jeweils ab 17 Uhr, an alle Geräte im Haushalt, die Mitteilungen eingeschaltet haben.
 
 1. **Datenbank:** SQL Editor → New query → den ganzen Inhalt von [supabase/schema.sql](supabase/schema.sql)
    nochmals einfügen → **Run** (neu: Tabellen für die Geräte und für schon Verschicktes).
@@ -153,16 +158,22 @@ haben. Verschickt werden sie von einer Funktion in Supabase, die ein Zeitplan je
    `supabase/functions/push/index.ts` ersetzen und auf jedem Gerät Mitteilungen aus- und wieder einschalten.
 3. **Funktion:** Edge Functions → **Deploy a new function** → **Via Editor**, Name genau `push`, den Inhalt von
    [supabase/functions/push/index.ts](supabase/functions/push/index.ts) hineinkopieren → **Deploy function**.
-   Danach wie bei `recipe-import` die **JWT-Prüfung ausschalten**.
+   Danach wie bei `recipe-import` die **JWT-Prüfung ausschalten**. (Ist die Funktion schon eingerichtet: nach
+   jeder Änderung an der Datei den Inhalt dort ersetzen und nochmals **Deploy**.)
 4. **Zeitplan:** SQL Editor → New query → den Inhalt von [supabase/push-cron.sql](supabase/push-cron.sql)
-   einfügen → **Run**. (Falls eine Meldung zu `pg_cron` oder `pg_net` kommt: unter **Integrations** „Cron“ und
+   einfügen → **Run**. (Für die Morgen-Erinnerung läuft er neu alle 5 statt alle 60 Minuten – wer ihn schon
+   eingerichtet hat, führt die Datei einfach nochmals aus; der alte Zeitplan wird ersetzt.) (Falls eine Meldung zu `pg_cron` oder `pg_net` kommt: unter **Integrations** „Cron“ und
    „pg_net“ aktivieren und nochmals ausführen.)
 5. **Auf jedem iPhone:** die App **vom Home-Bildschirm** öffnen (in Safari: Teilen → „Zum Home-Bildschirm“; ab
    iOS 16.4) → oben rechts **Haushalt** → **Mitteilungen einschalten** → erlauben → **Probe senden**.
 
-**Datenschutz:** In Supabase liegt pro Gerät nur die Adresse beim Push-Dienst (Apple, Google oder Mozilla) mit
-Schlüssel. Der Inhalt jeder Mitteilung (z. B. „Heute aufbrauchen: Reis“) wird für das Gerät verschlüsselt; der
-Push-Dienst kann ihn nicht lesen.
+**Datenschutz:** In Supabase liegt pro Gerät die Adresse beim Push-Dienst (Apple, Google oder Mozilla) mit
+Schlüssel, dazu die Einstellung der Morgen-Erinnerung (Liste, Uhrzeit, Tage). Der Inhalt jeder Mitteilung wird für
+das Gerät verschlüsselt; der Push-Dienst kann ihn nicht lesen. **Ausnahme persönliche Listen:** Wählt man für die
+Morgen-Erinnerung eine persönliche Liste, hinterlegt die App deren offene ToDos (Titel, Datum, Zeit) lesbar in
+Supabase – sonst könnte die Funktion sie nicht nennen. Das gilt nur für diese eine Liste und endet mit
+„Ausschalten“ oder der Wahl einer anderen Liste. Auf dem Sperrbildschirm erscheinen die Titel; wer das nicht
+möchte, stellt am iPhone unter Einstellungen → Mitteilungen → Haushalt die Vorschau auf „Wenn entsperrt“.
 
 ## Gut zu wissen
 
