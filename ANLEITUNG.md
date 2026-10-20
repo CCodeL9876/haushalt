@@ -140,7 +140,7 @@ einfügen → **Run**. Das ist gefahrlos: Bestehende Daten bleiben. Bis dahin me
 
 ## 10. Push-Mitteilungen (einmalig einrichten)
 
-Die App verschickt zwei Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten
+Die App verschickt drei Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten
 aufruft:
 
 - **Morgen-Erinnerung (ToDo):** pro Gerät einstellbar unter **ToDo → Morgen-Erinnerung** – eine Liste, Uhrzeit
@@ -148,6 +148,8 @@ aufruft:
   Datum, Überfälliges zuerst). Ist nichts offen, kommt keine. Antippen öffnet direkt die Liste.
 - **Kühlschrank:** Reste **am Vortag** („bis morgen aufbrauchen“) und **am letzten Tag** („heute aufbrauchen“),
   jeweils ab 17 Uhr, an alle Geräte im Haushalt, die Mitteilungen eingeschaltet haben.
+- **Vortag (ToDo):** ab 18 Uhr für ToDos in geteilten Listen mit „Am Vortag erinnern“, die morgen fällig sind –
+  z. B. Altpapier oder Grüngut aus dem Abfuhrplan. An alle Geräte im Haushalt mit Mitteilungen.
 
 1. **Datenbank:** SQL Editor → New query → den ganzen Inhalt von [supabase/schema.sql](supabase/schema.sql)
    nochmals einfügen → **Run** (neu: Tabellen für die Geräte und für schon Verschicktes).
@@ -177,8 +179,17 @@ möchte, stellt am iPhone unter Einstellungen → Mitteilungen → Haushalt die 
 
 ## Gut zu wissen
 
-- **Code ändern:** In der App unter Haushalt → Zugang. Alle anderen Geräte werden beim nächsten Abgleich
-  nach dem neuen Code gefragt.
+- **Code ändern:** In der App unter Haushalt → Zugang → *Code ändern*. Alle anderen Geräte werden beim nächsten
+  Abgleich nach dem neuen Code gefragt. Zugleich werden in Supabase alle anderen Geräte von den Mitteilungen
+  abgemeldet; eure eigenen melden sich nach Eingabe des neuen Codes von selbst wieder an (dafür einmal
+  schema.sql nochmals ausführen).
+- **Sicherung:** Haushalt → Daten → *Sicherung*: eine Datei mit allen Daten, verschlüsselt mit einem Passwort
+  (auf Wunsch mit den eigenen persönlichen Listen). Ohne Passwort lässt sie sich nicht öffnen.
+- **Aufräumen:** Erledigte ToDos und Einkäufe werden 30 Tage nach dem Abhaken gelöscht, Einträge der Abrechnung
+  nach 12 Monaten – aber nur bis zum letzten Zeitpunkt, an dem ihr quitt wart. Der Stand bleibt so gleich.
+- **Wiederkehrende ToDos:** ToDo antippen → *Wiederholen* (jede Woche, alle 2 Wochen … oder „Nach Plan“ mit festen
+  Daten). Den Abfuhrkalender der Gemeinde als Kalender-Datei (.ics) einlesen: Liste öffnen → Zahnrad →
+  *Kalender-Datei wählen*.
 - **Abmelden:** Initialen antippen → *Auf diesem Gerät abmelden*. Danach fragt die App wieder nach dem Code.
 - **Abgleich:** Änderungen gehen sofort hoch. Was andere geändert haben, erscheint innerhalb von etwa 15 Sekunden
   und sofort, wenn man die App wieder öffnet.

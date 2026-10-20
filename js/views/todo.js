@@ -9,6 +9,7 @@ import { openReminder, reminderSummary } from '../reminder.js';
 import { pushConfigured } from '../push.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
+import { REPEAT_CHOICES, formatDates, nextDue, parseDates, parseIcs, repeatChoice, repeatFromChoice, repeatLabel } from '../repeat.js';
 
 // Beide Arten gleich behandeln: d = { lists, todos }; Zuweisungen an d.lists/d.todos werden übernommen
 const SCOPES = {
@@ -252,6 +253,9 @@ async function run(form, task) {
 // Zugewiesene Person (nur geteilte Listen); gibt es sie nicht mehr, ist das ToDo für niemanden
 const assignee = (t) => (t.assignee ? memberById(t.assignee) : null);
 
+// Erinnerung am Vortag gibt es nur in geteilten Listen (die persönlichen kennt der Server nicht)
+const remindShown = () => open?.scope === 'shared';
+
 function todoItem(t) {
   const who = assignee(t);
   return `
@@ -259,7 +263,12 @@ function todoItem(t) {
     <button type="button" class="check" data-action="toggle" data-id="${t.id}" aria-label="${t.done ? 'Wieder offen' : 'Erledigt'}: ${esc(t.title)}">${icon('check', 'icon-sm')}</button>
     <button type="button" class="list-main" data-action="edit" data-id="${t.id}" aria-label="${esc(t.title)}${who ? ` (für ${esc(who.name)})` : ''} bearbeiten">
       ${esc(t.title)}
-      ${t.due || t.note ? `<small>${t.due ? `<span class="${overdue(t) ? 'amount-minus' : ''}">${esc(dueLabel(t))}</span>` : ''}${t.due && t.note ? ' · ' : ''}${esc(t.note)}</small>` : ''}
+      ${t.due || t.note || t.repeat ? `<small>${[
+        t.due ? `<span class="${overdue(t) ? 'amount-minus' : ''}">${esc(dueLabel(t))}</span>` : '',
+        t.repeat && !t.done ? `<span class="todo-repeat">${icon('refresh', 'icon-xs')} ${esc(repeatLabel(t))}</span>` : '',
+        t.remind && t.due && !t.done && remindShown() ? `<span class="todo-repeat" title="Erinnerung am Vortag">${icon('bell', 'icon-xs')} Vortag</span>` : '',
+        esc(t.note),
+      ].filter(Boolean).join(' · ')}</small>` : ''}
     </button>
     ${who ? `<span class="todo-who" title="Für ${esc(who.name)}">${avatar(who)}</span>` : ''}
     ${isInCalendar(t.id) ? `<span class="todo-cal" title="Im Kalender eingetragen">${icon('calendar', 'icon-sm')}</span>` : ''}
@@ -321,6 +330,20 @@ function editTodo(cur, id) {
   const save = (form) => {
     const title = form.elements.title.value.trim();
     if (!title) return false;
+    // Wiederholen: regelmässig braucht ein erstes Datum; nach Plan nimmt das nächste Datum aus der Liste
+    const choice = form.elements.repeat.value;
+    let repeat = null;
+    if (choice === 'plan') {
+      const { dates, bad } = parseDates(form.elements.dates.value, todayKey());
+      if (bad.length) { toast(`Unklares Datum: ${bad.slice(0, 3).join(', ')}`); return false; }
+      const future = dates.filter((x) => x >= todayKey());
+      if (!future.length) { toast('Bitte die Daten aus dem Plan eintragen (ab heute)'); return false; }
+      repeat = { dates: future };
+      if (!form.elements.due.value || form.elements.due.value < todayKey()) form.elements.due.value = future[0];
+    } else if (choice) {
+      if (!form.elements.due.value) { toast('Bitte ein Datum fürs nächste Mal wählen'); return false; }
+      repeat = repeatFromChoice(choice);
+    }
     cur.change((d) => {
       const item = d.todos.find((x) => x.id === id);
       if (!item) return;
@@ -331,8 +354,18 @@ function editTodo(cur, id) {
         note: form.elements.note.value.trim().slice(0, 500),
         ...(form.elements.assignee ? { assignee: form.elements.assignee.value } : {}),
       });
+      if (repeat) item.repeat = repeat;
+      else delete item.repeat;
+      if (form.elements.remind?.checked && item.due) item.remind = true;
+      else delete item.remind;
     });
     return true;
+  };
+  // Datumsliste nur bei „Nach Plan“, Erinnerung nur mit Datum
+  const showRepeat = (form) => {
+    form.querySelector('.repeat-dates').hidden = form.elements.repeat.value !== 'plan';
+    const remind = form.querySelector('.remind-field');
+    if (remind) remind.hidden = !form.elements.due.value && form.elements.repeat.value !== 'plan';
   };
   // Uhrzeit nur mit Datum (ohne Datum wird sie nicht gespeichert)
   const timeNeedsDate = (form) => {
@@ -356,6 +389,16 @@ function editTodo(cur, id) {
         <label class="field"><span>Uhrzeit</span><input class="input" type="time" name="time" value="${esc(t.time)}"></label>
       </div>
       <p class="muted small todo-time-hint">Uhrzeit freiwillig, geht nur mit Datum.</p>
+      <label class="field"><span>Wiederholen</span>
+        <select class="select" name="repeat">${REPEAT_CHOICES.map(([v, label]) => `<option value="${v}" ${v === repeatChoice(t.repeat) ? 'selected' : ''}>${label}</option>`).join('')}</select>
+      </label>
+      <label class="field repeat-dates" hidden><span>Daten laut Plan</span>
+        <textarea class="textarea" name="dates" placeholder="4.11.2026, 18.11.2026, 2.12.2026 …">${esc(formatDates(t.repeat?.dates || []))}</textarea>
+        <small class="muted">Mit Komma oder je Zeile. Nach dem Abhaken kommt das nächste Datum. Oder bei der Liste (${icon('settings', 'icon-xs')}) eine Kalender-Datei (.ics) der Gemeinde einlesen.</small>
+      </label>
+      ${cur.scope === 'shared'
+        ? `<label class="check-field remind-field"><input type="checkbox" name="remind" ${t.remind ? 'checked' : ''}> ${icon('bell', 'icon-xs')} Am Vortag um 18 Uhr erinnern (alle mit Mitteilungen)</label>`
+        : ''}
       <label class="field"><span>Notiz</span>
         <textarea class="textarea" name="note" maxlength="500">${esc(t.note)}</textarea>
       </label>
@@ -367,6 +410,7 @@ function editTodo(cur, id) {
     actions: {
       change(el, f) {
         if (el.name === 'due') timeNeedsDate(f);
+        if (el.name === 'due' || el.name === 'repeat') showRepeat(f);
       },
       async calendar(btn, form) {
         if (!form.reportValidity()) return;
@@ -394,6 +438,7 @@ function editTodo(cur, id) {
     },
   });
   timeNeedsDate(form);
+  showRepeat(form);
 }
 
 function editList(cur) {
@@ -405,7 +450,11 @@ function editList(cur) {
       <label class="field"><span>Name</span>
         <input class="input" name="name" value="${esc(list.name)}" required maxlength="60" autocomplete="off">
       </label>
-      ${cur.scope === 'shared' ? '<p class="muted small">Umbenennen und Löschen gilt für alle im Haushalt.</p>' : ''}`,
+      ${cur.scope === 'shared' ? '<p class="muted small">Umbenennen und Löschen gilt für alle im Haushalt.</p>' : ''}
+      <div class="field"><span>Abfuhrplan</span>
+        <p class="muted small" style="margin:0 0 8px">Kalender-Datei (.ics) der Gemeinde einlesen: Altpapier, Grüngut, Karton … werden zu wiederkehrenden ToDos mit den Daten aus dem Plan.</p>
+        <label class="btn btn-block">${icon('calendar', 'icon-sm')} Kalender-Datei wählen<input type="file" name="ics" accept=".ics,text/calendar" hidden></label>
+      </div>`,
     submitLabel: 'Speichern',
     footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Liste löschen</button>`,
     onSubmit(data) {
@@ -417,6 +466,12 @@ function editList(cur) {
       });
     },
     actions: {
+      async change(el) {
+        if (el.name !== 'ics' || !el.files[0]) return;
+        const groups = parseIcs(await el.files[0].text(), todayKey());
+        if (!groups.length) return toast('Keine kommenden Termine in der Datei gefunden');
+        importPlan(cur, groups);
+      },
       delete() {
         if (!confirm(`„${list.name}“${count ? ` mit ${count} ToDo${count === 1 ? '' : 's'}` : ''} löschen?`)) return;
         cur.change((d) => {
@@ -426,6 +481,40 @@ function editList(cur) {
         setOpen(null);
         closeSheet();
       },
+    },
+  });
+}
+
+// Termine aus der Kalender-Datei auswählen → je Bezeichnung ein wiederkehrendes ToDo (gibt es schon ein offenes
+// mit diesem Namen in der Liste, bekommt es die neuen Daten)
+function importPlan(cur, groups) {
+  const today = todayKey();
+  openSheet({
+    title: 'Abfuhrplan übernehmen',
+    body: `
+      <p class="muted small" style="margin:0 0 10px">Welche Termine sollen in „${esc(cur.list.name)}“? Nach dem Abhaken erscheint jeweils das nächste Datum.</p>
+      <div class="pick-list">${groups.map((g, n) => `
+        <label class="pick-row">
+          <input type="checkbox" name="g${n}" checked>
+          <span class="list-main">${esc(g.title)}<small>${g.dates.length} ${g.dates.length === 1 ? 'Termin' : 'Termine'} · nächster ${esc(fmtShort(g.dates[0]))}</small></span>
+        </label>`).join('')}
+      </div>
+      ${cur.scope === 'shared' ? `<label class="check-field" style="margin-top:12px"><input type="checkbox" name="remind" checked> ${icon('bell', 'icon-xs')} Am Vortag um 18 Uhr erinnern</label>` : ''}`,
+    submitLabel: 'Übernehmen',
+    onSubmit(data) {
+      const chosen = groups.filter((_, n) => data.get(`g${n}`));
+      if (!chosen.length) return false;
+      const remind = Boolean(data.get('remind'));
+      cur.change((d) => {
+        for (const g of chosen) {
+          const dates = g.dates.filter((x) => x >= today);
+          const existing = d.todos.find((t) => t.listId === cur.list.id && !t.done && t.title.toLowerCase() === g.title.toLowerCase());
+          const fields = { due: dates[0], time: '', repeat: { dates }, ...(remind ? { remind: true } : {}) };
+          if (existing) Object.assign(existing, fields);
+          else d.todos.push({ id: uid(), listId: cur.list.id, title: g.title.slice(0, 120), note: '', done: false, addedAt: Date.now(), ...fields });
+        }
+      });
+      toast(`${chosen.length} ${chosen.length === 1 ? 'Termin' : 'Termine'} übernommen`);
     },
   });
 }
@@ -476,6 +565,14 @@ export default {
       current()?.change((d) => {
         const t = d.todos.find((x) => x.id === el.dataset.id);
         if (!t) return;
+        // Wiederkehrend: statt erledigt mit dem nächsten Datum wieder offen
+        const next = !t.done && nextDue(t, todayKey());
+        if (next) {
+          t.due = next;
+          if (t.repeat.dates) t.repeat.dates = t.repeat.dates.filter((x) => x >= next);
+          toast(`${t.title}: nächstes Mal ${fmtShort(next)}`);
+          return;
+        }
         t.done = !t.done;
         if (t.done) t.doneAt = Date.now();
         else delete t.doneAt;

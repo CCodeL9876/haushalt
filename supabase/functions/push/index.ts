@@ -4,6 +4,8 @@
 //    · Morgen-Erinnerung: pro Gerät zur gewählten Uhrzeit und an den gewählten Wochentagen die offenen ToDos einer
 //      Liste (fällig bis heute oder ohne Datum). Ist nichts offen, kommt keine Mitteilung.
 //    · Kühlschrank: ab 17 Uhr (Schweizer Zeit) Reste am Vortag („bis morgen aufbrauchen“) und am letzten Tag („heute“).
+//    · Vortag: ab 18 Uhr an alle Geräte des Haushalts, wenn ein geteiltes ToDo mit „am Vortag erinnern“ (remind)
+//      morgen fällig ist – z. B. Altpapier oder Grüngut aus dem Abfuhrplan.
 //    Jede Erinnerung nur einmal (Tabelle push_sent). Ohne Fälliges passiert nichts – darum ohne Anmeldung.
 //  - POST { test: true, endpoint, kind? } – von der App (mit Haushalt-Schlüssel und Zugangscode): Probe an dieses
 //    Gerät; kind 'todo' schickt die Morgen-Erinnerung so, wie sie jetzt aussähe.
@@ -18,6 +20,7 @@ const VAPID_PUBLIC_KEY = 'BJvU0TeuBTa-QQLamVufZ_ck7Skh8gAA1SCzb5vcN-u6MgRoN2nGa5
 const VAPID_SUBJECT = 'https://ccodel9876.github.io/haushalt/';
 const TIME_ZONE = 'Europe/Zurich';
 const REMIND_HOUR = 17;
+const EVE_HOUR = 18;
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -267,8 +270,46 @@ async function todoReminders() {
   return { sent };
 }
 
+// ---------- Vortag: geteilte ToDos mit remind, die morgen fällig sind ----------
+
+async function eveReminders() {
+  const now = local();
+  if (now.hour < EVE_HOUR) return { skipped: 'vor 18 Uhr' };
+  const tomorrow = nextDay(now.day);
+  const items = await db(`items?collection=eq.todos&data->>remind=eq.true&data->>due=eq.${tomorrow}&select=household_key,id,data`);
+  const due = new Map();
+  for (const it of items || []) {
+    const t = it.data || {};
+    if (t.done || !clip(t.title, 120)) continue;
+    if (!due.has(it.household_key)) due.set(it.household_key, []);
+    due.get(it.household_key).push({ ref: `eve:${it.id}:${tomorrow}`, title: clip(t.title, 60), time: t.time || '', listId: t.listId });
+  }
+  let sent = 0;
+  for (const [household, entries] of due) {
+    const refs = entries.map((e) => `"${e.ref.replace(/"/g, '')}"`).join(',');
+    const done = new Set((await db(`push_sent?household_key=eq.${encodeURIComponent(household)}&ref=in.(${encodeURIComponent(refs)})&select=ref`)).map((r) => r.ref));
+    const open = entries.filter((e) => !done.has(e.ref));
+    if (!open.length) continue;
+    const subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth`);
+    if (!subs.length) continue;
+    // Alle für morgen nennen; eine spätere Mitteilung am selben Abend ersetzt die frühere (gleiches tag)
+    const names = entries.map((e) => `${e.title}${e.time ? ` (${e.time})` : ''}`);
+    const payload = {
+      title: `Morgen: ${list(names)}`,
+      body: 'Erinnerung für morgen – antippen öffnet die Liste.',
+      url: `#todo/shared/${entries[0].listId}`,
+      tag: `eve-${tomorrow}`,
+    };
+    const results = await Promise.all(subs.map((s) => send(s, payload)));
+    if (!results.some(Boolean)) continue; // später nochmals versuchen
+    await db('push_sent', { method: 'POST', body: open.map((e) => ({ household_key: household, ref: e.ref })), prefer: 'resolution=ignore-duplicates,return=minimal' });
+    sent += 1;
+  }
+  return { households: sent };
+}
+
 async function reminders() {
-  return { todo: await todoReminders(), fridge: await fridgeReminders() };
+  return { todo: await todoReminders(), eve: await eveReminders(), fridge: await fridgeReminders() };
 }
 
 async function test(req) {

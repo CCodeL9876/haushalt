@@ -642,3 +642,5 @@ button { cursor: pointer; }
 .due-add .icon-sm { color: var(--accent-text); flex: none; }
 .due-add small { color: var(--muted); font-size: 13px; }
 .old-done { margin-top: 8px; }
+.todo-repeat .icon-xs { vertical-align: -1px; }
+.repeat-dates small { display: block; margin-top: 6px; font-size: 12.5px; }

@@ -22,6 +22,7 @@
 //   todolists [{ id, name, createdAt }]                 geteilte ToDo-Listen (persönliche: js/personal.js, nie hier)
 //   todos     [{ id, listId, title, note, done, doneAt?, due?, time?, assignee?, addedAt }]   due 'JJJJ-MM-TT', time 'HH:MM', assignee = members.id
 //             doneAt: wann abgehakt (nach 2 Tagen ausgeblendet, nach 30 Tagen gelöscht)
+//             repeat?: { every, unit } oder { dates }, remind?: am Vortag erinnern (js/repeat.js)
 //   fridge    [{ id, name, useBy, addedAt, from? }]   Reste im Kühlschrank: useBy 'JJJJ-MM-TT' = aufbrauchen bis, from = Gericht
 // In der Datenbank ist jeder Eintrag eine Zeile (collection + id); plan je Tag, settings als eine Zeile „main“.
 
