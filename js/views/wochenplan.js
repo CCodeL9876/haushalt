@@ -81,6 +81,9 @@ function fridgeHint() {
   </button>`;
 }
 
+// Zutaten eines Menüs mit Tag – auf der Einkaufsliste lassen sie sich dann bis zu diesem Tag ausblenden
+const forMeal = (day, meal) => (ideaOf(meal)?.ingredients || []).map((line) => ({ line, meal: { day, title: mealTitle(meal) } }));
+
 function editMeal(day, slot) {
   const meal = state.plan[day]?.[slot];
   const slotLabel = SLOTS.find((s) => s.id === slot).label;
@@ -104,7 +107,7 @@ function editMeal(day, slot) {
       pick(btn, form) { form.elements.title.value = btn.dataset.title; },
       leftovers() { leftovers(meal); },
       // Zutaten der verknüpften Menüidee auswählen und auf die Einkaufsliste
-      shop() { shopIngredients(ideaOf(meal).ingredients, `für ${mealTitle(meal)}`); },
+      shop() { shopIngredients(forMeal(day, meal), `für ${mealTitle(meal)}`); },
       clear() { setMeal(day, slot, ''); closeSheet(); },
     },
     onSubmit(data) {
@@ -113,7 +116,7 @@ function editMeal(day, slot) {
       if (data.get('shop')) {
         if (!idea?.ingredients.length) toast('Keine Zutaten hinterlegt – in den Menüideen ergänzen');
         else {
-          shopIngredients(idea.ingredients, `für ${idea.title}`);
+          shopIngredients(forMeal(day, state.plan[day]?.[slot]), `für ${idea.title}`);
           return false; // das Fenster zeigt jetzt die Auswahl der Zutaten
         }
       }
@@ -182,9 +185,12 @@ export default {
       const monday = addDays(startOfWeek(new Date()), weekOffset * 7);
       const ingredients = [];
       for (let i = 0; i < 7; i += 1) {
-        for (const meal of Object.values(state.plan[dateKey(addDays(monday, i))] || {})) ingredients.push(...(ideaOf(meal)?.ingredients || []));
+        const day = dateKey(addDays(monday, i));
+        // Vergangene Tage nicht mehr einkaufen
+        if (day < todayKey()) continue;
+        for (const meal of Object.values(state.plan[day] || {})) ingredients.push(...forMeal(day, meal));
       }
-      if (!ingredients.length) return toast('Keine Gerichte mit Zutaten in dieser Woche');
+      if (!ingredients.length) return toast('Keine kommenden Gerichte mit Zutaten in dieser Woche');
       shopIngredients(ingredients, 'für den Wochenplan');
     },
   },

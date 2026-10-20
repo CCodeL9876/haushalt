@@ -5,6 +5,7 @@
 import { refresh, state, update, uid, termKey } from '../store.js';
 import { esc, icon, openSheet, toast } from '../ui.js';
 import { AISLES, aisleLabel, aisleOf, aisleOrder } from '../aisles.js';
+import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { openTerms } from '../terms.js';
 
@@ -98,14 +99,25 @@ export function addToShopping(entries, note = '') {
       const parsed = typeof entry === 'string' ? parseQty(entry) : { name: String(entry?.name || '').trim(), qty: entry?.qty || '' };
       const { name, qty } = parsed;
       if (!name) continue;
-      const itemNote = [typeof entry === 'string' ? '' : entry.note, note].filter(Boolean).join(' · ');
+      const meals = (typeof entry === 'string' ? [] : entry.meals) || [];
+      // Gehört der Artikel zu Menüs im Wochenplan, steht das dort (meals) statt „für …“ in der Notiz
+      const itemNote = [typeof entry === 'string' ? '' : entry.note, meals.length ? '' : note].filter(Boolean).join(' · ');
       rememberTerm(s, name);
       const existing = s.shopping.find((i) => i.name.toLowerCase() === name.toLowerCase());
       if (existing && !existing.done) {
+        let changed = false;
         if (qty && existing.qty !== qty) {
-          existing.qty = qty;
-          added += 1;
+          existing.qty = existing.meals?.length && meals.length ? `${existing.qty} + ${qty}` : qty;
+          changed = true;
         }
+        // Für ein weiteres Menü gebraucht: merken, damit der Artikel beim frühesten Tag erscheint
+        const known = new Set((existing.meals || []).map((m) => `${m.day}|${m.title}`));
+        const extra = meals.filter((m) => !known.has(`${m.day}|${m.title}`));
+        if (extra.length && existing.meals?.length) {
+          existing.meals = [...existing.meals, ...extra];
+          changed = true;
+        }
+        if (changed) added += 1;
         continue;
       }
       if (existing) {
@@ -115,8 +127,10 @@ export function addToShopping(entries, note = '') {
         existing.note = itemNote || existing.note;
         if (qty) existing.qty = qty;
         else delete existing.qty;
+        if (meals.length) existing.meals = meals;
+        else delete existing.meals;
       } else {
-        s.shopping.unshift({ id: uid(), name, ...(qty ? { qty } : {}), note: itemNote, done: false, addedAt: Date.now() });
+        s.shopping.unshift({ id: uid(), name, ...(qty ? { qty } : {}), ...(meals.length ? { meals } : {}), note: itemNote, done: false, addedAt: Date.now() });
       }
       added += 1;
     }
@@ -125,15 +139,28 @@ export function addToShopping(entries, note = '') {
 }
 
 // Zutaten eines Rezepts (oder mehrerer) auf die Einkaufsliste – vorher auswählen. Grundzutaten (Salz, Öl …) und
-// was schon auf der Liste steht, sind anfangs abgewählt. lines: Rezeptzeilen wie „400 g Kartoffeln“.
+// was schon auf der Liste steht, sind anfangs abgewählt. lines: Rezeptzeilen wie „400 g Kartoffeln“ oder
+// { line, meal: { day, title } } für ein Menü im Wochenplan (dann lässt sich der Artikel bis zu diesem Tag ausblenden).
 export function shopIngredients(lines, label = '') {
-  const seen = new Set();
-  const items = lines.map(splitIngredient).filter((it) => {
+  const byKey = new Map();
+  const items = [];
+  for (const entry of lines) {
+    const it = { ...splitIngredient(typeof entry === 'string' ? entry : entry.line), meals: [] };
+    if (/^\d+(?:[.,]\d+)?$/.test(it.amount)) it.amount += '×'; // „1 Zwiebel“ → 1×
     const key = termKey(it.name);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+    if (!key) continue;
+    const meal = typeof entry === 'string' ? null : entry.meal;
+    const same = byKey.get(key);
+    if (same) {
+      // Gleiche Zutat für ein weiteres Menü: Mengen zusammen nennen
+      if (meal && !same.meals.some((m) => m.day === meal.day && m.title === meal.title)) same.meals.push(meal);
+      if (it.amount && meal) same.amount = [same.amount, it.amount].filter(Boolean).join(' + ');
+      continue;
+    }
+    if (meal) it.meals.push(meal);
+    byKey.set(key, it);
+    items.push(it);
+  }
   if (!items.length) return toast('Keine Zutaten hinterlegt');
   const open = new Set(state.shopping.filter((i) => !i.done).map((i) => termKey(i.name)));
   openSheet({
@@ -144,7 +171,7 @@ export function shopIngredients(lines, label = '') {
         const onList = open.has(termKey(it.name));
         return `<label class="pick-row">
           <input type="checkbox" name="i${n}" ${isStaple(it.name) || onList ? '' : 'checked'}>
-          <span class="list-main">${esc(it.name)}<small>${esc([it.amount, onList ? 'steht schon auf der Liste' : isStaple(it.name) ? 'meist zu Hause' : ''].filter(Boolean).join(' · '))}</small></span>
+          <span class="list-main">${esc(it.name)}<small>${esc([it.amount, mealsText(it.meals), onList ? 'steht schon auf der Liste' : isStaple(it.name) ? 'meist zu Hause' : ''].filter(Boolean).join(' · '))}</small></span>
         </label>`;
       }).join('')}</div>`,
     submitLabel: 'Hinzufügen',
@@ -154,7 +181,7 @@ export function shopIngredients(lines, label = '') {
       // „400 g · gehackt“: die Menge zuerst, Zusätze in die Notiz
       const count = addToShopping(chosen.map((it) => {
         const [qty, ...extra] = it.amount ? it.amount.split(' · ') : [''];
-        return { name: it.name, qty, note: extra.join(' · ') };
+        return { name: it.name, qty, note: extra.join(' · '), meals: it.meals };
       }), label);
       toast(`${count} ${count === 1 ? 'Artikel' : 'Artikel'} auf der Einkaufsliste`);
     },
@@ -205,14 +232,56 @@ const suggestionsHtml = (text) => suggestions(text)
   .map((t) => `<button type="button" class="chip suggest-chip" data-action="pick" data-name="${esc(t.name)}" data-keep-focus>${icon('plus', 'icon-sm')}${esc(t.name)}</button>`)
   .join('');
 
+// ---------- Zutaten für spätere Menüs ausblenden ----------
+// Artikel aus dem Wochenplan wissen, für welche Menüs sie sind (meals). Wer heute nur für heute und morgen einkauft,
+// wählt „bis morgen“ – Zutaten, die erst für spätere Tage gebraucht werden, verschwinden dann aus der Liste.
+// Gilt pro Gerät und nur für den gewählten Tag (am nächsten Tag ist wieder alles sichtbar).
+const UNTIL_KEY = 'haushalt.shopUntil';
+function shopUntil() {
+  try {
+    const v = JSON.parse(localStorage.getItem(UNTIL_KEY) || 'null');
+    return v && v.set === todayKey() && v.until >= todayKey() ? v.until : '';
+  } catch {
+    return '';
+  }
+}
+// Menüs, die noch so im Wochenplan stehen (entfernte oder geänderte zählen nicht mehr)
+const liveMeals = (i) => (i.meals || []).filter((m) => Object.values(state.plan[m.day] || {}).some((x) => x?.title === m.title));
+// Frühester Tag, an dem der Artikel gebraucht wird; '' = nicht an einen Tag gebunden
+const neededFrom = (i) => liveMeals(i).map((m) => m.day).sort()[0] || '';
+const dayLabel = (day) => (day === todayKey() ? 'heute' : day === dateKey(addDays(new Date(), 1)) ? 'morgen' : fmtShort(day).split(',')[0]);
+function mealsText(meals) {
+  const list = [...(meals || [])].sort((a, b) => a.day.localeCompare(b.day));
+  if (!list.length) return '';
+  return `für ${list.slice(0, 2).map((m) => `${dayLabel(m.day)} (${m.title})`).join(', ')}${list.length > 2 ? ` +${list.length - 2}` : ''}`;
+}
+
+function untilHtml(open, hidden, until) {
+  // Tage, ab denen Artikel gebraucht werden (nur heute und später)
+  const days = [...new Set(open.map(neededFrom).filter((d) => d && d >= todayKey()))].sort();
+  if (!days.length || (days.length === 1 && days[0] === todayKey() && !until)) return '';
+  return `<div class="until-bar">
+    <span class="muted small">Einkaufen für</span>
+    <div class="chips">
+      <button type="button" class="chip until-chip" data-action="until" data-until="" aria-pressed="${!until}">alle Tage</button>
+      ${days.slice(0, -1).map((d) => `<button type="button" class="chip until-chip" data-action="until" data-until="${d}" aria-pressed="${d === until}">bis ${esc(dayLabel(d))}</button>`).join('')}
+    </div>
+    ${hidden ? `<p class="muted small until-hint">${hidden} ${hidden === 1 ? 'Zutat' : 'Zutaten'} für spätere Menüs ausgeblendet</p>` : ''}
+  </div>`;
+}
+
 // Antippen des Namens: Menge, Notiz und Abteilung (nur bei offenen Artikeln)
 const qtyHtml = (i) => (i.qty ? ` <span class="qty-pill">${esc(i.qty)}</span>` : '');
+const smallHtml = (i) => {
+  const text = [i.note, i.done ? '' : mealsText(liveMeals(i))].filter(Boolean).join(' · ');
+  return text ? `<small>${esc(text)}</small>` : '';
+};
 const item = (i) => `
   <li class="${i.done ? 'is-done' : ''}">
     <button type="button" class="check" data-action="toggle" data-id="${i.id}" aria-label="${i.done ? 'Wieder offen' : 'Erledigt'}: ${esc(i.name)}">${icon('check', 'icon-sm')}</button>
     ${i.done
-      ? `<span class="list-main">${esc(i.name)}${qtyHtml(i)}${i.note ? `<small>${esc(i.note)}</small>` : ''}</span>`
-      : `<button type="button" class="list-main" data-action="aisle" data-id="${i.id}" aria-label="${esc(i.name)}${i.qty ? ` (${esc(i.qty)})` : ''} – Menge, Notiz, Abteilung">${esc(i.name)}${qtyHtml(i)}${i.note ? `<small>${esc(i.note)}</small>` : ''}</button>`}
+      ? `<span class="list-main">${esc(i.name)}${qtyHtml(i)}${smallHtml(i)}</span>`
+      : `<button type="button" class="list-main" data-action="aisle" data-id="${i.id}" aria-label="${esc(i.name)}${i.qty ? ` (${esc(i.qty)})` : ''} – Menge, Notiz, Abteilung">${esc(i.name)}${qtyHtml(i)}${smallHtml(i)}</button>`}
     ${i.done ? '' : `<button type="button" class="icon-btn star-btn${i.star ? ' is-on' : ''}" data-action="star" data-id="${i.id}" aria-pressed="${Boolean(i.star)}" aria-label="${esc(i.name)} ${i.star ? 'nicht mehr wichtig' : 'als wichtig markieren'}">${icon('star', 'icon-sm')}</button>`}
     <button type="button" class="icon-btn" data-action="remove" data-id="${i.id}" aria-label="${esc(i.name)} löschen">${icon('x', 'icon-sm')}</button>
   </li>`;
@@ -223,7 +292,9 @@ export default {
   icon: 'cart',
 
   render() {
-    const open = state.shopping.filter((i) => !i.done);
+    const allOpen = state.shopping.filter((i) => !i.done);
+    const until = shopUntil();
+    const open = until ? allOpen.filter((i) => !(neededFrom(i) > until)) : allOpen;
     const done = state.shopping.filter((i) => i.done);
     const mode = sortMode();
     // Nach Abteilungen in der Reihenfolge des Ladens, innerhalb einer Abteilung alphabetisch
@@ -252,7 +323,8 @@ export default {
       </form>
       <div class="suggest" id="shop-suggest" aria-label="Vorschläge – antippen setzt den Artikel auf die Liste">${suggestionsHtml('')}</div>
       ${dueHtml()}
-      ${open.length ? `
+      ${untilHtml(allOpen, allOpen.length - open.length, until)}
+      ${allOpen.length ? `
         <div class="shop-tools">
           <div class="seg" role="group" aria-label="Sortierung">
             <button type="button" class="seg-btn" data-action="sort" data-sort="laden" aria-pressed="${mode === 'laden'}">Nach Laden</button>
@@ -294,6 +366,13 @@ export default {
       document.getElementById('shop-suggest').innerHTML = suggestionsHtml(keep);
     },
     terms() { openTerms(); },
+    until(el) {
+      try {
+        if (el.dataset.until) localStorage.setItem(UNTIL_KEY, JSON.stringify({ until: el.dataset.until, set: todayKey() }));
+        else localStorage.removeItem(UNTIL_KEY);
+      } catch { /* privates Fenster */ }
+      refresh();
+    },
     sort(el) {
       try { localStorage.setItem(SORT_KEY, el.dataset.sort); } catch { /* privates Fenster */ }
       refresh();

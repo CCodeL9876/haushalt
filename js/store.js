@@ -6,8 +6,9 @@
 //
 // Aufbau des Datensatzes:
 //   members   [{ id, name, color, createdAt }]
-//   shopping  [{ id, name, qty?, note, done, doneAt?, addedAt, star? }]   star: als wichtig markiert (steht zuoberst)
+//   shopping  [{ id, name, qty?, meals?, note, done, doneAt?, addedAt, star? }]   star: als wichtig markiert (steht zuoberst)
 //             qty: Menge („2×“, „500 g“), doneAt: wann abgehakt (nach 30 Tagen gelöscht, js/cleanup.js)
+//             meals?: [{ day, title }] Menüs im Wochenplan, für die der Artikel gebraucht wird (ausblenden bis …)
 //   terms     [{ id, name, count, lastUsed, aisle?, bought?, snooze? }]   Begriffe für die Vorschläge beim Einkauf: jeder Artikel, der
 //             einmal auf der Liste war; id = Name klein geschrieben (termKey), damit jeder Begriff nur einmal vorkommt.
 //             aisle: von Hand gewählte Abteilung im Laden (sonst am Namen erkannt, siehe js/aisles.js)
