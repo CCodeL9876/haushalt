@@ -379,8 +379,9 @@ button { cursor: pointer; }
 .reminder-row span { flex: 1; min-width: 0; }
 .reminder-row strong { display: block; }
 .reminder-row small { display: block; color: var(--muted); font-size: 13px; }
-.list-tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.list-tile { --tile-bg: var(--tile-1-bg); --tile-badge: var(--tile-1-badge); }
+/* Eine Spalte, die nie breiter als der Bildschirm wird – lange Namen werden gekürzt („…“), statt die Kacheln zu verbreitern */
+.list-tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.list-tile { min-width: 0; --tile-bg: var(--tile-1-bg); --tile-badge: var(--tile-1-badge); }
 .list-tile:nth-child(3n+2) { --tile-bg: var(--tile-2-bg); --tile-badge: var(--tile-2-badge); }
 .list-tile:nth-child(3n+3) { --tile-bg: var(--tile-3-bg); --tile-badge: var(--tile-3-badge); }
 .list-tile > button {
@@ -394,7 +395,7 @@ button { cursor: pointer; }
 }
 .tile-main { flex: 1; min-width: 0; }
 .tile-main strong { display: block; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tile-main small { display: block; font-size: 13px; opacity: 0.75; }
+.tile-main small { display: block; font-size: 13px; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile-main small.tile-overdue { color: var(--minus); opacity: 1; font-weight: 600; }
 .list-tile > button > .icon-sm { opacity: 0.6; }
 /* Titel mit mehreren Knöpfen (Anordnen, Neue Liste) */
