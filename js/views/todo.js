@@ -116,7 +116,7 @@ function overview() {
     <h2 class="section-title">${title}<span class="title-tools">${tools}</span></h2>
     <p class="muted small todo-hint">${icon(scope === 'personal' ? 'lock' : 'users', 'icon-sm')}${arranging === scope ? 'Mit den Pfeilen verschieben, dann „Fertig“' : hint}</p>
     ${lists.length
-      ? `<ul class="list-tiles">${lists.map((l, n) => listRow(scope, l, d.todos, { first: n === 0, last: n === lists.length - 1 })).join('')}</ul>`
+      ? `<ul class="list-tiles list-tiles-${scope}">${lists.map((l, n) => listRow(scope, l, d.todos, { first: n === 0, last: n === lists.length - 1 })).join('')}</ul>`
       : `<button type="button" class="todo-empty" data-action="newList" data-scope="${scope}">Noch keine Liste – hier eine anlegen</button>`}`;
   };
   return `

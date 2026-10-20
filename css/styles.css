@@ -384,6 +384,10 @@ button { cursor: pointer; }
 .list-tile { min-width: 0; --tile-bg: var(--tile-1-bg); --tile-badge: var(--tile-1-badge); }
 .list-tile:nth-child(3n+2) { --tile-bg: var(--tile-2-bg); --tile-badge: var(--tile-2-badge); }
 .list-tile:nth-child(3n+3) { --tile-bg: var(--tile-3-bg); --tile-badge: var(--tile-3-badge); }
+/* Persönliche Listen mit anderer Farbfolge (Lila, Lavendel, Oliv), damit sie sich von den geteilten abheben */
+.list-tiles-personal .list-tile { --tile-bg: var(--tile-3-bg); --tile-badge: var(--tile-3-badge); }
+.list-tiles-personal .list-tile:nth-child(3n+2) { --tile-bg: var(--tile-1-bg); --tile-badge: var(--tile-1-badge); }
+.list-tiles-personal .list-tile:nth-child(3n+3) { --tile-bg: var(--tile-2-bg); --tile-badge: var(--tile-2-badge); }
 .list-tile > button {
   display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 12px 10px 10px;
   border: 0; border-radius: var(--radius); background: var(--tile-bg); color: var(--tile-text); text-align: left; box-shadow: var(--shadow);
