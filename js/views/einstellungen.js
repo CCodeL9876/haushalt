@@ -1,7 +1,9 @@
 // Fenster „Haushalt“ (Knopf oben rechts): Personen, Zugang (Link, Code), Mitteilungen, Farbdesign, Währung, Kategorien, Sicherung.
 
 import { changeCode, replaceAll, resetAll, session, state, update } from '../store.js';
-import { updatePersonal } from '../personal.js';
+import { personal, updatePersonal } from '../personal.js';
+import { decryptBackup, encryptBackup, isEncrypted, saveFile } from '../backup.js';
+import { DONE_DAYS, LEDGER_MONTHS } from '../cleanup.js';
 import { reloadApp } from '../refresh.js';
 import { openTerms } from '../terms.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
@@ -110,10 +112,9 @@ export function openSettings() {
       ${session.mode === 'shared' ? `
         <div class="field"><span>Zugang</span>
           <p class="muted small" style="margin:0 0 8px">Wer dazukommen soll, braucht den Link und den Zugangscode.</p>
-          <button type="button" class="btn btn-block" data-sheet-action="share">${icon('link', 'icon-sm')} Link teilen</button>
-          <div class="add-row" style="margin:10px 0 0">
-            <input class="input" type="password" name="newCode" placeholder="Neuer Zugangscode" autocomplete="new-password" autocapitalize="off">
-            <button type="button" class="btn" style="width:auto;padding:0 14px" data-sheet-action="code">Ändern</button>
+          <div class="row">
+            <button type="button" class="btn" data-sheet-action="share">${icon('link', 'icon-sm')} Link teilen</button>
+            <button type="button" class="btn" data-sheet-action="code">${icon('lock', 'icon-sm')} Code ändern</button>
           </div>
         </div>` : ''}
       ${session.mode === 'shared' && pushConfigured() ? `
@@ -144,12 +145,14 @@ export function openSettings() {
       <h3 class="settings-group">Daten</h3>
       <div class="field">
         <p class="muted small" style="margin:0 0 8px">${session.mode === 'shared'
-          ? 'Gemeinsam gespeichert für alle im Haushalt. Einspielen ersetzt die Daten für alle.'
+          ? 'Gemeinsam gespeichert für alle im Haushalt. Die Sicherung ist eine Datei mit Passwort – unabhängig von Supabase. Einspielen ersetzt die Daten für alle.'
           : 'Ohne Anmeldung nur auf diesem Gerät gespeichert (Supabase noch nicht eingerichtet, siehe ANLEITUNG.md).'}</p>
         <div class="row">
-          <button type="button" class="btn" data-sheet-action="export">Sicherung laden</button>
+          <button type="button" class="btn" data-sheet-action="export">${icon('lock', 'icon-sm')} Sicherung</button>
           <label class="btn">Einspielen<input type="file" name="import" accept="application/json,.json" hidden></label>
         </div>
+        <p class="muted small" style="margin:10px 0 0">Wird automatisch gelöscht: erledigte ToDos und Einkäufe ${DONE_DAYS} Tage nach dem Abhaken,
+          Einträge der Abrechnung nach ${LEDGER_MONTHS} Monaten – aber nur, wenn ihr danach quitt wart (der Stand bleibt gleich).</p>
       </div>`,
     footer: `<button type="button" class="btn btn-block" data-sheet-action="reloadApp">${icon('refresh', 'icon-sm')} App aktualisieren</button>
       ${session.mode === 'local' ? '<button type="button" class="btn btn-danger btn-block" data-sheet-action="reset">Alles zurücksetzen</button>' : ''}`,
@@ -228,12 +231,7 @@ export function openSettings() {
         document.querySelector('#sheet .aisle-order').innerHTML = aisleListHtml();
       },
       terms() { openTerms(); },
-      export() {
-        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-        const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `haushalt-${todayKey()}.json` });
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      },
+      export() { openBackup(); },
       async share() {
         const url = shareLink(session.key);
         try {
@@ -246,23 +244,7 @@ export function openSettings() {
           // Teilen abgebrochen
         }
       },
-      async code(btn, form) {
-        const code = form.elements.newCode.value.trim();
-        if (code.length < 6) return toast('Mindestens 6 Zeichen');
-        if (!validCodeChars(code)) return toast('Bitte ohne Umlaute und Sonderzeichen');
-        if (!confirm('Zugangscode für alle ändern? Andere Geräte müssen danach den neuen Code eingeben.')) return;
-        btn.disabled = true;
-        try {
-          await changeCode(code);
-          saveSession(session.key, code);
-          form.elements.newCode.value = '';
-          toast('Zugangscode geändert');
-        } catch (err) {
-          toast(`Nicht geändert: ${err.message}`);
-        } finally {
-          btn.disabled = false;
-        }
-      },
+      code() { openCode(); },
       reset() {
         if (!confirm('Wirklich alle Daten auf diesem Gerät löschen?')) return;
         resetAll();
@@ -277,15 +259,15 @@ export function openSettings() {
           if (list.length) update((s) => { s.settings.methods = list; });
         }
         if (el.name === 'import' && el.files[0]) {
+          let file;
           try {
-            const data = JSON.parse(await el.files[0].text());
-            if (!confirm(session.mode === 'shared' ? 'Die Daten des ganzen Haushalts (für alle!) durch die Sicherung ersetzen?' : 'Die aktuellen Daten werden durch die Sicherung ersetzt. Weiter?')) return;
-            replaceAll(data);
-            closeSheet();
-            toast('Sicherung eingespielt');
+            file = JSON.parse(await el.files[0].text());
           } catch {
-            toast('Datei konnte nicht gelesen werden');
+            el.value = '';
+            return toast('Datei konnte nicht gelesen werden');
           }
+          if (isEncrypted(file)) askBackupPassword(file);
+          else restore({ state: file });
         }
       },
     },
@@ -297,4 +279,132 @@ export function openSettings() {
     document.querySelector('#sheet [data-sheet-action="addMember"]').click();
   });
   fillPush(document.querySelector('#sheet .push-box'));
+}
+
+// ---------- Zugangscode ändern ----------
+// Danach fragen alle anderen Geräte beim nächsten Abgleich nach dem neuen Code. In Supabase werden zugleich alle
+// Geräte für Mitteilungen abgemeldet (ausser diesem) – ein Gerät mit dem alten Code bekommt also nichts mehr.
+// Die eigenen Geräte melden sich nach der Eingabe des neuen Codes von selbst wieder an (js/app.js).
+function openCode() {
+  openSheet({
+    title: 'Zugangscode ändern',
+    body: `
+      <p class="muted small" style="margin-top:0">Sinnvoll, wenn der Code an jemanden gegangen ist, der ihn nicht (mehr) haben soll.
+        Alle anderen Geräte werden abgemeldet und fragen beim nächsten Öffnen nach dem neuen Code – gebt ihn euch persönlich weiter.</p>
+      <label class="field"><span>Neuer Code</span>
+        <input class="input" type="password" name="code" minlength="6" maxlength="64" required autocomplete="new-password" autocapitalize="off" spellcheck="false">
+      </label>
+      <label class="field"><span>Nochmals</span>
+        <input class="input" type="password" name="again" required autocomplete="new-password" autocapitalize="off" spellcheck="false">
+      </label>
+      <label class="check-field small"><input type="checkbox" name="show"> Code anzeigen</label>`,
+    submitLabel: 'Code ändern',
+    actions: {
+      change(el, f) {
+        if (el.name === 'show') for (const n of ['code', 'again']) f.elements[n].type = el.checked ? 'text' : 'password';
+      },
+    },
+    onSubmit(data, f) {
+      const code = String(data.get('code') || '').trim();
+      if (code.length < 6) { toast('Mindestens 6 Zeichen'); return false; }
+      if (!validCodeChars(code)) { toast('Bitte ohne Umlaute und Sonderzeichen'); return false; }
+      if (code !== String(data.get('again') || '').trim()) { toast('Die beiden Codes sind nicht gleich'); return false; }
+      const btn = f.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      currentSubscription().catch(() => null)
+        .then((sub) => changeCode(code, sub?.endpoint || ''))
+        .then(() => {
+          saveSession(session.key, code);
+          closeSheet();
+          toast('Zugangscode geändert – andere Geräte brauchen den neuen Code');
+        })
+        .catch((err) => toast(`Nicht geändert: ${err.message}`))
+        .finally(() => { btn.disabled = false; });
+      return false;
+    },
+  });
+}
+
+// ---------- Sicherung ----------
+
+function openBackup() {
+  const mine = personal();
+  const form = openSheet({
+    title: 'Sicherung erstellen',
+    body: `
+      <p class="muted small" style="margin-top:0">Alle Daten des Haushalts als Datei, verschlüsselt mit einem Passwort.
+        Ohne das Passwort lässt sich die Datei nicht öffnen – gut aufbewahren (z. B. im Passwort-Manager).</p>
+      <label class="field"><span>Passwort für die Sicherung</span>
+        <input class="input" type="password" name="password" minlength="8" required autocomplete="new-password" autocapitalize="off" spellcheck="false">
+      </label>
+      <label class="field"><span>Nochmals</span>
+        <input class="input" type="password" name="again" required autocomplete="new-password" autocapitalize="off" spellcheck="false">
+      </label>
+      ${mine.lists.length ? `<label class="check-field"><input type="checkbox" name="personal" checked> Meine persönlichen ToDo-Listen mitsichern (${mine.lists.length})</label>` : ''}`,
+    submitLabel: 'Sicherung erstellen',
+    onSubmit(data, f) {
+      const password = String(data.get('password') || '');
+      if (password.length < 8) { toast('Mindestens 8 Zeichen'); return false; }
+      if (password !== String(data.get('again') || '')) { toast('Die beiden Passwörter sind nicht gleich'); return false; }
+      const btn = f.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Wird verschlüsselt …';
+      const content = { state: structuredClone(state), ...(data.get('personal') ? { personal: structuredClone(mine) } : {}) };
+      encryptBackup(content, password)
+        .then((text) => saveFile(text, `haushalt-sicherung-${todayKey()}.json`))
+        .then((done) => {
+          if (!done) return;
+          closeSheet();
+          toast('Sicherung erstellt');
+        })
+        .catch((err) => toast(`Nicht erstellt: ${err.message}`))
+        .finally(() => {
+          btn.disabled = false;
+          btn.textContent = 'Sicherung erstellen';
+        });
+      return false;
+    },
+  });
+  form.elements.password.focus();
+}
+
+function askBackupPassword(file) {
+  const form = openSheet({
+    title: 'Sicherung einspielen',
+    body: `
+      <p class="muted small" style="margin-top:0">Sicherung vom ${esc(new Date(file.created).toLocaleDateString('de-CH'))}. Bitte das Passwort eingeben.</p>
+      <label class="field"><span>Passwort</span>
+        <input class="input" type="password" name="password" required autocomplete="current-password" autocapitalize="off" spellcheck="false">
+      </label>`,
+    submitLabel: 'Öffnen',
+    onSubmit(data, f) {
+      const btn = f.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      decryptBackup(file, String(data.get('password') || ''))
+        .then(restore)
+        .catch((err) => toast(err.message))
+        .finally(() => { btn.disabled = false; });
+      return false;
+    },
+  });
+  form.elements.password.focus();
+}
+
+// content: { state, personal? } – ersetzt die Daten des Haushalts (und die eigenen persönlichen Listen, falls dabei)
+function restore(content) {
+  if (!content?.state || typeof content.state !== 'object') return toast('Datei konnte nicht gelesen werden');
+  const question = [
+    session.mode === 'shared' ? 'Die Daten des ganzen Haushalts (für alle!) durch die Sicherung ersetzen?' : 'Die aktuellen Daten werden durch die Sicherung ersetzt. Weiter?',
+    content.personal ? 'Deine persönlichen ToDo-Listen werden ebenfalls ersetzt.' : '',
+  ].filter(Boolean).join(' ');
+  if (!confirm(question)) return;
+  replaceAll(content.state);
+  if (content.personal) {
+    updatePersonal((d) => {
+      d.lists = Array.isArray(content.personal.lists) ? content.personal.lists : [];
+      d.todos = Array.isArray(content.personal.todos) ? content.personal.todos : [];
+    });
+  }
+  closeSheet();
+  toast('Sicherung eingespielt');
 }

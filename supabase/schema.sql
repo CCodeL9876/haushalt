@@ -106,38 +106,12 @@ begin
 end
 $$;
 
--- Zugangscode ändern (nur mit dem bisherigen, richtigen Code)
-create or replace function public.set_household_code(new_code text)
-returns boolean
-language plpgsql
-volatile
-security definer
-set search_path = ''
-as $$
-begin
-  if not public.household_access_ok() then
-    raise exception 'der bisherige Zugangscode stimmt nicht';
-  end if;
-  if char_length(coalesce(new_code, '')) < 6 or char_length(new_code) > 64 then
-    raise exception 'der Code muss 6 bis 64 Zeichen lang sein';
-  end if;
-  -- Nur einfache Zeichen: Der Code geht als HTTP-Header mit, und Browser senden z. B. Umlaute nicht als UTF-8
-  if new_code !~ '^[ -~]+$' then
-    raise exception 'bitte nur Buchstaben ohne Umlaute, Ziffern und einfache Satzzeichen';
-  end if;
-  update public.households
-     set code_hash = extensions.crypt(new_code, extensions.gen_salt('bf', 8)), updated_at = now()
-   where key = public.request_header('x-hh-key');
-  return true;
-end
-$$;
+-- Zugangscode ändern: set_household_code weiter unten (nach den Push-Tabellen)
 
 revoke all on function public.household_access_ok() from public;
 revoke all on function public.household_login() from public;
-revoke all on function public.set_household_code(text) from public;
 grant execute on function public.household_access_ok() to anon, authenticated;
 grant execute on function public.household_login() to anon, authenticated;
-grant execute on function public.set_household_code(text) to anon, authenticated;
 
 -- Nur Zeilen des eigenen Haushalts, nur mit richtigem Code. „(select …)“ = einmal pro Anfrage geprüft, nicht pro Zeile.
 drop policy if exists items_own_household on public.items;
@@ -271,3 +245,40 @@ $$;
 
 revoke all on function public.push_todo_reminder(text, text, text, text, text, text, jsonb) from public;
 grant execute on function public.push_todo_reminder(text, text, text, text, text, text, jsonb) to anon, authenticated;
+
+-- ---------- Zugangscode ändern: alle anderen Geräte abmelden ----------
+-- Nur mit dem bisherigen, richtigen Code. Zusätzlich werden alle Geräte des Haushalts von den
+-- Mitteilungen abgemeldet – ausser keep_endpoint (das Gerät, das den Code ändert). Wer den alten Code hat,
+-- bekommt so keine Mitteilungen mehr; die eigenen Geräte melden sich nach Eingabe des neuen Codes selbst wieder an.
+drop function if exists public.set_household_code(text);
+create or replace function public.set_household_code(new_code text, keep_endpoint text default '')
+returns boolean
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  k text := public.request_header('x-hh-key');
+begin
+  if not public.household_access_ok() then
+    raise exception 'der bisherige Zugangscode stimmt nicht';
+  end if;
+  if char_length(coalesce(new_code, '')) < 6 or char_length(new_code) > 64 then
+    raise exception 'der Code muss 6 bis 64 Zeichen lang sein';
+  end if;
+  -- Nur einfache Zeichen: Der Code geht als HTTP-Header mit, und Browser senden z. B. Umlaute nicht als UTF-8
+  if new_code !~ '^[ -~]+$' then
+    raise exception 'bitte nur Buchstaben ohne Umlaute, Ziffern und einfache Satzzeichen';
+  end if;
+  update public.households
+     set code_hash = extensions.crypt(new_code, extensions.gen_salt('bf', 8)), updated_at = now()
+   where key = k;
+  delete from public.push_subscriptions
+   where household_key = k and endpoint <> coalesce(keep_endpoint, '');
+  return true;
+end
+$$;
+
+revoke all on function public.set_household_code(text, text) from public;
+grant execute on function public.set_household_code(text, text) to anon, authenticated;

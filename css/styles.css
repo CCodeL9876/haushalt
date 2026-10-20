@@ -304,6 +304,21 @@ button { cursor: pointer; }
 .list-main small { display: block; color: var(--muted); font-size: 13px; }
 .list-value { font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; padding-right: 6px; }
 .list button.list-main { text-align: left; background: none; border: 0; padding: 4px 0; }
+/* Wischen (js/swipe.js): rechts = erledigt, links = löschen. Der Inhalt rutscht, dahinter erscheint die Farbe */
+#view .list > li { touch-action: pan-y; }
+.list > li.is-swiping { position: relative; }
+.list > li.is-swiping > * { transform: translateX(var(--dx, 0)); }
+.list > li.is-leaving > * { transition: transform .16s ease-in; }
+.list > li.is-swiping::before { position: absolute; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 650; }
+.list > li.is-swiping[data-swipe="right"] { background: var(--accent-tint); }
+.list > li.is-swiping[data-swipe="right"]::before { content: "Erledigt"; left: 16px; color: var(--accent-text); }
+.list > li.is-swiping.is-done[data-swipe="right"]::before { content: "Wieder offen"; }
+.list > li.is-swiping[data-swipe="left"] { background: color-mix(in srgb, var(--minus) 16%, var(--card)); }
+.list > li.is-swiping[data-swipe="left"]::before { content: "Löschen"; right: 16px; color: var(--minus); }
+.list > li.is-armed[data-swipe="right"] { background: var(--accent); }
+.list > li.is-armed[data-swipe="right"]::before { color: var(--on-accent); }
+.list > li.is-armed[data-swipe="left"] { background: var(--minus); }
+.list > li.is-armed[data-swipe="left"]::before { color: #fff; }
 
 .check {
   width: 26px; height: 26px; flex: none; border-radius: 50%;
@@ -617,3 +632,13 @@ button { cursor: pointer; }
   opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
 }
 .toast.is-visible { opacity: 1; transform: translateY(0); }
+
+/* Menge auf der Einkaufsliste: kleine Marke hinter dem Namen */
+.qty-pill { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--chip); color: var(--text-soft); font-size: 12.5px; font-weight: 650; vertical-align: 1px; white-space: nowrap; }
+/* „Wieder mal?“ – lange nicht gekaufte Artikel */
+.due-list { display: grid; gap: 6px; margin: 0 0 14px; }
+.due-item { display: flex; align-items: center; gap: 4px; background: var(--accent-tint); border-radius: 12px; padding: 2px 4px 2px 0; }
+.due-add { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 8px 10px; text-align: left; color: var(--text); font: inherit; }
+.due-add .icon-sm { color: var(--accent-text); flex: none; }
+.due-add small { color: var(--muted); font-size: 13px; }
+.old-done { margin-top: 8px; }

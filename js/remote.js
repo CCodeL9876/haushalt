@@ -84,8 +84,14 @@ export class Remote {
     }
   }
 
-  async setCode(newCode) {
-    await this.#request('rpc/set_household_code', { method: 'POST', body: { new_code: newCode } });
+  async setCode(newCode, keepEndpoint = '') {
+    try {
+      await this.#request('rpc/set_household_code', { method: 'POST', body: { new_code: newCode, keep_endpoint: keepEndpoint } });
+    } catch (err) {
+      // Datenbank noch ohne den neuen Teil von schema.sql: Code trotzdem ändern
+      if (!/could not find the function|schema cache/i.test(err.message)) throw err;
+      await this.#request('rpc/set_household_code', { method: 'POST', body: { new_code: newCode } });
+    }
     this.code = newCode;
   }
 }

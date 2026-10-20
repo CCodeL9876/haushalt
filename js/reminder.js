@@ -36,7 +36,15 @@ function uploadPersonal() {
   }, 1500);
 }
 onPersonalChange(uploadPersonal);
-export const refreshReminder = uploadPersonal; // beim Start (js/app.js)
+
+// Beim Start (js/app.js): die Erinnerung dieses Geräts erneut in Supabase hinterlegen. Nach einem neuen
+// Zugangscode sind dort alle Geräte abgemeldet – so kommen nur die eigenen Geräte wieder dazu.
+export function refreshReminder() {
+  const r = todoReminder();
+  if (!r || !pushConfigured()) return;
+  saveTodoReminder(r, r.scope === 'personal' ? { name: listName(r), items: reminderItems(personal().todos, r.listId) } : {})
+    .catch(() => { /* beim nächsten Start */ });
+}
 
 function form(r, enabled) {
   const option = (scope, l) => `<option value="${scope}:${esc(l.id)}" ${r?.scope === scope && r?.listId === l.id ? 'selected' : ''}>${esc(l.name)}</option>`;

@@ -1,7 +1,7 @@
 // Persönliche ToDo-Listen: liegen auf diesem Gerät (localStorage), getrennt pro Haushalt und pro Person
 // („Wer bist du?“), damit jemand anderes, der sich am selben Gerät anmeldet, sie nicht sieht. Nie in der Sicherung.
 //   lists [{ id, name, createdAt }]
-//   todos [{ id, listId, title, note, done, due?, time?, addedAt }]
+//   todos [{ id, listId, title, note, done, doneAt?, due?, time?, addedAt }]
 //
 // Auf mehreren eigenen Geräten abgleichen (freiwillig, nur im gemeinsamen Haushalt): Die Listen gehen dann
 // verschlüsselt in die Datenbank – als eine Zeile (collection 'private', id 'p_<Person>'). Verschlüsselt wird hier

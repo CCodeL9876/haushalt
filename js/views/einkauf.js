@@ -3,7 +3,7 @@
 // beim Tippen erscheinen passende Begriffe als Vorschläge, bei leerem Feld die häufigsten.
 
 import { refresh, state, update, uid, termKey } from '../store.js';
-import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
+import { esc, icon, openSheet, toast } from '../ui.js';
 import { AISLES, aisleLabel, aisleOf, aisleOrder } from '../aisles.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { openTerms } from '../terms.js';
@@ -13,6 +13,66 @@ const SORT_KEY = 'haushalt.shopSort';
 const sortMode = () => { try { return localStorage.getItem(SORT_KEY) === 'neu' ? 'neu' : 'laden'; } catch { return 'laden'; } };
 
 const MAX_SUGGESTIONS = 8;
+const DAY = 86400000;
+
+// Menge im Eingabefeld: „2x Milch“, „2 Milch“, „500 g Mehl“, „Milch 2x“ → { name: 'Milch', qty: '2×' }
+const QTY_UNITS = 'x|×|stk\\.?|stück|kg|g|l|dl|cl|ml|pack|packungen?|pkg|bund|dosen?|flaschen?|becher|gläser|glas|beutel|rollen?';
+const QTY_FRONT = new RegExp(`^(\\d+(?:[.,]\\d+)?)\\s*(${QTY_UNITS})?\\s+(.+)$`, 'i');
+const QTY_BACK = new RegExp(`^(.+?)\\s+(\\d+(?:[.,]\\d+)?)\\s*(${QTY_UNITS})?$`, 'i');
+const qtyText = (n, unit) => (!unit || /^(x|×)$/i.test(unit) ? `${n}×` : `${n} ${unit}`);
+export function parseQty(text) {
+  const t = String(text || '').trim();
+  let m = QTY_FRONT.exec(t);
+  if (m) return { name: m[3].trim(), qty: qtyText(m[1], m[2]) };
+  m = QTY_BACK.exec(t);
+  if (m) return { name: m[1].trim(), qty: qtyText(m[2], m[3]) };
+  return { name: t, qty: '' };
+}
+
+// Gekauft (abgehakt): beim Begriff die letzten Einkäufe merken – daraus wird der übliche Abstand berechnet
+function rememberPurchase(s, name, at) {
+  const term = s.terms.find((t) => t.id === termKey(name));
+  if (!term) return;
+  term.bought = [...(term.bought || []), at].slice(-6);
+  delete term.snooze;
+}
+function forgetPurchase(s, name, at) {
+  const term = s.terms.find((t) => t.id === termKey(name));
+  if (term?.bought?.at(-1) === at) term.bought = term.bought.slice(0, -1);
+}
+
+// „Wieder mal?“: Artikel, die ihr regelmässig kauft und deren üblicher Abstand deutlich überschritten ist.
+// Abstand = Median der Abstände zwischen den letzten Einkäufen (mindestens drei nötig). Was viel länger her ist
+// (über sechsmal den Abstand), kauft ihr wohl nicht mehr – das wird nicht mehr vorgeschlagen.
+export function dueTerms(now = Date.now()) {
+  const open = new Set(state.shopping.filter((i) => !i.done).map((i) => termKey(i.name)));
+  return state.terms
+    .filter((t) => !open.has(t.id) && (t.bought?.length || 0) >= 3 && !(t.snooze > now))
+    .map((t) => {
+      const b = [...t.bought].sort((x, y) => x - y);
+      const gaps = b.slice(1).map((x, n) => x - b[n]).sort((x, y) => x - y);
+      const every = Math.max(2 * DAY, gaps[Math.floor(gaps.length / 2)]);
+      const since = now - b.at(-1);
+      return { t, every, since, ratio: since / every };
+    })
+    .filter((x) => x.ratio > 1.3 && x.ratio < 6)
+    .sort((a, b) => b.ratio - a.ratio)
+    .slice(0, 3);
+}
+const agoText = (ms) => {
+  const d = Math.round(ms / DAY);
+  return d >= 14 ? `vor ${Math.round(d / 7)} Wochen` : `vor ${d} ${d === 1 ? 'Tag' : 'Tagen'}`;
+};
+const dueHtml = () => {
+  const due = dueTerms();
+  if (!due.length) return '';
+  return `<div class="due-list" aria-label="Lange nicht gekauft">${due.map(({ t, since }) => `
+    <div class="due-item">
+      <button type="button" class="due-add" data-action="pick" data-name="${esc(t.name)}">${icon('plus', 'icon-sm')}
+        <span><strong>${esc(t.name)}?</strong> <small>Zuletzt ${agoText(since)}</small></span></button>
+      <button type="button" class="icon-btn" data-action="snooze" data-id="${esc(t.id)}" aria-label="${esc(t.name)}: nicht jetzt">${icon('x', 'icon-sm')}</button>
+    </div>`).join('')}</div>`;
+};
 
 // Begriff merken bzw. als erneut gebraucht zählen. Die Schreibweise vom ersten Mal bleibt.
 function rememberTerm(s, name) {
@@ -28,24 +88,35 @@ function rememberTerm(s, name) {
 }
 
 // Auch von Wochenplan und Menüideen genutzt. Gibt zurück, wie viele Artikel neu dazukamen.
-// entries: Texte oder { name, note } (note z. B. die Menge aus dem Rezept; wird vor `note` gestellt).
-// Doppelte (gleicher Name, egal ob gross/klein) werden nicht nochmals angelegt; erledigte wieder geöffnet.
+// entries: Texte (Menge darf drinstehen: „2x Milch“) oder { name, qty, note } (qty z. B. die Menge aus dem Rezept).
+// Doppelte (gleicher Name, egal ob gross/klein) werden nicht nochmals angelegt – nur eine neue Menge wird
+// übernommen; erledigte werden wieder geöffnet.
 export function addToShopping(entries, note = '') {
   let added = 0;
   update((s) => {
     for (const entry of entries) {
-      const name = String(typeof entry === 'string' ? entry : entry?.name || '').trim();
+      const parsed = typeof entry === 'string' ? parseQty(entry) : { name: String(entry?.name || '').trim(), qty: entry?.qty || '' };
+      const { name, qty } = parsed;
       if (!name) continue;
       const itemNote = [typeof entry === 'string' ? '' : entry.note, note].filter(Boolean).join(' · ');
       rememberTerm(s, name);
       const existing = s.shopping.find((i) => i.name.toLowerCase() === name.toLowerCase());
-      if (existing && !existing.done) continue;
+      if (existing && !existing.done) {
+        if (qty && existing.qty !== qty) {
+          existing.qty = qty;
+          added += 1;
+        }
+        continue;
+      }
       if (existing) {
         existing.done = false;
         delete existing.star;
+        delete existing.doneAt;
         existing.note = itemNote || existing.note;
+        if (qty) existing.qty = qty;
+        else delete existing.qty;
       } else {
-        s.shopping.unshift({ id: uid(), name, note: itemNote, done: false, addedAt: Date.now() });
+        s.shopping.unshift({ id: uid(), name, ...(qty ? { qty } : {}), note: itemNote, done: false, addedAt: Date.now() });
       }
       added += 1;
     }
@@ -80,7 +151,11 @@ export function shopIngredients(lines, label = '') {
     onSubmit(data) {
       const chosen = items.filter((_, n) => data.get(`i${n}`));
       if (!chosen.length) return;
-      const count = addToShopping(chosen.map((it) => ({ name: it.name, note: it.amount })), label);
+      // „400 g · gehackt“: die Menge zuerst, Zusätze in die Notiz
+      const count = addToShopping(chosen.map((it) => {
+        const [qty, ...extra] = it.amount ? it.amount.split(' · ') : [''];
+        return { name: it.name, qty, note: extra.join(' · ') };
+      }), label);
       toast(`${count} ${count === 1 ? 'Artikel' : 'Artikel'} auf der Einkaufsliste`);
     },
   });
@@ -130,13 +205,14 @@ const suggestionsHtml = (text) => suggestions(text)
   .map((t) => `<button type="button" class="chip suggest-chip" data-action="pick" data-name="${esc(t.name)}" data-keep-focus>${icon('plus', 'icon-sm')}${esc(t.name)}</button>`)
   .join('');
 
-// Antippen des Namens: Abteilung wählen (nur bei offenen Artikeln)
+// Antippen des Namens: Menge, Notiz und Abteilung (nur bei offenen Artikeln)
+const qtyHtml = (i) => (i.qty ? ` <span class="qty-pill">${esc(i.qty)}</span>` : '');
 const item = (i) => `
   <li class="${i.done ? 'is-done' : ''}">
     <button type="button" class="check" data-action="toggle" data-id="${i.id}" aria-label="${i.done ? 'Wieder offen' : 'Erledigt'}: ${esc(i.name)}">${icon('check', 'icon-sm')}</button>
     ${i.done
-      ? `<span class="list-main">${esc(i.name)}${i.note ? `<small>${esc(i.note)}</small>` : ''}</span>`
-      : `<button type="button" class="list-main" data-action="aisle" data-id="${i.id}" aria-label="${esc(i.name)} – Abteilung ändern">${esc(i.name)}${i.note ? `<small>${esc(i.note)}</small>` : ''}</button>`}
+      ? `<span class="list-main">${esc(i.name)}${qtyHtml(i)}${i.note ? `<small>${esc(i.note)}</small>` : ''}</span>`
+      : `<button type="button" class="list-main" data-action="aisle" data-id="${i.id}" aria-label="${esc(i.name)}${i.qty ? ` (${esc(i.qty)})` : ''} – Menge, Notiz, Abteilung">${esc(i.name)}${qtyHtml(i)}${i.note ? `<small>${esc(i.note)}</small>` : ''}</button>`}
     ${i.done ? '' : `<button type="button" class="icon-btn star-btn${i.star ? ' is-on' : ''}" data-action="star" data-id="${i.id}" aria-pressed="${Boolean(i.star)}" aria-label="${esc(i.name)} ${i.star ? 'nicht mehr wichtig' : 'als wichtig markieren'}">${icon('star', 'icon-sm')}</button>`}
     <button type="button" class="icon-btn" data-action="remove" data-id="${i.id}" aria-label="${esc(i.name)} löschen">${icon('x', 'icon-sm')}</button>
   </li>`;
@@ -171,10 +247,11 @@ export default {
     openHtml = starHtml + openHtml;
     return `
       <form class="add-row" data-form="add">
-        <input class="input" id="shop-input" name="name" placeholder="Was brauchen wir?" autocomplete="off" enterkeyhint="done" required data-input="suggest">
+        <input class="input" id="shop-input" name="name" placeholder="Was brauchen wir? z. B. 2x Milch" autocomplete="off" enterkeyhint="done" required data-input="suggest">
         <button type="submit" class="btn btn-primary" aria-label="Hinzufügen">${icon('plus')}</button>
       </form>
       <div class="suggest" id="shop-suggest" aria-label="Vorschläge – antippen setzt den Artikel auf die Liste">${suggestionsHtml('')}</div>
+      ${dueHtml()}
       ${open.length ? `
         <div class="shop-tools">
           <div class="seg" role="group" aria-label="Sortierung">
@@ -209,7 +286,7 @@ export default {
       parts.pop();
       const rest = parts.map((p) => p.trim()).filter(Boolean);
       const keep = rest.length ? `${rest.join(', ')}, ` : '';
-      addToShopping([el.dataset.name]);
+      addToShopping([{ name: el.dataset.name }]); // Begriff wie gemerkt, ohne Menge herauszulesen
       const fresh = document.getElementById('shop-input'); // nach dem Neuzeichnen ein neues Feld
       if (!fresh) return;
       fresh.value = keep;
@@ -221,7 +298,7 @@ export default {
       try { localStorage.setItem(SORT_KEY, el.dataset.sort); } catch { /* privates Fenster */ }
       refresh();
     },
-    // Abteilung eines Artikels wählen – gilt danach für diesen Begriff im ganzen Haushalt
+    // Artikel antippen: Menge und Notiz ändern, Abteilung wählen (gilt danach für diesen Begriff im ganzen Haushalt)
     aisle(el) {
       const entry = state.shopping.find((x) => x.id === el.dataset.id);
       if (!entry) return;
@@ -229,9 +306,30 @@ export default {
       openSheet({
         title: entry.name,
         body: `
-          <p class="muted small" style="margin:0 0 12px">In welcher Abteilung liegt das im Laden? Gilt künftig für alle im Haushalt.</p>
+          <div class="row">
+            <label class="field" style="flex:0 0 38%"><span>Menge</span>
+              <input class="input" name="qty" value="${esc(entry.qty)}" placeholder="2× · 500 g" maxlength="30" autocomplete="off">
+            </label>
+            <label class="field"><span>Notiz</span>
+              <input class="input" name="note" value="${esc(entry.note)}" placeholder="z. B. Bio, die grosse" maxlength="120" autocomplete="off">
+            </label>
+          </div>
+          <div class="field"><span>Abteilung im Laden <small class="muted" style="font-weight:500">· gilt für alle</small></span>
           <div class="chips">${AISLES.map((a) => `
-            <button type="button" class="chip aisle-chip" data-sheet-action="set" data-aisle="${a.id}" aria-pressed="${a.id === current}">${esc(a.label)}</button>`).join('')}</div>`,
+            <button type="button" class="chip aisle-chip" data-sheet-action="set" data-aisle="${a.id}" aria-pressed="${a.id === current}">${esc(a.label)}</button>`).join('')}</div>
+          </div>`,
+        submitLabel: 'Speichern',
+        onSubmit(data) {
+          const qty = String(data.get('qty') || '').trim().slice(0, 30);
+          const note = String(data.get('note') || '').trim().slice(0, 120);
+          update((s) => {
+            const i = s.shopping.find((x) => x.id === entry.id);
+            if (!i) return;
+            if (qty) i.qty = qty;
+            else delete i.qty;
+            i.note = note;
+          });
+        },
         actions: {
           set(btn) {
             const id = termKey(entry.name);
@@ -243,7 +341,7 @@ export default {
               }
               term.aisle = btn.dataset.aisle;
             });
-            closeSheet();
+            for (const b of document.querySelectorAll('#sheet .aisle-chip')) b.setAttribute('aria-pressed', String(b === btn));
           },
         },
       });
@@ -251,10 +349,24 @@ export default {
     toggle(el) {
       update((s) => {
         const i = s.shopping.find((x) => x.id === el.dataset.id);
-        if (i) {
-          i.done = !i.done;
-          delete i.star; // erledigt: Markierung weg, damit sie beim nächsten Mal nicht stehen bleibt
+        if (!i) return;
+        i.done = !i.done;
+        delete i.star; // erledigt: Markierung weg, damit sie beim nächsten Mal nicht stehen bleibt
+        if (i.done) {
+          i.doneAt = Date.now();
+          rememberPurchase(s, i.name, i.doneAt);
+        } else {
+          forgetPurchase(s, i.name, i.doneAt);
+          delete i.doneAt;
         }
+      });
+    },
+    // „Wieder mal?“ wegtippen: erst wieder nach einem üblichen Abstand (mindestens einer Woche) vorschlagen
+    snooze(el) {
+      const due = dueTerms().find((x) => x.t.id === el.dataset.id);
+      update((s) => {
+        const t = s.terms.find((x) => x.id === el.dataset.id);
+        if (t) t.snooze = Date.now() + Math.max(7 * DAY, due?.every || 0);
       });
     },
     star(el) {

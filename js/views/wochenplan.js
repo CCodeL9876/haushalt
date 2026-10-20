@@ -97,11 +97,14 @@ function editMeal(day, slot) {
         </div>` : ''}
       <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>`,
     submitLabel: 'Speichern',
-    footer: meal ? `<button type="button" class="btn btn-block" data-sheet-action="leftovers">Reste in den Kühlschrank</button>
+    footer: meal ? `${ideaOf(meal)?.ingredients?.length ? `<button type="button" class="btn btn-block" data-sheet-action="shop">${icon('cart', 'icon-sm')} Zutaten einkaufen (${ideaOf(meal).ingredients.length})</button>` : ''}
+      <button type="button" class="btn btn-block" data-sheet-action="leftovers">Reste in den Kühlschrank</button>
       <button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Eintrag entfernen</button>` : '',
     actions: {
       pick(btn, form) { form.elements.title.value = btn.dataset.title; },
       leftovers() { leftovers(meal); },
+      // Zutaten der verknüpften Menüidee auswählen und auf die Einkaufsliste
+      shop() { shopIngredients(ideaOf(meal).ingredients, `für ${mealTitle(meal)}`); },
       clear() { setMeal(day, slot, ''); closeSheet(); },
     },
     onSubmit(data) {

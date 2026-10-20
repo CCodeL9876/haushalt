@@ -267,10 +267,18 @@ function todoItem(t) {
   </li>`;
 }
 
+// Erledigte bleiben 2 Tage sichtbar, dann nur noch auf Wunsch („ältere anzeigen“); gelöscht werden sie nach 30 Tagen
+// (js/cleanup.js). Ohne doneAt (vor dieser Regel abgehakt) gelten sie als frisch erledigt.
+const HIDE_DONE_AFTER = 2 * 86400000;
+const recentDone = (t) => !t.doneAt || Date.now() - t.doneAt < HIDE_DONE_AFTER;
+let showOldDone = false;
+
 function listView(scope, list, d) {
   const items = d.todos.filter((t) => t.listId === list.id);
   const openItems = items.filter((t) => !t.done).sort(byDue);
-  const done = items.filter((t) => t.done);
+  const allDone = items.filter((t) => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+  const done = showOldDone ? allDone : allDone.filter(recentDone);
+  const hidden = allDone.length - done.length;
   return `
     <div class="todo-head">
       <button type="button" class="icon-btn" data-action="back" aria-label="Zurück zu allen Listen">${icon('left')}</button>
@@ -287,11 +295,13 @@ function listView(scope, list, d) {
     ${openItems.length
       ? `<ul class="list">${openItems.map(todoItem).join('')}</ul>`
       : `<div class="empty"><strong>Nichts zu tun</strong>Neue ToDos oben eintragen. Antippen für Datum, Notiz und Kalender.</div>`}
-    ${done.length ? `
-      <h2 class="section-title">Erledigt (${done.length})
+    ${allDone.length ? `
+      <h2 class="section-title">Erledigt (${allDone.length})
         <button type="button" class="btn btn-ghost btn-sm" data-action="clearDone">Aufräumen</button>
       </h2>
-      <ul class="list">${done.map(todoItem).join('')}</ul>` : ''}`;
+      ${done.length ? `<ul class="list">${done.map(todoItem).join('')}</ul>` : ''}
+      ${hidden ? `<button type="button" class="btn btn-ghost btn-sm old-done" data-action="showOldDone">${hidden} ${hidden === 1 ? 'älteres' : 'ältere'} anzeigen</button>`
+        : showOldDone && allDone.some((t) => !recentDone(t)) ? `<button type="button" class="btn btn-ghost btn-sm old-done" data-action="showOldDone">Ältere ausblenden</button>` : ''}` : ''}`;
 }
 
 // Geöffnete Liste – gibt es sie nicht mehr (auf einem anderen Gerät gelöscht), zurück zur Übersicht
@@ -452,7 +462,12 @@ export default {
       refresh();
       window.scrollTo(0, 0);
     },
+    showOldDone() {
+      showOldDone = !showOldDone;
+      refresh();
+    },
     back() {
+      showOldDone = false;
       setOpen(null);
       refresh();
       window.scrollTo(0, 0);
@@ -460,7 +475,10 @@ export default {
     toggle(el) {
       current()?.change((d) => {
         const t = d.todos.find((x) => x.id === el.dataset.id);
-        if (t) t.done = !t.done;
+        if (!t) return;
+        t.done = !t.done;
+        if (t.done) t.doneAt = Date.now();
+        else delete t.doneAt;
       });
     },
     edit(el) {

@@ -6,10 +6,12 @@
 //
 // Aufbau des Datensatzes:
 //   members   [{ id, name, color, createdAt }]
-//   shopping  [{ id, name, note, done, addedAt, star? }]   star: als wichtig markiert (steht zuoberst)
-//   terms     [{ id, name, count, lastUsed, aisle? }]   Begriffe für die Vorschläge beim Einkauf: jeder Artikel, der
+//   shopping  [{ id, name, qty?, note, done, doneAt?, addedAt, star? }]   star: als wichtig markiert (steht zuoberst)
+//             qty: Menge („2×“, „500 g“), doneAt: wann abgehakt (nach 30 Tagen gelöscht, js/cleanup.js)
+//   terms     [{ id, name, count, lastUsed, aisle?, bought?, snooze? }]   Begriffe für die Vorschläge beim Einkauf: jeder Artikel, der
 //             einmal auf der Liste war; id = Name klein geschrieben (termKey), damit jeder Begriff nur einmal vorkommt.
 //             aisle: von Hand gewählte Abteilung im Laden (sonst am Namen erkannt, siehe js/aisles.js)
+//             bought: Zeitpunkte der letzten 6 Einkäufe, snooze: „Wieder mal?“ weggetippt bis (js/views/einkauf.js)
 //   ideas     [{ id, title, ingredients: [text], steps?: [text], tags: [text], note, url? }]   url: Link zum Rezept (Einlesen: js/recipes.js)
 //   plan      { 'JJJJ-MM-TT': { mittag: { title, ideaId }, abend: { … } } }
 //   expenses  [{ id, kind: 'expense' | 'transfer', title, note?, amount (Rappen/Cent), payerId, splitIds, method?, category, date, createdAt? }]
@@ -18,7 +20,8 @@
 //   settings  { currency, categories, methods, aisleOrder?, fridgeDays? }   methods: Zahlungsarten in der Abrechnung   aisleOrder: Reihenfolge der Abteilungen im Laden
 //             fridgeDays: { 'pesto': 5 } zuletzt gewählte Haltbarkeit im Kühlschrank (js/fridge.js)
 //   todolists [{ id, name, createdAt }]                 geteilte ToDo-Listen (persönliche: js/personal.js, nie hier)
-//   todos     [{ id, listId, title, note, done, due?, time?, assignee?, addedAt }]   due 'JJJJ-MM-TT', time 'HH:MM', assignee = members.id
+//   todos     [{ id, listId, title, note, done, doneAt?, due?, time?, assignee?, addedAt }]   due 'JJJJ-MM-TT', time 'HH:MM', assignee = members.id
+//             doneAt: wann abgehakt (nach 2 Tagen ausgeblendet, nach 30 Tagen gelöscht)
 //   fridge    [{ id, name, useBy, addedAt, from? }]   Reste im Kühlschrank: useBy 'JJJJ-MM-TT' = aufbrauchen bis, from = Gericht
 // In der Datenbank ist jeder Eintrag eine Zeile (collection + id); plan je Tag, settings als eine Zeile „main“.
 
@@ -286,7 +289,8 @@ export async function pull() {
   refresh('remote');
 }
 
-export const changeCode = (newCode) => remote.setCode(newCode);
+// keepEndpoint: Push-Adresse dieses Geräts – bleibt für Mitteilungen angemeldet, alle anderen nicht
+export const changeCode = (newCode, keepEndpoint) => remote.setCode(newCode, keepEndpoint);
 
 export function replaceAll(data) {
   update((s) => Object.assign(s, normalize(data)));
