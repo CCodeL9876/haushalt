@@ -19,15 +19,16 @@ import { cleanup } from './cleanup.js';
 import { setupSwipe } from './swipe.js';
 import { AccessError } from './remote.js';
 import { setupPullToRefresh } from './refresh.js';
+import heute from './views/heute.js';
 import einkauf from './views/einkauf.js';
 import todo from './views/todo.js';
 import essen from './views/essen.js';
 import abrechnung from './views/abrechnung.js';
 import { openSettings } from './views/einstellungen.js';
 
-// Reihenfolge der Tab-Leiste: Einkauf neben Essen. Start (und unbekannte Adressen) bleibt der Einkauf.
-const VIEWS = [todo, einkauf, essen, abrechnung];
-const START = einkauf;
+// Reihenfolge der Tab-Leiste: Heute zuerst, Einkauf neben Essen. Start (und unbekannte Adressen) ist „Heute“.
+const VIEWS = [heute, todo, einkauf, essen, abrechnung];
+const START = heute;
 
 const root = document.getElementById('view');
 const titleEl = document.getElementById('view-title');

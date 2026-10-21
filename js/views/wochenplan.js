@@ -82,7 +82,7 @@ function fridgeHint() {
 }
 
 // Zutaten eines Menüs mit Tag – auf der Einkaufsliste lassen sie sich dann bis zu diesem Tag ausblenden
-const forMeal = (day, meal) => (ideaOf(meal)?.ingredients || []).map((line) => ({ line, meal: { day, title: mealTitle(meal) } }));
+export const forMeal = (day, meal) => (ideaOf(meal)?.ingredients || []).map((line) => ({ line, meal: { day, title: mealTitle(meal) } }));
 
 function editMeal(day, slot) {
   const meal = state.plan[day]?.[slot];

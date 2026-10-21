@@ -57,6 +57,25 @@ function dueLabel(t) {
 
 const overdue = (t) => !t.done && t.due && t.due < todayKey();
 
+// Abhaken bzw. wieder öffnen – auch von der Startseite „Heute“ (js/views/heute.js).
+// Wiederkehrend: statt erledigt mit dem nächsten Datum wieder offen.
+export function toggleTodo(scope, id) {
+  SCOPES[scope]?.change((d) => {
+    const t = d.todos.find((x) => x.id === id);
+    if (!t) return;
+    const next = !t.done && nextDue(t, todayKey());
+    if (next) {
+      t.due = next;
+      if (t.repeat.dates) t.repeat.dates = t.repeat.dates.filter((x) => x >= next);
+      toast(`${t.title}: nächstes Mal ${fmtShort(next)}`);
+      return;
+    }
+    t.done = !t.done;
+    if (t.done) t.doneAt = Date.now();
+    else delete t.doneAt;
+  });
+}
+
 // ---------- Übersicht ----------
 
 // Reihenfolge der Listen: selbst gewählt (order), sonst in der Reihenfolge des Anlegens
@@ -572,21 +591,7 @@ export default {
       window.scrollTo(0, 0);
     },
     toggle(el) {
-      current()?.change((d) => {
-        const t = d.todos.find((x) => x.id === el.dataset.id);
-        if (!t) return;
-        // Wiederkehrend: statt erledigt mit dem nächsten Datum wieder offen
-        const next = !t.done && nextDue(t, todayKey());
-        if (next) {
-          t.due = next;
-          if (t.repeat.dates) t.repeat.dates = t.repeat.dates.filter((x) => x >= next);
-          toast(`${t.title}: nächstes Mal ${fmtShort(next)}`);
-          return;
-        }
-        t.done = !t.done;
-        if (t.done) t.doneAt = Date.now();
-        else delete t.doneAt;
-      });
+      if (open) toggleTodo(open.scope, el.dataset.id);
     },
     edit(el) {
       const cur = current();
