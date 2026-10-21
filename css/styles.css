@@ -749,3 +749,28 @@ button { cursor: pointer; }
 .mode-item.is-got .mode-box { background: var(--tile-text); border-color: var(--tile-text); color: var(--mode-bg); }
 .mode-all { margin: 18px 4px; font-size: 20px; font-weight: 800; }
 .mode-foot { margin: 22px 0 0; text-align: center; font-size: 13px; opacity: 0.6; }
+
+/* ---------- Plus für alles (js/quickadd.js) ---------- */
+.tabbar { grid-template-columns: repeat(2, minmax(0, 1fr)) 54px repeat(3, minmax(0, 1fr)); }
+.tab-plus {
+  display: grid; place-items: center; border: 0; border-radius: 16px; margin: 0 2px;
+  background: var(--accent); color: var(--on-accent);
+}
+.tab-plus .icon { width: 28px; height: 28px; stroke-width: 2.4; }
+.tab-plus:active { transform: scale(0.94); }
+.qa-input { min-height: 54px; font-size: 18px; font-weight: 600; }
+.qa-types { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0 10px; }
+.qa-type {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 10px 2px;
+  border: 0; border-radius: 18px; background: var(--chip); color: var(--text); font-size: 12.5px; font-weight: 750;
+}
+.qa-type:nth-child(1) { background: var(--tile-1-bg); color: var(--tile-text); }
+.qa-type:nth-child(3) { background: var(--tile-2-bg); color: var(--tile-text); }
+.qa-type:nth-child(4) { background: var(--tile-3-bg); color: var(--tile-text); }
+.qa-type[aria-pressed="true"] { background: var(--hero); color: var(--on-hero); }
+.qa-preview { min-height: 1.4em; margin: 0 0 10px; color: var(--muted); }
+.qa-preview b { color: var(--text); }
+.qa-label { display: inline-block; padding: 1px 8px; border-radius: 7px; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 750; }
+@media (max-width: 360px) {
+  .tabbar { grid-template-columns: repeat(2, minmax(0, 1fr)) 46px repeat(3, minmax(0, 1fr)); }
+}

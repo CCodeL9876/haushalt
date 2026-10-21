@@ -17,6 +17,7 @@ import { refreshPush } from './push.js';
 import { refreshReminder } from './reminder.js';
 import { cleanup } from './cleanup.js';
 import { setupSwipe } from './swipe.js';
+import { quickAdd } from './quickadd.js';
 import { AccessError } from './remote.js';
 import { setupPullToRefresh } from './refresh.js';
 import heute from './views/heute.js';
@@ -35,7 +36,11 @@ const titleEl = document.getElementById('view-title');
 const tabbar = document.getElementById('tabbar');
 let current = START;
 
-tabbar.innerHTML = VIEWS.map((v) => `<a class="tab" href="#${v.id}" data-tab="${v.id}">${icon(v.icon)}<span>${v.tab || v.title}</span></a>`).join('');
+// In der Mitte das Plus für alles (js/quickadd.js): einfach eintippen, die App erkennt die Art
+const tabHtml = VIEWS.map((v) => `<a class="tab" href="#${v.id}" data-tab="${v.id}">${icon(v.icon)}<span>${v.tab || v.title}</span></a>`);
+tabHtml.splice(2, 0, `<button type="button" class="tab-plus" id="btn-quick" aria-label="Neu: Einkauf, ToDo, Menü oder Rechnung">${icon('plus')}</button>`);
+tabbar.innerHTML = tabHtml.join('');
+document.getElementById('btn-quick').addEventListener('click', quickAdd);
 
 // Änderung von einem anderen Gerät, während man hier gerade etwas eintippt: erst danach neu zeichnen,
 // sonst wäre der angefangene Text weg. Ist das Feld leer, gleich neu zeichnen und den Cursor zurücksetzen.

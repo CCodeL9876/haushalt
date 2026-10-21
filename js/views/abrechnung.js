@@ -135,6 +135,16 @@ function paymentHint(form, e) {
 }
 
 // Rechnung: payer hat bezahlt; share 'split' = alle teilen, 'full' = ganz für eine andere Person
+// Neue Rechnung von aussen (Plus für alles, js/quickadd.js): { note, amount (Franken) }
+export function newBill({ note = '', amount } = {}) {
+  editBill(null, { note });
+  const form = document.querySelector('#sheet form');
+  if (amount && form) {
+    form.elements.amount.value = amount.toFixed(2);
+    form.dispatchEvent(new Event('input'));
+  }
+}
+
 function editBill(e, preset = {}) {
   const payer = e?.payerId || preset.payer || currentMember()?.id || state.members[0].id;
   const split = e?.splitIds || [];
@@ -281,6 +291,7 @@ function ledger(p) {
 export default {
   id: 'abrechnung',
   title: 'Abrechnung',
+  tab: 'Geld', // kurz, damit neben dem Plus alle Bereiche in die Tab-Leiste passen
   icon: 'wallet',
   aliases: ['kosten'],
   enter() {},
