@@ -774,3 +774,34 @@ button { cursor: pointer; }
 @media (max-width: 360px) {
   .tabbar { grid-template-columns: repeat(2, minmax(0, 1fr)) 46px repeat(3, minmax(0, 1fr)); }
 }
+
+/* ---------- Kundenkarten (js/cards.js) ----------
+   Strichcode immer schwarz auf weiss, auch im Dunkel-Modus – sonst lesen ihn die Kassenscanner schlecht */
+.shop-tools-right { display: flex; align-items: center; gap: 2px; }
+.shop-card { width: 40px; height: 40px; background: var(--card); border-radius: 12px; }
+.mode-head-actions { display: flex; align-items: center; gap: 8px; }
+.mode-card { display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 14px; background: color-mix(in srgb, var(--on-hero) 14%, transparent); color: var(--on-hero); }
+.mode-pay {
+  display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 58px; margin-top: 22px;
+  border: 0; border-radius: 20px; background: color-mix(in srgb, var(--on-hero) 14%, transparent); color: var(--on-hero); font-size: 18px; font-weight: 800;
+}
+.mode-pay.is-ready { background: var(--accent); color: var(--on-accent); }
+.loyalty-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 0; margin: 0 -20px; }
+.loyalty-track::-webkit-scrollbar { display: none; }
+.loyalty-card { flex: 0 0 100%; scroll-snap-align: center; padding: 0 20px; }
+.loyalty-card header {
+  display: flex; align-items: center; justify-content: space-between; padding: 6px 6px 6px 18px; border-radius: 22px 22px 0 0;
+  background: var(--tile-1-bg); color: var(--tile-text); font-size: 18px;
+}
+.loyalty-2 header { background: var(--tile-2-bg); }
+.loyalty-3 header { background: var(--tile-3-bg); }
+.loyalty-card header .icon-btn { color: var(--tile-text); }
+.loyalty-code { background: #FFFFFF; color: #000000; padding: 22px 18px 14px; border-radius: 0 0 22px 22px; border: 1px solid var(--line); border-top: 0; }
+.loyalty-preview .loyalty-code { border-radius: 16px; border-top: 1px solid var(--line); padding: 14px; margin-bottom: 10px; }
+.barcode { display: block; width: 100%; height: 120px; fill: #000000; }
+.loyalty-preview .barcode { height: 70px; }
+.loyalty-number { margin-top: 10px; text-align: center; font-size: 19px; font-weight: 700; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; color: #000000; }
+.loyalty-number.small { font-size: 12.5px; letter-spacing: 0; font-weight: 600; color: #555555; }
+.loyalty-dots { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+.loyalty-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.loyalty-dots i.is-on { background: var(--accent); width: 18px; border-radius: 4px; }

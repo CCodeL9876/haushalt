@@ -18,7 +18,7 @@ const SYNC_PREFIX = 'haushalt.personalSync.';
 const COLLECTION = 'private';
 const ITERATIONS = 310000;
 
-const owner = () => (session.mode === 'shared' ? `${session.key}.${myMemberId(session.key) || 'ohne-person'}` : 'local');
+export const owner = () => (session.mode === 'shared' ? `${session.key}.${myMemberId(session.key) || 'ohne-person'}` : 'local');
 const storageKey = () => PREFIX + owner();
 const syncKey = () => SYNC_PREFIX + owner();
 const rowId = () => `p_${myMemberId(session.key)}`.slice(0, 64);

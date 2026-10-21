@@ -8,6 +8,7 @@ import { AISLES, aisleLabel, aisleOf, aisleOrder } from '../aisles.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { openTerms } from '../terms.js';
+import { cards, showCards } from '../cards.js';
 
 // Sortierung der offenen Artikel – jedes Gerät merkt sich seine: 'laden' (nach Abteilungen) oder 'neu'
 const SORT_KEY = 'haushalt.shopSort';
@@ -312,7 +313,10 @@ function modeHtml(open) {
   return `
     <div class="mode-head">
       <strong>${icon('cart', 'icon-sm')} Einkaufsmodus</strong>
-      <button type="button" class="mode-done" data-action="shopModeOff">Fertig</button>
+      <span class="mode-head-actions">
+        <button type="button" class="mode-card" data-action="cards" aria-label="Kundenkarte zeigen">${icon('card')}</button>
+        <button type="button" class="mode-done" data-action="shopModeOff">Fertig</button>
+      </span>
     </div>
     <div class="mode-count">${got.length} <span>von ${total}</span></div>
     <div class="mode-bar"><i style="width:${total ? Math.round((got.length / total) * 100) : 0}%"></i></div>
@@ -321,6 +325,7 @@ function modeHtml(open) {
       <h3 class="mode-aisle">${esc(aisleLabel(id))}<span>${list.filter((i) => !i.done).length || '✓'}</span></h3>
       <div class="mode-group mode-group-${(n % 3) + 1}">${list.sort((a, b) => Number(a.done) - Number(b.done) || a.name.localeCompare(b.name, 'de')).map(row).join('')}</div>`).join('')}
     ${total ? '' : '<p class="mode-all">Die Liste ist leer.</p>'}
+    <button type="button" class="mode-pay${total && !open.length ? ' is-ready' : ''}" data-action="cards">${icon('card')} ${cards().length ? 'Kundenkarte zeigen' : 'Kundenkarte hinterlegen'}</button>
     <p class="mode-foot">Antippen = im Wagen · nochmals antippen = zurücklegen</p>`;
 }
 
@@ -386,7 +391,10 @@ export default {
             <button type="button" class="seg-btn" data-action="sort" data-sort="laden" aria-pressed="${mode === 'laden'}">Nach Laden</button>
             <button type="button" class="seg-btn" data-action="sort" data-sort="neu" aria-pressed="${mode === 'neu'}">Neueste</button>
           </div>
-          <button type="button" class="btn btn-ghost btn-sm" data-action="terms">${icon('settings', 'icon-sm')} Begriffe</button>
+          <span class="shop-tools-right">
+            <button type="button" class="btn btn-ghost btn-sm" data-action="terms">${icon('settings', 'icon-sm')} Begriffe</button>
+            <button type="button" class="icon-btn shop-card" data-action="cards" aria-label="Kundenkarte">${icon('card')}</button>
+          </span>
         </div>
         <button type="button" class="mode-start" data-action="shopModeOn">${icon('cart', 'icon-sm')} Im Laden? Einkaufsmodus starten</button>
         ${openHtml}`
@@ -423,6 +431,7 @@ export default {
       document.getElementById('shop-suggest').innerHTML = suggestionsHtml(keep);
     },
     terms() { openTerms(); },
+    cards() { showCards(); },
     shopModeOn() {
       setMode(true);
       refresh();
