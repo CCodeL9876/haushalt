@@ -10,6 +10,8 @@ export const esc = (value) =>
 const PATHS = {
   cart: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
   calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  calendarPlus: '<path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M16 2v4M8 2v4M3 10h18M19 16v6M16 19h6"/>',
+  calendarCheck: '<path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m16 19 2 2 4-4"/>',
   book: '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
   wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
   swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
@@ -79,14 +81,18 @@ export const avatar = (member) =>
 // Ein <dialog> für alle Formulare. `body` ist fertiges HTML (Werte mit esc!).
 // onSubmit(formData, form) – gibt es false zurück, bleibt das Fenster offen.
 // actions: { name: (button, form) => … } für Knöpfe mit data-sheet-action="name".
+// headerActions: zusätzliche kleine Knöpfe oben neben dem Schliessen-Kreuz (fertiges HTML).
 const sheet = document.getElementById('sheet');
 
-export function openSheet({ title, body, submitLabel, onSubmit, actions = {}, footer = '' }) {
+export function openSheet({ title, body, submitLabel, onSubmit, actions = {}, footer = '', headerActions = '' }) {
   sheet.innerHTML = `
     <form class="sheet-form" novalidate>
       <header class="sheet-head">
         <h2>${esc(title)}</h2>
-        <button type="button" class="icon-btn" data-close aria-label="Schliessen">${icon('x')}</button>
+        <div class="sheet-head-actions">
+          ${headerActions}
+          <button type="button" class="icon-btn" data-close aria-label="Schliessen">${icon('x')}</button>
+        </div>
       </header>
       <div class="sheet-body">${body}</div>
       ${submitLabel || footer ? `<footer class="sheet-foot">

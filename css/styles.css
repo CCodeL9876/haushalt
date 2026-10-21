@@ -444,8 +444,8 @@ button { cursor: pointer; }
 .todo-assign .chip:first-child { padding-left: 12px; }
 .todo-assign .chip:has(input:focus-visible) { outline: 2px solid var(--accent); }
 .todo-time-hint { margin: -8px 0 14px; }
-.todo-cal-btn { background: var(--suggest-bg); color: var(--suggest-text); margin-top: 6px; }
-.todo-cal-hint { margin: 0; text-align: center; }
+.todo-cal-btn { background: var(--suggest-bg); color: var(--suggest-text); border-radius: 50%; }
+.todo-cal-btn.is-busy { opacity: .5; }
 
 /* ---------- Kühlschrank (Essen) ---------- */
 .fridge-list .is-urgent .check { border-color: var(--minus); }
@@ -550,6 +550,7 @@ button { cursor: pointer; }
 .sheet-form { display: flex; flex-direction: column; max-height: inherit; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 8px 4px 20px; }
 .sheet-head h2 { margin: 0; font-size: 20px; }
+.sheet-head-actions { display: flex; align-items: center; gap: 6px; }
 .sheet-body { padding: 8px 20px 12px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .sheet-foot { display: grid; gap: 8px; padding: 8px 20px calc(var(--safe-bottom) + 14px); border-top: 1px solid var(--line); }
 

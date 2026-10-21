@@ -411,9 +411,11 @@ function editTodo(cur, id) {
       </label>`,
     submitLabel: 'Speichern',
     // Kalender ganz unten: seltener gebraucht als Speichern und Löschen
-    footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Löschen</button>
-      <button type="button" class="btn btn-block todo-cal-btn" data-sheet-action="calendar">${icon('calendar')}In Apple-Kalender eintragen</button>
-      ${isInCalendar(t.id) ? '<p class="muted small todo-cal-hint">Schon eingetragen – Änderungen bei Bedarf neu eintragen.</p>' : ''}`,
+    footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Löschen</button>`,
+    // Kalender oben neben dem Kreuz: klein, nur ein Symbol (Haken = schon einmal eingetragen)
+    headerActions: `<button type="button" class="icon-btn todo-cal-btn" data-sheet-action="calendar"
+      aria-label="${isInCalendar(t.id) ? 'Nochmals in Apple-Kalender eintragen (schon eingetragen)' : 'In Apple-Kalender eintragen'}"
+      title="${isInCalendar(t.id) ? 'Schon eingetragen – Änderungen bei Bedarf neu eintragen' : 'In Apple-Kalender eintragen'}">${icon(isInCalendar(t.id) ? 'calendarCheck' : 'calendarPlus')}</button>`,
     onSubmit: (_, f) => save(f),
     actions: {
       change(el, f) {
@@ -431,10 +433,10 @@ function editTodo(cur, id) {
         const item = SCOPES[cur.scope].data().todos.find((x) => x.id === id);
         if (!item) return closeSheet();
         btn.disabled = true;
-        btn.lastChild.textContent = 'Wird vorbereitet …';
+        btn.classList.add('is-busy');
         const problem = await addToCalendar(item);
         btn.disabled = false;
-        btn.lastChild.textContent = 'In Apple-Kalender eintragen';
+        btn.classList.remove('is-busy');
         if (problem) return toast(problem);
         closeSheet();
         refresh(); // Kalender-Zeichen in der Liste
