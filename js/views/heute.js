@@ -89,23 +89,53 @@ function todoTile() {
   </div>`;
 }
 
-// Abfuhrkalender (js/waste.js): nächster Termin pro Art; heute/morgen hervorgehoben
+// Abfuhrkalender (js/waste.js): pro Art eine kleine Kachel mit Symbol und nächstem Termin (Bento).
+// Steht eine Abfuhr heute oder morgen an, ist ihre Kachel dunkel hervorgehoben und oben steht, was rausmuss.
 function wasteTile() {
   if (!wasteKinds().length) return '';
   const today = todayKey();
   const next = nextPickups(today);
-  const soon = next.filter((k) => dayLabel(k.next, today) === 'morgen' || k.next === today);
+  const soonOf = (k) => k.next === today || dayLabel(k.next, today) === 'morgen';
+  const soon = next.filter(soonOf);
   const last = lastPickup();
   const renew = !next.length || (last && last <= dateKey(addDays(new Date(), 31)));
   const head = soon.length
-    ? `${soon.some((k) => k.next === today) ? 'Heute' : 'Morgen'}: ${soon.map((k) => k.short).join(' und ')}`
+    ? `${soon.some((k) => k.next === today) ? 'Heute' : 'Morgen'}: ${soon.map((k) => k.short).join(' und ')} rausstellen`
     : 'Entsorgung';
-  return `<button type="button" class="tile wide tile-waste${soon.length ? ' is-soon' : ''}" data-action="waste">
-    <h3>${esc(head)}${soon.length ? ' rausstellen' : ''}</h3>
-    ${next.length ? `<ul class="waste-next">${next.map((k) => `
-      <li><span>${esc(k.short)}</span><strong>${esc(dayLabel(k.next, today))}</strong></li>`).join('')}</ul>` : ''}
+  // „Morgen“ / „Fr.“ (diese Woche) / „23. Okt.“ gross, darunter das volle Datum bzw. „in x Tagen“
+  const when = (day) => {
+    const n = Math.round((new Date(`${day}T12:00:00`) - new Date(`${today}T12:00:00`)) / 86400000);
+    if (n <= 1) return { big: dayLabel(day, today).replace(/^./, (c) => c.toUpperCase()), small: fmtShort(day) };
+    return { big: n < 7 ? fmtShort(day).split(',')[0] : fmtShort(day).split(', ')[1], small: `in ${n} Tagen` };
+  };
+  return `<div class="tile wide tile-waste">
+    <button type="button" class="tile-link" data-action="waste" aria-label="Abfuhrkalender öffnen"></button>
+    <h3 class="${soon.length ? 'waste-alert' : ''}">${soon.length ? `${icon('bell', 'icon-xs')} ` : ''}${esc(head)}</h3>
+    ${next.length ? `<div class="waste-grid" style="grid-template-columns:repeat(${Math.min(next.length, 3)}, minmax(0, 1fr))">${next.map((k, n) => {
+      const w = when(k.next);
+      return `<div class="waste-kind waste-${(n % 3) + 1}${soonOf(k) ? ' is-soon' : ''}">
+        <span class="waste-icon" aria-hidden="true">${wasteEmoji(k.short)}</span>
+        <span class="waste-name">${esc(k.short)}</span>
+        <strong>${esc(w.big)}</strong>
+        <small>${esc(w.small)}</small>
+      </div>`;
+    }).join('')}</div>` : ''}
     ${renew ? `<span class="tile-note">${next.length ? 'Kalender endet bald – ' : 'Keine Termine mehr – '}neue Datei der Gemeinde einlesen</span>` : ''}
-  </button>`;
+  </div>`;
+}
+
+// Symbol je Abfuhrart (am Namen erkannt), sonst Recycling
+function wasteEmoji(name) {
+  const n = String(name).toLowerCase();
+  if (/kehricht|abfall|müll|restmüll/.test(n)) return '🗑️';
+  if (/papier|zeitung/.test(n)) return '📰';
+  if (/karton/.test(n)) return '📦';
+  if (/grün|garten|kompost|bio/.test(n)) return '🌿';
+  if (/glas/.test(n)) return '🍾';
+  if (/metall|alu|dose/.test(n)) return '🥫';
+  if (/sperr/.test(n)) return '🛋️';
+  if (/sonder|gift|batter/.test(n)) return '⚠️';
+  return '♻️';
 }
 
 function shopTile() {
