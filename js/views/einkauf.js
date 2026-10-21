@@ -391,10 +391,7 @@ export default {
             <button type="button" class="seg-btn" data-action="sort" data-sort="laden" aria-pressed="${mode === 'laden'}">Nach Laden</button>
             <button type="button" class="seg-btn" data-action="sort" data-sort="neu" aria-pressed="${mode === 'neu'}">Neueste</button>
           </div>
-          <span class="shop-tools-right">
-            <button type="button" class="btn btn-ghost btn-sm" data-action="terms">${icon('settings', 'icon-sm')} Begriffe</button>
-            <button type="button" class="icon-btn shop-card" data-action="cards" aria-label="Kundenkarte">${icon('card')}</button>
-          </span>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="terms">${icon('settings', 'icon-sm')} Begriffe</button>
         </div>
         <button type="button" class="mode-start" data-action="shopModeOn">${icon('cart', 'icon-sm')} Im Laden? Einkaufsmodus starten</button>
         ${openHtml}`

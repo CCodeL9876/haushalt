@@ -6,6 +6,7 @@ import { decryptBackup, encryptBackup, isEncrypted, saveFile } from '../backup.j
 import { DONE_DAYS, LEDGER_MONTHS } from '../cleanup.js';
 import { reloadApp } from '../refresh.js';
 import { openTerms } from '../terms.js';
+import { cards, showCards } from '../cards.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { todayKey } from '../dates.js';
 import { addMember, currentMember } from '../login.js';
@@ -129,6 +130,7 @@ export function openSettings() {
       </div>
       <h3 class="settings-group">Einkauf</h3>
       <button type="button" class="btn btn-block" data-sheet-action="terms" style="margin-bottom:10px">${icon('cart', 'icon-sm')} Einkaufsbegriffe verwalten (${state.terms.length})</button>
+      <button type="button" class="btn btn-block" data-sheet-action="cards" style="margin-bottom:10px">${icon('card', 'icon-sm')} Kundenkarten (${cards().length}) <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></button>
       <details class="field aisles-field">
         <summary>Reihenfolge im Laden</summary>
         <p class="muted small" style="margin:6px 0 8px">So ist die Einkaufsliste bei „Nach Laden“ sortiert. An euren Laden anpassen: Abteilungen nach oben oder unten schieben.</p>
@@ -231,6 +233,8 @@ export function openSettings() {
         document.querySelector('#sheet .aisle-order').innerHTML = aisleListHtml();
       },
       terms() { openTerms(); },
+      // Im Einkaufsmodus gibt es den Knopf „Kundenkarte zeigen“; hier erfassen und verwalten
+      cards() { showCards(); },
       export() { openBackup(); },
       async share() {
         const url = shareLink(session.key);

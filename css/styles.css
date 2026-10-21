@@ -777,8 +777,6 @@ button { cursor: pointer; }
 
 /* ---------- Kundenkarten (js/cards.js) ----------
    Strichcode immer schwarz auf weiss, auch im Dunkel-Modus – sonst lesen ihn die Kassenscanner schlecht */
-.shop-tools-right { display: flex; align-items: center; gap: 2px; }
-.shop-card { width: 40px; height: 40px; background: var(--card); border-radius: 12px; }
 .mode-head-actions { display: flex; align-items: center; gap: 8px; }
 .mode-card { display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 14px; background: color-mix(in srgb, var(--on-hero) 14%, transparent); color: var(--on-hero); }
 .mode-pay {
