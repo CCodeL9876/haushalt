@@ -139,6 +139,14 @@ export function addToShopping(entries, note = '') {
   return added;
 }
 
+// Kürzlich gekauft (in den letzten 7 Tagen abgehakt) – gilt als zu Hause, wird nicht nochmals vorgeschlagen.
+// Auch von der Startseite genutzt („x Zutaten fehlen“, js/views/heute.js).
+const RECENT_DAYS = 7;
+export const recentlyBought = (now = Date.now()) => new Set(state.shopping
+  .filter((i) => i.done && (i.doneAt || 0) > now - RECENT_DAYS * DAY)
+  .map((i) => termKey(i.name)));
+export const openOnList = () => new Set(state.shopping.filter((i) => !i.done).map((i) => termKey(i.name)));
+
 // Zutaten eines Rezepts (oder mehrerer) auf die Einkaufsliste – vorher auswählen. Grundzutaten (Salz, Öl …) und
 // was schon auf der Liste steht, sind anfangs abgewählt. lines: Rezeptzeilen wie „400 g Kartoffeln“ oder
 // { line, meal: { day, title } } für ein Menü im Wochenplan (dann lässt sich der Artikel bis zu diesem Tag ausblenden).
@@ -163,16 +171,21 @@ export function shopIngredients(lines, label = '') {
     items.push(it);
   }
   if (!items.length) return toast('Keine Zutaten hinterlegt');
-  const open = new Set(state.shopping.filter((i) => !i.done).map((i) => termKey(i.name)));
+  const open = openOnList();
+  const bought = recentlyBought();
+  const fridge = new Set(state.fridge.map((f) => termKey(f.name)));
   openSheet({
     title: 'Auf die Einkaufsliste',
     body: `
       ${label ? `<p class="muted small" style="margin:0 0 10px">${esc(label)}</p>` : ''}
       <div class="pick-list">${items.map((it, n) => {
         const onList = open.has(termKey(it.name));
+        const gotIt = !onList && bought.has(termKey(it.name));
+        const why = onList ? 'steht schon auf der Liste' : gotIt ? 'kürzlich gekauft'
+          : fridge.has(termKey(it.name)) ? 'im Kühlschrank' : isStaple(it.name) ? 'meist zu Hause' : '';
         return `<label class="pick-row">
-          <input type="checkbox" name="i${n}" ${isStaple(it.name) || onList ? '' : 'checked'}>
-          <span class="list-main">${esc(it.name)}<small>${esc([it.amount, mealsText(it.meals), onList ? 'steht schon auf der Liste' : isStaple(it.name) ? 'meist zu Hause' : ''].filter(Boolean).join(' · '))}</small></span>
+          <input type="checkbox" name="i${n}" ${why ? '' : 'checked'}>
+          <span class="list-main">${esc(it.name)}<small>${esc([it.amount, mealsText(it.meals), why].filter(Boolean).join(' · '))}</small></span>
         </label>`;
       }).join('')}</div>`,
     submitLabel: 'Hinzufügen',

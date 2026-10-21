@@ -11,7 +11,7 @@ import { esc, icon, money } from '../ui.js';
 import { fmtShort, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { fridgeSorted, isUrgent, leftLabel } from '../fridge.js';
-import { shopIngredients } from './einkauf.js';
+import { openOnList, recentlyBought, shopIngredients } from './einkauf.js';
 import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 
@@ -32,13 +32,14 @@ function todaysMeal() {
   return slot ? { day, slot, meal: entry[slot] } : null;
 }
 
-// Zutaten, die weder zu Hause (Grundzutaten) noch schon auf der Einkaufsliste sind
+// Zutaten, die fehlen: weder Grundzutat noch auf der Einkaufsliste, nicht kürzlich gekauft (abgehakt) und nicht
+// im Kühlschrank
 function missingFor(meal) {
   const idea = state.ideas.find((i) => i.id === meal.ideaId);
-  const open = new Set(state.shopping.filter((i) => !i.done).map((i) => termKey(i.name)));
+  const have = new Set([...openOnList(), ...recentlyBought(), ...state.fridge.map((f) => termKey(f.name))]);
   return (idea?.ingredients || []).filter((line) => {
     const { name } = splitIngredient(line);
-    return !isStaple(name) && !open.has(termKey(name));
+    return !isStaple(name) && !have.has(termKey(name));
   });
 }
 
@@ -56,7 +57,7 @@ function mealTile() {
     <div class="tile-big">${esc(mealTitle(t.meal))}</div>
     ${missing.length
       ? `<button type="button" class="tile-btn" data-action="shopMeal">${icon('cart', 'icon-sm')} ${missing.length} ${missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'}</button>`
-      : `<span class="tile-note">${state.ideas.some((i) => i.id === t.meal.ideaId) ? 'Alle Zutaten auf der Liste oder zu Hause' : ''}</span>`}
+      : `<span class="tile-note">${state.ideas.some((i) => i.id === t.meal.ideaId) ? 'Alle Zutaten da oder auf der Liste ✓' : ''}</span>`}
   </div>`;
 }
 
