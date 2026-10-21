@@ -8,12 +8,13 @@ import { personal } from '../personal.js';
 import { currentMember } from '../login.js';
 import { balances } from '../settle.js';
 import { esc, icon, money } from '../ui.js';
-import { fmtShort, todayKey } from '../dates.js';
+import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { fridgeSorted, isUrgent, leftLabel } from '../fridge.js';
 import { openOnList, recentlyBought, shopIngredients } from './einkauf.js';
 import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
+import { dayLabel, lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
 
 const MAX_TODOS = 5;
 
@@ -88,6 +89,25 @@ function todoTile() {
   </div>`;
 }
 
+// Abfuhrkalender (js/waste.js): nächster Termin pro Art; heute/morgen hervorgehoben
+function wasteTile() {
+  if (!wasteKinds().length) return '';
+  const today = todayKey();
+  const next = nextPickups(today);
+  const soon = next.filter((k) => dayLabel(k.next, today) === 'morgen' || k.next === today);
+  const last = lastPickup();
+  const renew = !next.length || (last && last <= dateKey(addDays(new Date(), 31)));
+  const head = soon.length
+    ? `${soon.some((k) => k.next === today) ? 'Heute' : 'Morgen'}: ${soon.map((k) => k.short).join(' und ')}`
+    : 'Entsorgung';
+  return `<button type="button" class="tile wide tile-waste${soon.length ? ' is-soon' : ''}" data-action="waste">
+    <h3>${esc(head)}${soon.length ? ' rausstellen' : ''}</h3>
+    ${next.length ? `<ul class="waste-next">${next.map((k) => `
+      <li><span>${esc(k.short)}</span><strong>${esc(dayLabel(k.next, today))}</strong></li>`).join('')}</ul>` : ''}
+    ${renew ? `<span class="tile-note">${next.length ? 'Kalender endet bald – ' : 'Keine Termine mehr – '}neue Datei der Gemeinde einlesen</span>` : ''}
+  </button>`;
+}
+
 function shopTile() {
   const open = state.shopping.filter((i) => !i.done);
   const starred = open.filter((i) => i.star).length;
@@ -141,6 +161,7 @@ export default {
       <div class="bento">
         ${mealTile()}
         ${todoTile()}
+        ${wasteTile()}
         ${shopTile()}
         ${moneyTile()}
         ${fridgeTile()}
@@ -149,6 +170,7 @@ export default {
 
   actions: {
     go(el) { location.hash = el.dataset.hash; },
+    waste() { openWaste(); },
     toggleTodo(el) { toggleTodo(el.dataset.scope, el.dataset.id); },
     shopMeal() {
       const t = todaysMeal();

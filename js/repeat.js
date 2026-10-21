@@ -102,9 +102,12 @@ export function parseIcs(text, today) {
   const until = dateKey(addDays(parseKey(today), 400));
   const groups = new Map();
   let ev = null;
+  // Zeit in UTC („…T230000Z“): in Ortszeit umrechnen, sonst landet ein später Termin am falschen Tag
   const dateOf = (value) => {
-    const m = /(\d{4})(\d{2})(\d{2})/.exec(value || '');
-    return m ? `${m[1]}-${m[2]}-${m[3]}` : '';
+    const m = /(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?/.exec(value || '');
+    if (!m) return '';
+    if (m[7]) return dateKey(new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6])));
+    return `${m[1]}-${m[2]}-${m[3]}`;
   };
   for (const line of lines) {
     if (line === 'BEGIN:VEVENT') { ev = { exdates: [] }; continue; }

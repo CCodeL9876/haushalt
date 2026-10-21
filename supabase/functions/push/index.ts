@@ -6,6 +6,8 @@
 //    · Kühlschrank: ab 17 Uhr (Schweizer Zeit) Reste am Vortag („bis morgen aufbrauchen“) und am letzten Tag („heute“).
 //    · Vortag: ab 18 Uhr an alle Geräte des Haushalts, wenn ein geteiltes ToDo mit „am Vortag erinnern“ (remind)
 //      morgen fällig ist – z. B. Altpapier oder Grüngut aus dem Abfuhrplan.
+//    · Abfuhrkalender: ab 18 Uhr an alle Geräte des Haushalts, wenn morgen eine Abfuhr mit Glocke ansteht
+//      (Haushalt → Abfuhrkalender, gespeichert in settings.waste).
 //    Jede Erinnerung nur einmal (Tabelle push_sent). Ohne Fälliges passiert nichts – darum ohne Anmeldung.
 //  - POST { test: true, endpoint, kind? } – von der App (mit Haushalt-Schlüssel und Zugangscode): Probe an dieses
 //    Gerät; kind 'todo' schickt die Morgen-Erinnerung so, wie sie jetzt aussähe.
@@ -310,8 +312,41 @@ async function eveReminders() {
   return { households: sent };
 }
 
+// ---------- Abfuhrkalender: am Vortag ab 18 Uhr (settings.waste, js/waste.js) ----------
+
+async function wasteReminders() {
+  const now = local();
+  if (now.hour < EVE_HOUR) return { skipped: 'vor 18 Uhr' };
+  const tomorrow = nextDay(now.day);
+  const rows = await db('items?collection=eq.settings&id=eq.main&select=household_key,data');
+  let sent = 0;
+  for (const row of rows || []) {
+    const kinds = (row.data?.waste?.kinds || []).filter((k) => k?.remind && Array.isArray(k.dates) && k.dates.includes(tomorrow));
+    if (!kinds.length) continue;
+    const household = row.household_key;
+    const entries = kinds.map((k) => ({ ref: `waste:${clip(k.id, 40)}:${tomorrow}`, name: clip(k.short || k.name, 40) }));
+    const refs = entries.map((e) => `"${e.ref.replace(/"/g, '')}"`).join(',');
+    const done = new Set((await db(`push_sent?household_key=eq.${encodeURIComponent(household)}&ref=in.(${encodeURIComponent(refs)})&select=ref`)).map((r) => r.ref));
+    const open = entries.filter((e) => !done.has(e.ref));
+    if (!open.length) continue;
+    const subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth`);
+    if (!subs.length) continue;
+    const payload = {
+      title: `Morgen: ${list(entries.map((e) => e.name))}`,
+      body: 'Abfuhr morgen früh – am besten heute Abend rausstellen.',
+      url: '#heute',
+      tag: `waste-${tomorrow}`,
+    };
+    const results = await Promise.all(subs.map((s) => send(s, payload)));
+    if (!results.some(Boolean)) continue; // später nochmals versuchen
+    await db('push_sent', { method: 'POST', body: open.map((e) => ({ household_key: household, ref: e.ref })), prefer: 'resolution=ignore-duplicates,return=minimal' });
+    sent += 1;
+  }
+  return { households: sent };
+}
+
 async function reminders() {
-  return { todo: await todoReminders(), eve: await eveReminders(), fridge: await fridgeReminders() };
+  return { todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), fridge: await fridgeReminders() };
 }
 
 async function test(household, body) {

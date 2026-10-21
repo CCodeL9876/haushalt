@@ -803,3 +803,15 @@ button { cursor: pointer; }
 .loyalty-dots { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
 .loyalty-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
 .loyalty-dots i.is-on { background: var(--accent); width: 18px; border-radius: 4px; }
+
+/* ---------- Abfuhrkalender (js/waste.js) ---------- */
+.tile-waste { background: var(--card); color: var(--text); }
+.tile-waste.is-soon { background: var(--accent); color: var(--on-accent); }
+.waste-next { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.waste-next li { display: flex; justify-content: space-between; gap: 10px; font-size: 16px; font-weight: 600; }
+.waste-next strong { font-weight: 800; white-space: nowrap; }
+.waste-row { gap: 6px; }
+.waste-pick { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.waste-remind { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 12px; background: var(--chip); color: var(--text-soft); }
+.waste-remind input { width: 18px; height: 18px; accent-color: var(--accent); }
+.list .waste-remind { margin-right: 6px; }
