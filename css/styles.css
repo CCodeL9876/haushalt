@@ -825,3 +825,30 @@ button { cursor: pointer; }
 .waste-remind { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 12px; background: var(--chip); color: var(--text-soft); }
 .waste-remind input { width: 18px; height: 18px; accent-color: var(--accent); }
 .list .waste-remind { margin-right: 6px; }
+
+/* ---------- Bento: übrige Bereiche (Wochenplan, Kühlschrank, Menüideen, Statistik, Abrechnung) ----------
+   Flächen statt Rahmen und Farbstreifen: Kachelfarben des Farbdesigns, die dunkle Fläche (--hero) für das Wichtigste */
+.day { padding: 12px 14px; border-radius: 24px; box-shadow: none; }
+.day.is-today { outline: none; background: var(--tile-1-bg); color: var(--tile-text); }
+.day.is-today .day-meta .muted { color: color-mix(in srgb, var(--tile-text) 65%, transparent); }
+.today-pill { background: var(--hero); color: var(--on-hero); }
+.slot { border-radius: 16px; min-height: 46px; }
+.slot.is-empty { background: color-mix(in srgb, var(--text) 5%, transparent); box-shadow: none; }
+.slot-abend { background: var(--tile-2-bg); color: var(--tile-text); }
+.slot-mittag { background: var(--tile-3-bg); color: var(--tile-text); }
+.slot-abend .slot-label, .slot-mittag .slot-label { background: color-mix(in srgb, var(--tile-text) 12%, transparent); color: var(--tile-text); }
+.day.is-today .slot.is-empty { background: color-mix(in srgb, var(--tile-text) 8%, transparent); }
+.week-shop { background: var(--hero); color: var(--on-hero); border-radius: 16px; min-height: 50px; }
+.fridge-hint { border-radius: 22px; background: var(--tile-3-bg); color: var(--tile-text); box-shadow: none; padding: 12px 16px; }
+.fridge-hint.is-urgent { background: var(--hero); color: var(--on-hero); box-shadow: none; }
+.fridge-hint small { color: inherit; opacity: 0.75; }
+.card.idea { box-shadow: none; padding-left: 16px; background: var(--tile-1-bg); color: var(--tile-text); border-radius: 24px; }
+.card.idea:nth-of-type(3n+2) { background: var(--tile-2-bg); }
+.card.idea:nth-of-type(3n+3) { background: var(--tile-3-bg); }
+.card.idea .muted { color: color-mix(in srgb, var(--tile-text) 65%, transparent); }
+.card.idea .tag { background: color-mix(in srgb, var(--tile-text) 11%, transparent); color: var(--tile-text); }
+.stat-tile { border-radius: 24px; box-shadow: none; background: var(--tile-1-bg); color: var(--tile-text); }
+.stat-tile + .stat-tile { background: var(--tile-2-bg); }
+.stat-tile .muted { color: color-mix(in srgb, var(--tile-text) 65%, transparent); }
+.balance-card { background: var(--hero); color: var(--on-hero); border-radius: 26px; box-shadow: none; padding: 20px 16px; }
+.balance-card .balance-who { color: color-mix(in srgb, var(--on-hero) 80%, transparent); }
