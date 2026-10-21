@@ -4,7 +4,7 @@ Web-App fürs iPhone für den gemeinsamen Haushalt. Reines HTML, CSS und JavaScr
 
 | Bereich | Datei | Was |
 |---|---|---|
-| Heute (Start) | `js/views/heute.js` | Startseite als Kacheln: Menü von heute (fehlende Zutaten mit einem Tipp auf die Liste), fällige ToDos zum Abhaken, Einkauf, Abrechnung, Kühlschrank |
+| Heute (Start) | `js/views/heute.js` | Startseite als Kacheln: Menü von heute (fehlende Zutaten mit einem Tipp auf die Liste), fällige ToDos zum Abhaken, Abfuhrkalender, Kühlschrank |
 | Abfuhrkalender | `js/waste.js` | Kalender-Datei (.ics) der Gemeinde unter Haushalt einlesen (nur Termine ab heute); Kachel „Entsorgung“ auf Heute mit dem nächsten Termin pro Art; Mitteilung am Vortag pro Art |
 | Plus (Mitte der Tab-Leiste) | `js/quickadd.js` | Einfach eintippen – erkennt im Gerät Einkauf, ToDo (mit Tag/Uhrzeit), Menü oder Rechnung (mit Betrag); Art änderbar |
 | Einkauf | `js/views/einkauf.js` | Einkaufsliste; mehrere Artikel mit Komma auf einmal; gemerkte Begriffe als Vorschläge beim Tippen (häufige zuerst, auch Zutaten der Menüideen); „Nach Laden“ gruppiert nach Abteilungen (`js/aisles.js`, Reihenfolge unter Haushalt anpassbar); „Begriffe“: Vorschläge erfassen, umbenennen, Abteilung ändern, löschen (`js/terms.js`); Stern markiert Wichtiges, steht zuoberst; Einkaufsmodus für den Laden (Vollbild, grosse Schrift, Bildschirm bleibt an); Kundenkarten (Cumulus, Supercard …) als Strichcode, nur auf dem Gerät (`js/cards.js`, `js/barcode.js`) |

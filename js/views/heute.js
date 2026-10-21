@@ -1,13 +1,12 @@
 // Startseite „Heute“: alles Wichtige auf einen Blick, als Kacheln (Bento). Antippen führt in den Bereich.
 //  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten
 //  - ToDos, die heute dran sind (fällig bis heute) aus geteilten und eigenen persönlichen Listen – direkt abhakbar
-//  - Einkauf (offene Artikel), Abrechnung (wer schuldet wem), Kühlschrank (was bald weg muss)
+//  - Abfuhrkalender (nächste Termine) und Kühlschrank (was bald weg muss)
 
 import { state, termKey } from '../store.js';
 import { personal } from '../personal.js';
 import { currentMember } from '../login.js';
-import { balances } from '../settle.js';
-import { esc, icon, money } from '../ui.js';
+import { esc, icon } from '../ui.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { fridgeSorted, isUrgent, leftLabel } from '../fridge.js';
@@ -138,35 +137,6 @@ function wasteEmoji(name) {
   return '♻️';
 }
 
-function shopTile() {
-  const open = state.shopping.filter((i) => !i.done);
-  const starred = open.filter((i) => i.star).length;
-  return `<button type="button" class="tile tile-1" data-action="go" data-hash="#einkauf">
-    <h3>Einkauf</h3>
-    <div class="tile-big">${open.length ? `${open.length} offen` : 'Alles da'}</div>
-    <span class="tile-note">${open.length ? esc([starred ? `${starred} wichtig` : '', open.slice(0, 2).map((i) => i.name).join(', ')].filter(Boolean).join(' · ')) : 'Nichts auf der Liste'}</span>
-  </button>`;
-}
-
-function moneyTile() {
-  if (state.members.length < 2) return '';
-  let main;
-  let note;
-  if (state.members.length === 2) {
-    const [a, b] = state.members;
-    const v = balances([a, b], state.expenses).get(a.id);
-    main = v ? money(Math.abs(v)) : 'Quitt';
-    note = v ? `${esc((v > 0 ? b : a).name)} schuldet ${esc((v > 0 ? a : b).name)}` : 'Niemand schuldet etwas';
-  } else {
-    const open = [...balances(state.members, state.expenses).values()].filter((v) => v > 0).reduce((n, v) => n + v, 0);
-    main = open ? money(open) : 'Quitt';
-    note = open ? 'offen im Haushalt' : 'Alle ausgeglichen';
-  }
-  return `<button type="button" class="tile tile-2" data-action="go" data-hash="#abrechnung">
-    <h3>Abrechnung</h3><div class="tile-big">${main}</div><span class="tile-note">${note}</span>
-  </button>`;
-}
-
 function fridgeTile() {
   const items = fridgeSorted();
   if (!items.length) return '';
@@ -192,8 +162,6 @@ export default {
         ${mealTile()}
         ${todoTile()}
         ${wasteTile()}
-        ${shopTile()}
-        ${moneyTile()}
         ${fridgeTile()}
       </div>`;
   },
