@@ -63,14 +63,21 @@
   --tile-badge-text: #1E1530;
   --stat-bar: #A64FD6;       /* Balken der Statistik (Kontrast ≥ 3:1 auf --card) */
 
-  --radius-sm: 10px;
-  --radius: 14px;
-  --radius-lg: 20px;
-  --shadow: 0 1px 2px rgba(80, 76, 30, 0.08), 0 4px 14px rgba(80, 76, 30, 0.06);
+  --radius-sm: 14px;          /* Bento: kräftig gerundet */
+  --radius: 22px;
+  --radius-lg: 28px;
+  --shadow: 0 1px 2px rgba(80, 76, 30, 0.05);   /* Bento: flach, Flächen heben sich über die Farbe ab */
   --shadow-lg: 0 -10px 40px rgba(80, 76, 30, 0.18);
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
 
-  --tabbar-h: 58px;
+  --tabbar-h: 62px;
+  /* Platz, den die schwebende Tab-Leiste unten braucht (mindestens 12px Abstand zum Rand) */
+  --tabbar-space: calc(var(--tabbar-h) + max(var(--safe-bottom), 12px));
+  /* Dunkle Fläche für Tab-Leiste und Hauptkacheln: dunkle Fassung der Akzentfarbe des Farbdesigns */
+  --hero: color-mix(in srgb, var(--accent-text) 38%, #121016);
+  --on-hero: #FFFFFF;
+  --tab-on-bg: var(--tile-1-bg);   /* aktiver Bereich in der Tab-Leiste */
+  --tab-on-text: var(--tile-text);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --kb: 0px;                 /* Höhe der Bildschirmtastatur, gesetzt in js/ui.js */
@@ -94,10 +101,10 @@
     --idea-1: #BDB96A; --idea-2: #C1BFFF; --idea-3: #CF6DFC; --idea-4: #8E8A4C;
     --tag-1-bg: #BDB96A; --tag-2-bg: #C1BFFF; --tag-3-bg: #CF6DFC; --tag-4-bg: #2A2840;
     --tag-text: #1A1912; --tag-4-text: #C1BFFF;
-  --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4; --stat-bar: #C064F0;
     --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4; --stat-bar: #C064F0;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    --hero: color-mix(in srgb, var(--accent) 28%, #15131B); --tab-on-bg: var(--accent); --tab-on-text: var(--on-accent);
     color-scheme: dark;
   }
 }
@@ -117,8 +124,10 @@
   --idea-1: #BDB96A; --idea-2: #C1BFFF; --idea-3: #CF6DFC; --idea-4: #8E8A4C;
   --tag-1-bg: #BDB96A; --tag-2-bg: #C1BFFF; --tag-3-bg: #CF6DFC; --tag-4-bg: #2A2840;
   --tag-text: #1A1912; --tag-4-text: #C1BFFF;
+  --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4; --stat-bar: #C064F0;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  --hero: color-mix(in srgb, var(--accent) 28%, #15131B); --tab-on-bg: var(--accent); --tab-on-text: var(--on-accent);
   color-scheme: dark;
 }
 
@@ -133,7 +142,7 @@ body {
   color: var(--text);
   font: 16px/1.4 var(--font);
   -webkit-tap-highlight-color: transparent;
-  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px);
+  padding-bottom: calc(var(--tabbar-space) + 28px);
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -151,25 +160,24 @@ button { cursor: pointer; }
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
 }
-.topbar-title { margin: 0; font-size: 30px; font-weight: 750; letter-spacing: -0.02em; }
+.topbar-title { margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.035em; }
 
 .view { padding: 4px 16px 0; max-width: 640px; margin: 0 auto; }
 
 /* ---------- Tab-Leiste ---------- */
 .tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
-  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
-  height: calc(var(--tabbar-h) + var(--safe-bottom));
-  padding-bottom: var(--safe-bottom);
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-  border-top: 1px solid var(--line);
+  /* Bento: schwebende dunkle Leiste, der aktive Bereich als helle Kachel */
+  position: fixed; left: 12px; right: 12px; bottom: max(var(--safe-bottom), 12px); z-index: 20;
+  max-width: 616px; margin: 0 auto;
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px;
+  height: var(--tabbar-h); padding: 6px; border-radius: 22px;
+  background: var(--hero); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
 }
 .tab {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 600;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 16px;
+  color: color-mix(in srgb, var(--on-hero) 62%, var(--hero)); text-decoration: none; font-size: 11px; font-weight: 650;
 }
-.tab[aria-current="page"] { color: var(--tab-active); }
+.tab[aria-current="page"] { color: var(--tab-on-text); background: var(--tab-on-bg); }
 /* Sechs Bereiche auf schmalen iPhones: Beschriftung notfalls kürzen statt überlappen */
 .tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; }
 
@@ -191,7 +199,7 @@ button { cursor: pointer; }
   border: 0; border-radius: 50%; background: transparent; color: var(--text-soft);
 }
 .icon-btn:active { background: var(--chip); }
-.topbar .icon-btn { background: var(--card); box-shadow: var(--shadow); }
+.topbar .icon-btn { background: var(--card); box-shadow: none; border-radius: 14px; }
 
 .card {
   background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
@@ -290,7 +298,7 @@ button { cursor: pointer; }
 
 .fab {
   position: fixed; z-index: 15; right: 16px;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px);
+  bottom: calc(var(--tabbar-space) + 14px);
   width: 56px; height: 56px; border: 0; border-radius: 50%;
   display: grid; place-items: center;
   background: var(--accent); color: var(--on-accent); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
@@ -321,8 +329,8 @@ button { cursor: pointer; }
 .list > li.is-armed[data-swipe="left"]::before { color: #fff; }
 
 .check {
-  width: 26px; height: 26px; flex: none; border-radius: 50%;
-  border: 2px solid var(--check-border); background: transparent; display: grid; place-items: center; color: transparent;
+  width: 26px; height: 26px; flex: none; border-radius: 9px;
+  border: 2.5px solid var(--check-border); background: transparent; display: grid; place-items: center; color: transparent;
 }
 .is-done .check { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .is-done .list-main { color: var(--muted); text-decoration: line-through; }
@@ -628,7 +636,7 @@ button { cursor: pointer; }
    unsichtbare) Meldung als zu breit, und die Seite lässt sich seitlich verschieben */
 .toast {
   position: fixed; left: 16px; right: 16px; z-index: 60; transform: translateY(20px);
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 18px);
+  bottom: calc(var(--tabbar-space) + 16px);
   width: fit-content; max-width: calc(100% - 32px); margin: 0 auto; padding: 10px 16px; border-radius: 999px;
   background: var(--text); color: var(--bg); font-size: 15px; font-weight: 550;
   opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
@@ -652,3 +660,19 @@ button { cursor: pointer; }
 .until-bar .chips { margin: 0; }
 .until-chip[aria-pressed="true"] { background: var(--seg-active-bg); color: var(--seg-active-text); }
 .until-hint { margin: 8px 0 0; }
+
+/* ---------- Bento-Stil ----------
+   Kräftig gerundete Flächen, die Einkaufsliste je Abteilung in den Kachelfarben des Farbdesigns,
+   Mengen als dunkle Marke. Die Farben kommen aus den Farbdesigns (--tile-*, --hero), Hell und Dunkel. */
+.me-btn { border-radius: 14px; box-shadow: none; }
+.fab { border-radius: 20px; }
+#view .aisle-title + .list { background: var(--tile-1-bg); color: var(--tile-text); box-shadow: none; }
+#view .aisle-title + .list:nth-of-type(3n+2) { background: var(--tile-2-bg); }
+#view .aisle-title + .list:nth-of-type(3n+3) { background: var(--tile-3-bg); }
+#view .aisle-title + .list > li { border-top-color: color-mix(in srgb, var(--tile-text) 9%, transparent); }
+#view .aisle-title + .list .check { border-color: color-mix(in srgb, var(--tile-text) 45%, transparent); }
+#view .aisle-title + .list .list-main small, #view .aisle-title + .list .icon-btn { color: color-mix(in srgb, var(--tile-text) 70%, transparent); }
+#view .aisle-title + .list .star-btn.is-on { color: var(--tile-text); }
+.qty-pill { background: var(--hero); color: var(--on-hero); }
+.aisle-title, .section-title { text-transform: none; letter-spacing: -0.01em; font-size: 15px; font-weight: 750; color: var(--text); }
+.aisle-title::before { border-radius: 3px; }

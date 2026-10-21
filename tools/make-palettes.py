@@ -22,6 +22,7 @@ PALETTES = [
     {'id': 'neon', 'name': 'Neon', 'show': ['#CCFF00', '#FF6B00', '#F900FF', '#5200FF'], 'base': '#5200FF', 'c1': '#CCFF00', 'c2': '#FF6B00', 'c3': '#F900FF', 'accent': '#5200FF'},
     {'id': 'fruehling', 'name': 'Frühling', 'show': ['#89F336', '#38A711', '#F23598', '#A835F2'], 'base': '#89F336', 'c1': '#89F336', 'c2': '#F23598', 'c3': '#38A711', 'accent': '#A835F2'},
     {'id': 'pastell', 'name': 'Pastell', 'show': ['#81D8D0', '#D99E82', '#D7D982', '#AE82D9'], 'base': '#81D8D0', 'c1': '#D7D982', 'c2': '#D99E82', 'c3': '#81D8D0', 'accent': '#AE82D9'},
+    {'id': 'lavendel', 'name': 'Lavendel', 'show': ['#C1BFFF', '#D8D27E', '#FFB59A', '#CF6DFC'], 'base': '#C1BFFF', 'c1': '#D8D27E', 'c2': '#C1BFFF', 'c3': '#FFB59A', 'accent': '#CF6DFC'},
     {'id': 'garten', 'name': 'Garten', 'show': ['#A8DCAB', '#519755', '#DBAAA7', '#BE91BE'], 'base': '#A8DCAB', 'c1': '#BE91BE', 'c2': '#DBAAA7', 'c3': '#A8DCAB', 'accent': '#519755'},
 ]
 # Für die Auswahl: das Standard-Design (Farben aus css/styles.css)
