@@ -408,11 +408,12 @@ function editTodo(cur, id) {
         : ''}
       <label class="field"><span>Notiz</span>
         <textarea class="textarea" name="note" maxlength="500">${esc(t.note)}</textarea>
-      </label>
-      <button type="button" class="btn btn-block todo-cal-btn" data-sheet-action="calendar">${icon('calendar')}In Apple-Kalender eintragen</button>
-      <p class="muted small" style="margin:8px 0 0">${isInCalendar(t.id) ? 'Schon einmal eingetragen. Änderungen hier übernimmt der Kalender nicht von selbst – bei Bedarf neu eintragen.' : 'Ohne Uhrzeit ganztägig, mit Uhrzeit eine Stunde mit Erinnerung 15 Minuten vorher.'}</p>`,
+      </label>`,
     submitLabel: 'Speichern',
-    footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Löschen</button>`,
+    // Kalender ganz unten: seltener gebraucht als Speichern und Löschen
+    footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Löschen</button>
+      <button type="button" class="btn btn-block todo-cal-btn" data-sheet-action="calendar">${icon('calendar')}In Apple-Kalender eintragen</button>
+      ${isInCalendar(t.id) ? '<p class="muted small todo-cal-hint">Schon eingetragen – Änderungen bei Bedarf neu eintragen.</p>' : ''}`,
     onSubmit: (_, f) => save(f),
     actions: {
       change(el, f) {

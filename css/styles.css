@@ -444,7 +444,8 @@ button { cursor: pointer; }
 .todo-assign .chip:first-child { padding-left: 12px; }
 .todo-assign .chip:has(input:focus-visible) { outline: 2px solid var(--accent); }
 .todo-time-hint { margin: -8px 0 14px; }
-.todo-cal-btn { background: var(--suggest-bg); color: var(--suggest-text); }
+.todo-cal-btn { background: var(--suggest-bg); color: var(--suggest-text); margin-top: 6px; }
+.todo-cal-hint { margin: 0; text-align: center; }
 
 /* ---------- Kühlschrank (Essen) ---------- */
 .fridge-list .is-urgent .check { border-color: var(--minus); }
