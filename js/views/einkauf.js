@@ -274,6 +274,56 @@ function untilHtml(open, hidden, until) {
   </div>`;
 }
 
+// ---------- Einkaufsmodus (im Laden) ----------
+// Vollbild mit grosser Schrift, nach Abteilungen in der Reihenfolge des Ladens. Antippen = im Wagen (abgehakt,
+// bleibt durchgestrichen sichtbar, bis man „Fertig“ tippt). Der Bildschirm bleibt an (Wake Lock, ab iOS 16.4).
+// Zeigt dieselben Artikel wie die Liste (auch mit „Einkaufen für … bis“).
+const MODE_KEY = 'haushalt.shopMode';
+let modeSince = (() => { try { return Number(sessionStorage.getItem(MODE_KEY)) || 0; } catch { return 0; } })();
+let wakeLock = null;
+async function keepAwake() {
+  try { wakeLock = modeSince && document.visibilityState === 'visible' ? await navigator.wakeLock?.request('screen') : null; } catch { wakeLock = null; }
+}
+document.addEventListener('visibilitychange', () => { if (modeSince && document.visibilityState === 'visible') keepAwake(); });
+if (modeSince) keepAwake(); // nach dem Neuladen mitten im Einkauf
+function setMode(on) {
+  modeSince = on ? Date.now() : 0;
+  try {
+    if (on) sessionStorage.setItem(MODE_KEY, String(modeSince));
+    else sessionStorage.removeItem(MODE_KEY);
+  } catch { /* privates Fenster */ }
+  if (on) keepAwake();
+  else { wakeLock?.release?.().catch(() => {}); wakeLock = null; }
+}
+
+function modeHtml(open) {
+  // Offen plus was seit Beginn des Einkaufs abgehakt wurde
+  const got = state.shopping.filter((i) => i.done && (i.doneAt || 0) >= modeSince);
+  const items = [...open, ...got];
+  const groups = new Map(aisleOrder(state.settings).map((id) => [id, []]));
+  for (const i of items) groups.get(aisleOf(i.name, state.terms)).push(i);
+  const row = (i) => `
+    <button type="button" class="mode-item${i.done ? ' is-got' : ''}" data-action="toggle" data-id="${i.id}" aria-pressed="${i.done}" aria-label="${esc(i.name)}${i.done ? ' – im Wagen, antippen zum Zurücklegen' : ''}">
+      <span class="mode-box">${icon('check')}</span>
+      <span class="mode-name">${esc(i.name)}${i.star && !i.done ? ` ${icon('star', 'icon-xs')}` : ''}${smallHtml(i)}</span>
+      ${i.qty ? `<span class="mode-qty">${esc(i.qty)}</span>` : ''}
+    </button>`;
+  const total = items.length;
+  return `
+    <div class="mode-head">
+      <strong>${icon('cart', 'icon-sm')} Einkaufsmodus</strong>
+      <button type="button" class="mode-done" data-action="shopModeOff">Fertig</button>
+    </div>
+    <div class="mode-count">${got.length} <span>von ${total}</span></div>
+    <div class="mode-bar"><i style="width:${total ? Math.round((got.length / total) * 100) : 0}%"></i></div>
+    ${total && !open.length ? '<p class="mode-all">Alles im Wagen 🎉</p>' : ''}
+    ${[...groups].filter(([, list]) => list.length).map(([id, list], n) => `
+      <h3 class="mode-aisle">${esc(aisleLabel(id))}<span>${list.filter((i) => !i.done).length || '✓'}</span></h3>
+      <div class="mode-group mode-group-${(n % 3) + 1}">${list.sort((a, b) => Number(a.done) - Number(b.done) || a.name.localeCompare(b.name, 'de')).map(row).join('')}</div>`).join('')}
+    ${total ? '' : '<p class="mode-all">Die Liste ist leer.</p>'}
+    <p class="mode-foot">Antippen = im Wagen · nochmals antippen = zurücklegen</p>`;
+}
+
 // Antippen des Namens: Menge, Notiz und Abteilung (nur bei offenen Artikeln)
 const qtyHtml = (i) => (i.qty ? ` <span class="qty-pill">${esc(i.qty)}</span>` : '');
 const smallHtml = (i) => {
@@ -300,6 +350,8 @@ export default {
     const until = shopUntil();
     const open = until ? allOpen.filter((i) => !(neededFrom(i) > until)) : allOpen;
     const done = state.shopping.filter((i) => i.done);
+    document.documentElement.toggleAttribute('data-shopmode', Boolean(modeSince));
+    if (modeSince) return modeHtml(open);
     const mode = sortMode();
     // Nach Abteilungen in der Reihenfolge des Ladens, innerhalb einer Abteilung alphabetisch
     // Mit Stern markierte Artikel stehen zuoberst unter „Wichtig“, der Rest wie gewählt sortiert
@@ -336,6 +388,7 @@ export default {
           </div>
           <button type="button" class="btn btn-ghost btn-sm" data-action="terms">${icon('settings', 'icon-sm')} Begriffe</button>
         </div>
+        <button type="button" class="mode-start" data-action="shopModeOn">${icon('cart', 'icon-sm')} Im Laden? Einkaufsmodus starten</button>
         ${openHtml}`
         : `<div class="empty"><strong>Alles eingekauft</strong>Neue Artikel oben eintragen.
           <p><button type="button" class="btn btn-ghost btn-sm" data-action="terms">${icon('settings', 'icon-sm')} Einkaufsbegriffe verwalten</button></p></div>`}
@@ -370,6 +423,16 @@ export default {
       document.getElementById('shop-suggest').innerHTML = suggestionsHtml(keep);
     },
     terms() { openTerms(); },
+    shopModeOn() {
+      setMode(true);
+      refresh();
+      window.scrollTo(0, 0);
+    },
+    shopModeOff() {
+      setMode(false);
+      refresh();
+      window.scrollTo(0, 0);
+    },
     until(el) {
       try {
         if (el.dataset.until) localStorage.setItem(UNTIL_KEY, JSON.stringify({ until: el.dataset.until, set: todayKey() }));

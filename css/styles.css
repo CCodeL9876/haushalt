@@ -712,3 +712,40 @@ button { cursor: pointer; }
   .tabbar { left: 8px; right: 8px; padding: 5px; gap: 0; }
   .tab span { font-size: 9.5px; letter-spacing: -0.02em; }
 }
+
+/* ---------- Einkaufsmodus (js/views/einkauf.js) ----------
+   Vollbild auf der dunklen Fläche des Farbdesigns, Abteilungen in den Kachelfarben, grosse Schrift */
+:root[data-shopmode][data-view="einkauf"] body { background: var(--hero); color: var(--on-hero); padding-bottom: calc(var(--safe-bottom) + 24px); }
+:root[data-shopmode][data-view="einkauf"] .topbar,
+:root[data-shopmode][data-view="einkauf"] .tabbar { display: none; }
+:root[data-shopmode][data-view="einkauf"] .view { padding-top: calc(var(--safe-top) + 14px); }
+.mode-start {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; margin: 0 0 4px;
+  border: 0; border-radius: 16px; background: var(--hero); color: var(--on-hero); font-weight: 750;
+}
+.mode-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mode-head strong { display: flex; align-items: center; gap: 8px; font-size: 15px; opacity: 0.8; }
+.mode-done { min-height: 42px; padding: 0 18px; border: 0; border-radius: 14px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 16px; }
+.mode-count { margin: 14px 2px 6px; font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.mode-count span { opacity: 0.5; }
+.mode-bar { height: 10px; border-radius: 5px; background: color-mix(in srgb, var(--on-hero) 14%, transparent); overflow: hidden; margin: 8px 0 6px; }
+.mode-bar i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--accent), var(--tile-1-bg)); transition: width 0.25s; }
+.mode-aisle { display: flex; justify-content: space-between; margin: 20px 4px 8px; font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tile-1-badge); }
+.mode-aisle span { color: var(--on-hero); opacity: 0.6; letter-spacing: 0; }
+.mode-group { display: grid; gap: 8px; --mode-bg: var(--tile-1-bg); }
+.mode-group-2 { --mode-bg: var(--tile-2-bg); }
+.mode-group-3 { --mode-bg: var(--tile-3-bg); }
+.mode-item {
+  display: flex; align-items: center; gap: 16px; width: 100%; min-height: 66px; padding: 12px 16px; border: 0; border-radius: 22px;
+  background: var(--mode-bg); color: var(--tile-text); text-align: left; font-size: 21px; font-weight: 750; line-height: 1.2;
+}
+.mode-box { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 10px; border: 3px solid color-mix(in srgb, var(--tile-text) 50%, transparent); color: transparent; }
+.mode-box .icon { width: 20px; height: 20px; }
+.mode-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mode-name small { display: block; margin-top: 2px; font-size: 14px; font-weight: 600; opacity: 0.7; }
+.mode-qty { flex: none; padding: 4px 10px; border-radius: 10px; background: var(--hero); color: var(--on-hero); font-size: 16px; }
+.mode-item.is-got { opacity: 0.4; }
+.mode-item.is-got .mode-name { text-decoration: line-through; }
+.mode-item.is-got .mode-box { background: var(--tile-text); border-color: var(--tile-text); color: var(--mode-bg); }
+.mode-all { margin: 18px 4px; font-size: 20px; font-weight: 800; }
+.mode-foot { margin: 22px 0 0; text-align: center; font-size: 13px; opacity: 0.6; }
