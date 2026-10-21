@@ -289,7 +289,7 @@ button { cursor: pointer; }
 .pick-row:last-child { border-bottom: 0; }
 .pick-row input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
 .import-status a { color: var(--accent-text); font-weight: 600; }
-.link-field summary { font-size: 14px; font-weight: 600; color: var(--text-soft); cursor: pointer; min-height: 32px; }
+.ideas-field summary, .link-field summary { font-size: 14px; font-weight: 600; color: var(--text-soft); cursor: pointer; min-height: 32px; }
 .recipe-link { color: var(--accent-text); font-weight: 600; }
 .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--tag-1-bg); color: var(--tag-text); font-size: 12px; font-weight: 600; }
 .tag:nth-child(4n+2) { background: var(--tag-2-bg); }

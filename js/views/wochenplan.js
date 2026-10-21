@@ -84,6 +84,8 @@ function fridgeHint() {
 // Zutaten eines Menüs mit Tag – auf der Einkaufsliste lassen sie sich dann bis zu diesem Tag ausblenden
 export const forMeal = (day, meal) => (ideaOf(meal)?.ingredients || []).map((line) => ({ line, meal: { day, title: mealTitle(meal) } }));
 
+const ideaChips = () => state.ideas.map((i) => `<button type="button" class="chip" data-sheet-action="pick" data-title="${esc(i.title)}">${esc(i.title)}</button>`).join('');
+
 function editMeal(day, slot) {
   const meal = state.plan[day]?.[slot];
   const slotLabel = SLOTS.find((s) => s.id === slot).label;
@@ -94,10 +96,12 @@ function editMeal(day, slot) {
         <input class="input" name="title" list="idea-list" value="${esc(mealTitle(meal))}" placeholder="z. B. Gemüsecurry" autocomplete="off">
         <datalist id="idea-list">${state.ideas.map((i) => `<option value="${esc(i.title)}">`).join('')}</datalist>
       </label>
-      ${state.ideas.length ? `
-        <div class="field"><span>Aus den Menüideen</span>
-          <div class="chips">${state.ideas.map((i) => `<button type="button" class="chip" data-sheet-action="pick" data-title="${esc(i.title)}">${esc(i.title)}</button>`).join('')}</div>
-        </div>` : ''}
+      ${!state.ideas.length ? '' : meal
+        // Schon ein Menü eingetragen: die Ideen nur auf Wunsch aufklappen (zum Ändern)
+        ? `<details class="field ideas-field"><summary>Anderes Menü aus den Menüideen (${state.ideas.length})</summary>
+            <div class="chips" style="margin-top:8px">${ideaChips()}</div>
+          </details>`
+        : `<div class="field"><span>Aus den Menüideen</span><div class="chips">${ideaChips()}</div></div>`}
       <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>`,
     submitLabel: 'Speichern',
     footer: meal ? `${ideaOf(meal)?.ingredients?.length ? `<button type="button" class="btn btn-block" data-sheet-action="shop">${icon('cart', 'icon-sm')} Zutaten einkaufen (${ideaOf(meal).ingredients.length})</button>` : ''}
