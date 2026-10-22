@@ -7,6 +7,7 @@ Schreibt:  css/palettes.css  (Farbwerte je Design, aktiv über <html data-palett
            js/palettes.js    (Namen und Farbtupfer für die Auswahl unter Haushalt → Farbdesign)
 
 Neues Design: unten in PALETTES eintragen und das Skript ausführen.
+  dark_tiles  (freiwillig) Kachelflächen für den dunklen Modus von Hand, z. B. {'tile-1-bg': '#5F2039'}
   base    Grundton für den Hintergrund (wird für hell stark aufgehellt, für dunkel stark abgedunkelt)
   c1      Farbe für Abhaken, aktiven Umschalter, Abschnittspunkte, „Abend“
   c2      Farbe für Vorschläge, „Heute“, „Mittag“
@@ -19,7 +20,9 @@ Das Standard-Design „Creme“ steht von Hand in css/styles.css (:root) und wir
 from pathlib import Path
 
 PALETTES = [
-    {'id': 'neon', 'name': 'Neon', 'show': ['#CCFF00', '#FF6B00', '#F900FF', '#5200FF'], 'base': '#5200FF', 'c1': '#CCFF00', 'c2': '#FF6B00', 'c3': '#F900FF', 'accent': '#5200FF'},
+    {'id': 'neon', 'name': 'Neon', 'show': ['#CCFF00', '#FF6B00', '#F900FF', '#5200FF'], 'base': '#5200FF', 'c1': '#CCFF00', 'c2': '#FF6B00', 'c3': '#F900FF', 'accent': '#5200FF',
+     # Dunkel: satte Neon-Töne auf dem Indigo statt Pflaume/Graulila – Himbeere, Elektro-Violett, Magenta-Lila
+     'dark_tiles': {'tile-1-bg': '#651A48', 'tile-2-bg': '#3300A0', 'tile-3-bg': '#580082'}},
     {'id': 'fruehling', 'name': 'Frühling', 'show': ['#89F336', '#38A711', '#F23598', '#A835F2'], 'base': '#89F336', 'c1': '#89F336', 'c2': '#F23598', 'c3': '#38A711', 'accent': '#A835F2'},
     {'id': 'pastell', 'name': 'Pastell', 'show': ['#81D8D0', '#D99E82', '#D7D982', '#AE82D9'], 'base': '#81D8D0', 'c1': '#D7D982', 'c2': '#D99E82', 'c3': '#81D8D0', 'accent': '#AE82D9'},
     {'id': 'lavendel', 'name': 'Lavendel', 'show': ['#C1BFFF', '#D8D27E', '#FFB59A', '#CF6DFC'], 'base': '#C1BFFF', 'c1': '#D8D27E', 'c2': '#C1BFFF', 'c3': '#FFB59A', 'accent': '#CF6DFC'},
@@ -256,6 +259,8 @@ def dark_tokens(p):
     }
     t['tile-badge-text'] = badge_text([c2, c1, c3], dark_ink)
     t['stat-bar'] = ensure(dacc, card, 3, WHITE)
+    # Von Hand gewählte Kachelflächen im Dunkeln (wo die Rechnung trübe Braun-/Grautöne ergibt)
+    t.update(p.get('dark_tiles', {}))
     return t
 
 
