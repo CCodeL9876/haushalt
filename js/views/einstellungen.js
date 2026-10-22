@@ -46,6 +46,7 @@ function applyTheme(mode) {
   else document.documentElement.setAttribute('data-theme', mode);
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = bg;
+  window.haushaltStatusBar?.(); // Statusleiste oben (js/palette-boot.js) – am iPhone ab dem nächsten Start der App
 }
 const themeHtml = () => {
   const cur = currentTheme();
@@ -194,6 +195,8 @@ export function openSettings() {
         document.querySelector('#sheet .theme-hint').textContent = btn.dataset.id === 'auto'
           ? 'Folgt der Einstellung des iPhones (hell am Tag, dunkel am Abend, falls so eingestellt).'
           : 'Gilt immer, unabhängig von der Einstellung des iPhones.';
+        // Die Leiste mit Uhr und Akku übernimmt iOS erst beim nächsten Start (js/palette-boot.js)
+        if (isIos() && isStandalone()) document.querySelector('#sheet .theme-hint').textContent += ' Ganz oben (Uhr, Akku) ab dem nächsten Öffnen der App.';
       },
       palette(btn) {
         applyPalette(btn.dataset.id);
