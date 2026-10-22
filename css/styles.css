@@ -809,21 +809,33 @@ button { cursor: pointer; }
 .loyalty-dots i.is-on { background: var(--accent); width: 18px; border-radius: 4px; }
 
 /* ---------- Abfuhrkalender (js/waste.js) ---------- */
-.tile-waste { background: var(--card); color: var(--text); }
-.tile-waste h3 { position: relative; display: flex; align-items: center; gap: 6px; }
-.tile-waste h3.waste-alert { opacity: 1; color: var(--accent-text); font-size: 13.5px; }
-.waste-grid { position: relative; pointer-events: none; display: grid; gap: 8px; margin-top: 8px; }
-.waste-kind {
-  display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 12px 10px 10px; border-radius: 18px;
-  background: var(--tile-1-bg); color: var(--tile-text);
+/* Startseite: Streifen für die nächste Abfuhr, übrige als Chips (js/views/heute.js) */
+.waste-b { grid-column: 1 / -1; display: grid; gap: 8px; min-width: 0; }
+.waste-next {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px;
+  background: var(--card); color: var(--text);
 }
-.waste-2 { background: var(--tile-2-bg); }
-.waste-3 { background: var(--tile-3-bg); }
-.waste-kind.is-soon { background: var(--hero); color: var(--on-hero); }
-.waste-icon { font-size: 22px; line-height: 1.1; margin-bottom: 4px; }
-.waste-name { font-size: 13px; font-weight: 700; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.waste-kind strong { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.waste-kind small { font-size: 12px; font-weight: 600; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.waste-next.is-soon { background: var(--hero); color: var(--on-hero); }
+.waste-text { flex: 1; min-width: 0; }
+.waste-text strong { display: block; font-size: 16.5px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; }
+.waste-text small { display: block; font-size: 13px; font-weight: 600; opacity: 0.72; }
+.waste-next > .icon-sm { opacity: 0.6; }
+.waste-dot {
+  display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 14px;
+  background: var(--tile-1-badge); color: var(--tile-badge-text);
+}
+.waste-dot.waste-c2 { background: var(--tile-2-badge); }
+.waste-dot.waste-c3 { background: var(--tile-3-badge); }
+.waste-dot.is-small { width: 22px; height: 22px; border-radius: 7px; }
+.waste-dot.is-small .icon-sm { width: 14px; height: 14px; }
+.waste-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
+.waste-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 5px; border-radius: 999px;
+  background: var(--chip); color: var(--text); font-size: 13px; font-weight: 650;
+}
+.waste-chip b { font-weight: 750; color: var(--muted); }
+.waste-note { display: block; padding: 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tile-plain .waste-note { padding: 0; }
 .waste-row { gap: 6px; }
 .waste-pick { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
 .waste-remind { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 12px; background: var(--chip); color: var(--text-soft); }
