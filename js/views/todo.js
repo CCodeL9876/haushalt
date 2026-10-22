@@ -344,7 +344,7 @@ function current() {
   return list ? { scope: open.scope, list, d, change: SCOPES[open.scope].change } : null;
 }
 
-function editTodo(cur, id) {
+function editTodo(cur, id, { isNew = false } = {}) {
   const t = cur.d.todos.find((x) => x.id === id);
   if (!t) return;
   const who = assignee(t)?.id || '';
@@ -406,7 +406,7 @@ function editTodo(cur, id) {
     if (alarm) alarm.hidden = !form.elements.due.value || !form.elements.time.value;
   };
   const form = openSheet({
-    title: 'ToDo',
+    title: isNew ? 'Neues ToDo' : 'ToDo',
     body: `
       <label class="field"><span>Was</span>
         <input class="input" name="title" value="${esc(t.title)}" required maxlength="120" autocomplete="off">
@@ -628,10 +628,15 @@ export default {
       const cur = current();
       const title = form.elements.title.value.trim();
       if (!cur || !title) return;
+      const id = uid();
       cur.change((d) => {
-        d.todos.push({ id: uid(), listId: cur.list.id, title: title.slice(0, 120), note: '', done: false, due: '', time: '', addedAt: Date.now() });
+        d.todos.push({ id, listId: cur.list.id, title: title.slice(0, 120), note: '', done: false, due: '', time: '', addedAt: Date.now() });
       });
-      document.getElementById('todo-input')?.focus();
+      // Gleich die weiteren Angaben (Datum, Uhrzeit, für wen, Erinnern …) – „Speichern“ oder Schliessen genügt,
+      // wenn keine nötig sind; das ToDo steht schon in der Liste
+      document.getElementById('todo-input')?.blur();
+      const now = current();
+      if (now) editTodo(now, id, { isNew: true });
     },
   },
 };
