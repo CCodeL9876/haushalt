@@ -67,7 +67,13 @@ function editIdea(id) {
       async import(btn, form) {
         const url = normalizeUrl(form.elements.url.value);
         const status = form.querySelector('.import-status');
-        if (!url) return form.elements.url.focus();
+        if (!url) {
+          status.textContent = form.elements.url.value.trim()
+            ? 'Darin ist kein Link zu erkennen – bitte die Adresse der Rezeptseite einfügen (https://…).'
+            : 'Zuerst den Link zur Rezeptseite einfügen.';
+          return form.elements.url.focus();
+        }
+        form.elements.url.value = url; // nur die Adresse, ohne geteilten Text drumherum
         btn.disabled = true;
         status.textContent = 'Wird eingelesen …';
         try {

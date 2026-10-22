@@ -5,13 +5,16 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, RECIPE_IMPORT_URL } from './config.js'
 
 export const recipeImportAvailable = () => Boolean(RECIPE_IMPORT_URL || (SUPABASE_URL && SUPABASE_ANON_KEY));
 
-// „bettybossi.ch/…“ → „https://bettybossi.ch/…“; alles ausser http(s) → ''
+// „bettybossi.ch/…“ → „https://bettybossi.ch/…“; alles ausser http(s) → ''.
+// Geteilter Text aus einer App („Schau mal, Risotto: https://…“) enthält die Adresse irgendwo – die erste nehmen.
 export function normalizeUrl(value) {
   const v = String(value || '').trim();
   if (!v) return '';
+  const found = /https?:\/\/[^\s<>"'“”«»]+/i.exec(v) || /\bwww\.[^\s<>"'“”«»]+/i.exec(v);
+  const candidate = found ? found[0].replace(/[.,;:!?)\]]+$/, '') : v;
   try {
-    const url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(v) ? v : `https://${v}`);
-    return /^https?:$/.test(url.protocol) ? url.href : '';
+    const url = new URL(/^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`);
+    return /^https?:$/.test(url.protocol) && url.hostname.includes('.') ? url.href : '';
   } catch {
     return '';
   }
