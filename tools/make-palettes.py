@@ -118,6 +118,46 @@ def toward(bg, color, start, target=SURFACE_APART):
     return color
 
 
+# Dunkler Modus: Dort zählt vor allem die Helligkeit (L aus CIELAB, 0–100). Ein sehr dunkler Hintergrund
+# (z. B. Neon: fast Schwarz) lässt sonst Karten und Felder darin verschwinden.
+DARK_BG_L = 7      # Hintergrund mindestens so hell
+DARK_CARD_L = 6    # Karten so viel heller als der Hintergrund
+DARK_CHIP_L = 10   # Felder, Umschalter
+DARK_LINE_L = 15   # Trennlinien
+DARK_SURFACE_L = 9 # farbige Kacheln und Felder (Mittag, Abend …)
+
+
+def light_l(h):
+    return lab(h)[0]
+
+
+def dark_bg(base):
+    """dunkler Hintergrund im Ton der Grundfarbe – nicht schwärzer als DARK_BG_L"""
+    for i in range(90, 59, -1):
+        c = mix(base, BLACK, i / 100)
+        if light_l(c) >= DARK_BG_L:
+            return c
+    return mix(base, BLACK, 0.6)
+
+
+def dark_step(base, bg, start, target):
+    """Fläche aus base, abgedunkelt mit Anteil start; heller (weniger Schwarz), bis sie target heller ist als bg"""
+    for i in range(int(start * 100), 29, -1):
+        c = mix(base, BLACK, i / 100)
+        if light_l(c) - light_l(bg) >= target:
+            return c
+    return mix(base, BLACK, 0.3)
+
+
+def dark_apart(color, bg, share, target=DARK_SURFACE_L):
+    """farbige Fläche: color mit Anteil share Hintergrund; weniger Hintergrund, bis sie target heller ist"""
+    for i in range(int(share * 100), -1, -1):
+        c = mix(color, bg, i / 100)
+        if light_l(c) - light_l(bg) >= target:
+            return c
+    return color
+
+
 def on(color, dark):
     """Schrift auf einer Farbfläche: die dunkle Wunschfarbe, wenn sie gut lesbar ist, sonst Weiss"""
     return dark if contrast(dark, color) >= 4.5 or contrast(dark, color) >= contrast(WHITE, color) else WHITE
@@ -185,33 +225,33 @@ def light_tokens(p):
 
 def dark_tokens(p):
     c1, c2, c3, acc = p['c1'], p['c2'], p['c3'], p['accent']
-    bg = mix(p['base'], BLACK, 0.9)
-    card = mix(p['base'], BLACK, 0.86)
+    bg = dark_bg(p['base'])
+    card = dark_step(p['base'], bg, 0.86, DARK_CARD_L)
     text = ensure(mix(light_bg(p['base']), WHITE, 0.3), bg, 13, WHITE)
     # Hauptfarbe: zu dunkle (z. B. Violett) durch die hellste der anderen Farben ersetzen
     dacc = acc if contrast(acc, card) >= 3.5 else max((c1, c2, c3), key=lambda c: contrast(c, card))
     dacc_text = ensure(dacc, card, 4.6, WHITE)
     dark_ink = mix(bg, BLACK, 0.3)
     t = {
-        'bg': bg, 'card': card, 'chip': mix(p['base'], BLACK, 0.8), 'line': mix(p['base'], BLACK, 0.74),
+        'bg': bg, 'card': card, 'chip': dark_step(p['base'], bg, 0.8, DARK_CHIP_L), 'line': dark_step(p['base'], bg, 0.74, DARK_LINE_L),
         'text': text, 'text-soft': mix(text, bg, 0.12), 'muted': ensure(mix(text, bg, 0.4), card, 4.6, WHITE),  # neutral, damit aktive Tabs auffallen
         'accent': dacc, 'accent-hover': mix(dacc, WHITE, 0.15), 'accent-tint': mix(c2, bg, 0.82),
         'accent-text': dacc_text, 'on-accent': on(dacc, dark_ink),
-        'plus': '#A9C97C', 'minus': '#F08B7C', 'bar': dacc, 'bar-track': mix(p['base'], BLACK, 0.8),
+        'plus': '#A9C97C', 'minus': '#F08B7C', 'bar': dacc, 'bar-track': dark_step(p['base'], bg, 0.8, DARK_CHIP_L),
         'tab-active': dacc_text, 'check-border': mix(c1, bg, 0.35),
         'suggest-bg': mix(c2, bg, 0.78), 'suggest-text': ensure(c2, mix(c2, bg, 0.78), 4.6, WHITE),
         'suggest-icon': ensure(dacc, mix(c2, bg, 0.78), 3, WHITE),
-        'seg-bg': mix(p['base'], BLACK, 0.8), 'seg-active-bg': c1, 'seg-active-text': on(c1, dark_ink),
+        'seg-bg': dark_step(p['base'], bg, 0.8, DARK_CHIP_L), 'seg-active-bg': c1, 'seg-active-text': on(c1, dark_ink),
         'section-text': ensure(c1, bg, 4.6, WHITE), 'section-dot': c1,
         'today-ring': dacc, 'today-pill-bg': c2, 'today-pill-text': on(c2, dark_ink),
-        'mittag-bg': mix(c2, bg, 0.85), 'mittag-label-bg': c2, 'mittag-label-text': on(c2, dark_ink),
-        'abend-bg': mix(c1, bg, 0.88), 'abend-label-bg': c1, 'abend-label-text': on(c1, dark_ink),
+        'mittag-bg': dark_apart(c2, bg, 0.85), 'mittag-label-bg': c2, 'mittag-label-text': on(c2, dark_ink),
+        'abend-bg': dark_apart(c1, bg, 0.88), 'abend-label-bg': c1, 'abend-label-text': on(c1, dark_ink),
         'week-btn-bg': c2, 'week-btn-text': on(c2, dark_ink),
         'idea-1': c1, 'idea-2': c2, 'idea-3': c3, 'idea-4': mix(c1, bg, 0.4),
         'tag-1-bg': c1, 'tag-2-bg': c2, 'tag-3-bg': c3, 'tag-4-bg': mix(c2, bg, 0.82),
         'tag-text': badge_text([c1, c2, c3], dark_ink), 'tag-4-text': ensure(c2, mix(c2, bg, 0.82), 4.6, WHITE),
-        'tile-1-bg': mix(c2, bg, 0.8), 'tile-1-badge': c2, 'tile-2-bg': mix(c1, bg, 0.85), 'tile-2-badge': c1,
-        'tile-3-bg': mix(c3, bg, 0.8), 'tile-3-badge': c3, 'tile-text': text,
+        'tile-1-bg': dark_apart(c2, bg, 0.8), 'tile-1-badge': c2, 'tile-2-bg': dark_apart(c1, bg, 0.85), 'tile-2-badge': c1,
+        'tile-3-bg': dark_apart(c3, bg, 0.8), 'tile-3-badge': c3, 'tile-text': text,
         'shadow': '0 1px 3px rgba(0, 0, 0, 0.45)', 'shadow-lg': '0 -10px 40px rgba(0, 0, 0, 0.5)',
     }
     t['tile-badge-text'] = badge_text([c2, c1, c3], dark_ink)
@@ -243,9 +283,18 @@ SURFACES = [('card', CARD_APART), ('tile-1-bg', SURFACE_APART), ('tile-2-bg', SU
             ('mittag-bg', SURFACE_APART), ('abend-bg', SURFACE_APART)]
 
 
+DARK_SURFACES = [('card', DARK_CARD_L), ('chip', DARK_CHIP_L), ('line', DARK_LINE_L), ('tile-1-bg', DARK_SURFACE_L),
+                 ('tile-2-bg', DARK_SURFACE_L), ('tile-3-bg', DARK_SURFACE_L), ('mittag-bg', DARK_SURFACE_L), ('abend-bg', DARK_SURFACE_L)]
+
+
 def report(name, mode, t):
     bad = [(a, b, contrast(t[a], t[b]), need) for a, b, need in CHECKS if contrast(t[a], t[b]) < need]
     status = 'ok' if not bad else ', '.join(f'{a} auf {b} {c:.1f}:1 (soll {n})' for a, b, c, n in bad)
+    if mode == 'dunkel':
+        weak = [(k, light_l(t[k]) - light_l(t['bg']), need) for k, need in DARK_SURFACES if light_l(t[k]) - light_l(t['bg']) < need - 0.05]
+        if weak:
+            bad += weak
+            status = (status if status != 'ok' else '') + ' '.join(f'{k} hebt sich kaum ab (ΔL {d:.1f}, soll {n})' for k, d, n in weak)
     if mode == 'hell':
         weak = [(k, delta_e(t[k], t['bg']), need) for k, need in SURFACES if delta_e(t[k], t['bg']) < need - 0.05]
         if weak:
