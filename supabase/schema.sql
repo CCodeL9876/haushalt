@@ -282,3 +282,71 @@ $$;
 
 revoke all on function public.set_household_code(text, text) from public;
 grant execute on function public.set_household_code(text, text) to anon, authenticated;
+
+-- ---------- Erinnerung vor einem ToDo (js/alarms.js, Funktion „push“) ----------
+-- Für ToDos mit Datum, Uhrzeit und „Erinnern“: wann die Mitteilung kommen soll (at, von der App in Schweizer Zeit
+-- berechnet), an wen (member_id; leer = alle im Haushalt) und mit welchem Text. Bei geteilten ToDos stehen Titel
+-- ohnehin in items; bei persönlichen nur hier und nur bis zur Mitteilung bzw. bis die Erinnerung entfernt wird.
+create table if not exists public.push_alarms (
+  household_key  text not null references public.households (key) on delete cascade,
+  id             text not null check (char_length(id) between 1 and 64),
+  member_id      text check (char_length(member_id) <= 64),
+  at             timestamptz not null,
+  title          text not null check (char_length(title) <= 160),
+  body           text not null default '' check (char_length(body) <= 160),
+  url            text not null default '' check (char_length(url) <= 200),
+  sent           boolean not null default false,
+  updated_at     timestamptz not null default now(),
+  primary key (household_key, id)
+);
+alter table public.push_alarms enable row level security;
+revoke all on public.push_alarms from anon, authenticated;
+
+-- Erinnerung setzen oder ändern (gleiche id = gleiches ToDo); eine geänderte Zeit wird wieder „nicht verschickt“
+create or replace function public.push_alarm_set(p_id text, p_member text, p_at timestamptz, p_title text, p_body text, p_url text)
+returns boolean
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  k text := public.request_header('x-hh-key');
+begin
+  if not public.household_access_ok() then
+    raise exception 'Zugangscode stimmt nicht';
+  end if;
+  -- Schutz vor Missbrauch: höchstens 500 offene Erinnerungen pro Haushalt
+  if (select count(*) from public.push_alarms where household_key = k and not sent and id <> p_id) >= 500 then
+    raise exception 'zu viele Erinnerungen';
+  end if;
+  insert into public.push_alarms (household_key, id, member_id, at, title, body, url)
+  values (k, p_id, nullif(p_member, ''), p_at, left(p_title, 160), left(coalesce(p_body, ''), 160), left(coalesce(p_url, ''), 200))
+  on conflict (household_key, id) do update
+    set member_id = excluded.member_id, title = excluded.title, body = excluded.body, url = excluded.url,
+        sent = case when public.push_alarms.at = excluded.at then public.push_alarms.sent else false end,
+        at = excluded.at, updated_at = now();
+  return true;
+end
+$$;
+
+create or replace function public.push_alarm_clear(p_id text)
+returns boolean
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.household_access_ok() then
+    raise exception 'Zugangscode stimmt nicht';
+  end if;
+  delete from public.push_alarms where household_key = public.request_header('x-hh-key') and id = p_id;
+  return true;
+end
+$$;
+
+revoke all on function public.push_alarm_set(text, text, timestamptz, text, text, text) from public;
+revoke all on function public.push_alarm_clear(text) from public;
+grant execute on function public.push_alarm_set(text, text, timestamptz, text, text, text) to anon, authenticated;
+grant execute on function public.push_alarm_clear(text) to anon, authenticated;

@@ -18,6 +18,7 @@ import { refreshReminder } from './reminder.js';
 import { cleanup } from './cleanup.js';
 import { setupSwipe } from './swipe.js';
 import { quickAdd } from './quickadd.js';
+import { scheduleAlarmSync } from './alarms.js';
 import { AccessError } from './remote.js';
 import { setupPullToRefresh } from './refresh.js';
 import heute from './views/heute.js';
@@ -138,6 +139,7 @@ boot(() => {
   // Push-Abo dieses Geräts in Supabase auffrischen (js/push.js), danach die Morgen-Erinnerung (js/reminder.js) –
   // nach einem neuen Zugangscode sind beide in Supabase gelöscht und werden so wieder hinterlegt
   refreshPush(currentMember()?.id).then(refreshReminder);
+  scheduleAlarmSync(); // Erinnerungen vor ToDos in Supabase nachführen (js/alarms.js)
   // Änderungen der anderen holen: regelmässig und sobald die App wieder in den Vordergrund kommt
   setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 15000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pull(); });

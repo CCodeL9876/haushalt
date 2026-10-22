@@ -158,3 +158,8 @@ export async function testTodoReminder() {
   if (!res.ok) throw new Error(data?.error || `Fehler ${res.status}`);
   return data || {};
 }
+
+// ---------- Erinnerung vor einem ToDo (js/alarms.js) ----------
+// at: Zeitpunkt der Mitteilung (Date), member: wer sie bekommt ('' = alle im Haushalt)
+export const setAlarm = (a) => rpc('push_alarm_set', { p_id: a.id, p_member: a.member || '', p_at: a.at, p_title: a.title, p_body: a.body, p_url: a.url });
+export const clearAlarm = (id) => rpc('push_alarm_clear', { p_id: id });

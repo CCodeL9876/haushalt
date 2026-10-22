@@ -6,6 +6,7 @@
 //    · Kühlschrank: ab 17 Uhr (Schweizer Zeit) Reste am Vortag („bis morgen aufbrauchen“) und am letzten Tag („heute“).
 //    · Vortag: ab 18 Uhr an alle Geräte des Haushalts, wenn ein geteiltes ToDo mit „am Vortag erinnern“ (remind)
 //      morgen fällig ist – z. B. Altpapier oder Grüngut aus dem Abfuhrplan.
+//    · Erinnerung vor einem ToDo (Datum, Uhrzeit, „Erinnern“): kurz vor dem gewählten Zeitpunkt (Tabelle push_alarms).
 //    · Abfuhrkalender: ab 18 Uhr an alle Geräte des Haushalts, wenn morgen eine Abfuhr mit Glocke ansteht
 //      (Haushalt → Abfuhrkalender, gespeichert in settings.waste).
 //    Jede Erinnerung nur einmal (Tabelle push_sent). Ohne Fälliges passiert nichts – darum ohne Anmeldung.
@@ -345,8 +346,31 @@ async function wasteReminders() {
   return { households: sent };
 }
 
+// ---------- Erinnerung vor einem ToDo (push_alarms, js/alarms.js) ----------
+// Der Zeitplan läuft alle 5 Minuten: Was in den nächsten 4 Minuten fällig ist, geht jetzt raus – so kommt die
+// Mitteilung höchstens ein paar Minuten zu früh statt zu spät. Älter als eine Stunde: verpasst, nicht mehr schicken.
+
+async function alarmReminders() {
+  const now = Date.now();
+  const due = await db(`push_alarms?sent=eq.false&at=lte.${encodeURIComponent(new Date(now + 4 * 60000).toISOString())}&at=gte.${encodeURIComponent(new Date(now - 3600000).toISOString())}&select=household_key,id,member_id,title,body,url&limit=200`);
+  let sent = 0;
+  for (const a of due || []) {
+    const member = a.member_id ? `&member_id=eq.${encodeURIComponent(a.member_id)}` : '';
+    const subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(a.household_key)}${member}&select=endpoint,p256dh,auth`);
+    const payload = { title: `⏰ ${clip(a.title, 80)}`, body: clip(a.body, 120), url: /^#[a-z]+(\/[a-z]+\/[a-z0-9]+)?$/i.test(a.url || '') ? a.url : '#todo', tag: `alarm-${a.id}` };
+    const results = subs?.length ? await Promise.all(subs.map((s) => send(s, payload))) : [];
+    // Kein Gerät angemeldet: trotzdem als erledigt merken, sonst würde es bei jedem Lauf wieder versucht
+    if (subs?.length && !results.some(Boolean)) continue;
+    await db(`push_alarms?household_key=eq.${encodeURIComponent(a.household_key)}&id=eq.${encodeURIComponent(a.id)}`, { method: 'PATCH', body: { sent: true }, prefer: 'return=minimal' });
+    if (results.some(Boolean)) sent += 1;
+  }
+  // Verschickte nach einer Woche löschen (bei persönlichen ToDos stehen Titel drin)
+  await db(`push_alarms?sent=eq.true&at=lt.${encodeURIComponent(new Date(now - 7 * 86400000).toISOString())}`, { method: 'DELETE' });
+  return { sent };
+}
+
 async function reminders() {
-  return { todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), fridge: await fridgeReminders() };
+  return { alarm: await alarmReminders(), todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), fridge: await fridgeReminders() };
 }
 
 async function test(household, body) {

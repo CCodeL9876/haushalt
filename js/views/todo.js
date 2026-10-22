@@ -7,6 +7,7 @@ import { disableSync, enableSync, personal, remoteCopyExists, syncAvailable, syn
 import { addToCalendar, isInCalendar } from '../calendar.js';
 import { openReminder, reminderSummary } from '../reminder.js';
 import { notifyAssigned, pushConfigured } from '../push.js';
+import { ALARM_CHOICES, alarmLabel } from '../alarms.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { currentMember } from '../login.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
@@ -287,6 +288,7 @@ function todoItem(t) {
         t.due ? `<span class="${overdue(t) ? 'amount-minus' : ''}">${esc(dueLabel(t))}</span>` : '',
         t.repeat && !t.done ? `<span class="todo-repeat">${icon('refresh', 'icon-xs')} ${esc(repeatLabel(t))}</span>` : '',
         t.remind && t.due && !t.done && remindShown() ? `<span class="todo-repeat" title="Erinnerung am Vortag">${icon('bell', 'icon-xs')} Vortag</span>` : '',
+        t.alarm && t.time && !t.done ? `<span class="todo-repeat" title="Erinnerung vor dem ToDo">${icon('bell', 'icon-xs')} ${esc(alarmLabel(t.alarm))}</span>` : '',
         esc(t.note),
       ].filter(Boolean).join(' · ')}</small>` : ''}
     </button>
@@ -380,6 +382,10 @@ function editTodo(cur, id) {
       else delete item.repeat;
       if (form.elements.remind?.checked && item.due) item.remind = true;
       else delete item.remind;
+      // Erinnerung vor dem ToDo: nur mit Datum und Uhrzeit (js/alarms.js)
+      const alarm = Number(form.elements.alarm?.value) || 0;
+      if (alarm && item.due && item.time) item.alarm = alarm;
+      else delete item.alarm;
     });
     // Neu einer anderen Person zugewiesen → Mitteilung an sie (js/push.js)
     const to = form.elements.assignee?.value || '';
@@ -393,9 +399,11 @@ function editTodo(cur, id) {
     const remind = form.querySelector('.remind-field');
     if (remind) remind.hidden = !form.elements.due.value && form.elements.repeat.value !== 'plan';
   };
-  // Uhrzeit nur mit Datum (ohne Datum wird sie nicht gespeichert)
+  // Uhrzeit nur mit Datum (ohne Datum wird sie nicht gespeichert); „Erinnern“ nur mit Datum und Uhrzeit
   const timeNeedsDate = (form) => {
     form.elements.time.disabled = !form.elements.due.value;
+    const alarm = form.querySelector('.alarm-field');
+    if (alarm) alarm.hidden = !form.elements.due.value || !form.elements.time.value;
   };
   const form = openSheet({
     title: 'ToDo',
@@ -415,6 +423,12 @@ function editTodo(cur, id) {
         <label class="field"><span>Uhrzeit</span><input class="input" type="time" name="time" value="${esc(t.time)}"></label>
       </div>
       <p class="muted small todo-time-hint">Uhrzeit freiwillig, geht nur mit Datum.</p>
+      ${pushConfigured() ? `<label class="field alarm-field" hidden><span>${icon('bell', 'icon-xs')} Erinnern</span>
+        <select class="select" name="alarm">${ALARM_CHOICES.map(([v, label]) => `<option value="${v}" ${v === (t.alarm || 0) ? 'selected' : ''}>${label}</option>`).join('')}</select>
+        <small class="muted">${cur.scope === 'personal'
+          ? 'Mitteilung nur an dich. Titel und Zeit liegen dafür bis zur Mitteilung lesbar in Supabase.'
+          : 'Mitteilung an die Person unter „Für wen?“, sonst an alle im Haushalt mit Mitteilungen.'}</small>
+      </label>` : ''}
       <label class="field"><span>Wiederholen</span>
         <select class="select" name="repeat">${REPEAT_CHOICES.map(([v, label]) => `<option value="${v}" ${v === repeatChoice(t.repeat) ? 'selected' : ''}>${label}</option>`).join('')}</select>
       </label>
@@ -429,7 +443,6 @@ function editTodo(cur, id) {
         <textarea class="textarea" name="note" maxlength="500">${esc(t.note)}</textarea>
       </label>`,
     submitLabel: 'Speichern',
-    // Kalender ganz unten: seltener gebraucht als Speichern und Löschen
     footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Löschen</button>`,
     // Kalender oben neben dem Kreuz: klein, nur ein Symbol (Haken = schon einmal eingetragen)
     headerActions: `<button type="button" class="icon-btn todo-cal-btn" data-sheet-action="calendar"
@@ -438,7 +451,7 @@ function editTodo(cur, id) {
     onSubmit: (_, f) => save(f),
     actions: {
       change(el, f) {
-        if (el.name === 'due') timeNeedsDate(f);
+        if (el.name === 'due' || el.name === 'time') timeNeedsDate(f);
         if (el.name === 'due' || el.name === 'repeat') showRepeat(f);
       },
       async calendar(btn, form) {

@@ -140,7 +140,7 @@ einfügen → **Run**. Das ist gefahrlos: Bestehende Daten bleiben. Bis dahin me
 
 ## 10. Push-Mitteilungen (einmalig einrichten)
 
-Die App verschickt vier Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten
+Die App verschickt fünf Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten
 aufruft:
 
 - **Morgen-Erinnerung (ToDo):** pro Gerät einstellbar unter **ToDo → Morgen-Erinnerung** – eine Liste, Uhrzeit
@@ -150,6 +150,9 @@ aufruft:
   jeweils ab 17 Uhr, an alle Geräte im Haushalt, die Mitteilungen eingeschaltet haben.
 - **Vortag (ToDo):** ab 18 Uhr für ToDos in geteilten Listen mit „Am Vortag erinnern“, die morgen fällig sind –
   z. B. Altpapier oder Grüngut aus dem Abfuhrplan. An alle Geräte im Haushalt mit Mitteilungen.
+- **Erinnerung vor einem ToDo:** bei ToDos mit Datum, Uhrzeit und „Erinnern“ (5 Min. bis 1 Tag vorher) – an die
+  zugewiesene Person, sonst an alle; bei persönlichen Listen nur an dich (Titel und Zeit liegen dafür bis zur
+  Mitteilung in der Tabelle push_alarms). Kommt höchstens ein paar Minuten früher, weil der Zeitplan alle 5 Minuten läuft.
 - **Abfuhrkalender:** ab 18 Uhr am Vortag einer Abfuhr (Kehricht, Papier, Grüngut …), für jede Art mit Glocke
   unter **Haushalt → Abfuhrkalender**. An alle Geräte im Haushalt mit Mitteilungen.
 - **ToDo zugewiesen:** Weist jemand in einer geteilten Liste eine Aufgabe einer anderen Person zu, bekommt diese
