@@ -519,6 +519,10 @@ button { cursor: pointer; }
 .balance-card { text-align: center; padding: 18px 16px; }
 .balance-who { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 650; color: var(--text-soft); }
 .balance-card .hero-number { margin-top: 6px; }
+/* Gesamtstand verdeckt, bis man ihn antippt (js/views/abrechnung.js) */
+.total-toggle { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: inherit; cursor: pointer; }
+.total-hero { display: grid; justify-items: center; gap: 2px; width: 100%; }
+.total-hero small { font-size: 13px; opacity: 0.75; }
 .balance-actions { margin: 0 0 4px; }
 .balance-actions .btn { flex: 1; padding: 0 10px; }
 .ledger > li { align-items: center; }

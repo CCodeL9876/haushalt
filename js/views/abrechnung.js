@@ -8,7 +8,7 @@
 // Rückzahlung = kind 'transfer' (payerId zahlt an splitIds[0]). Neu dazu: note (Was beinhaltet es?) und method.
 // Ältere Einträge aus „Kosten“ erscheinen ganz normal in der Liste.
 
-import { memberById, state, update, uid } from '../store.js';
+import { memberById, refresh, state, update, uid } from '../store.js';
 import { avatar, closeSheet, esc, icon, money, openSheet, parseMoney, toast } from '../ui.js';
 import { fmtDayMonth, fmtMonthYear, parseKey, todayKey } from '../dates.js';
 import { balances } from '../settle.js';
@@ -252,7 +252,7 @@ function entryRow(e, p, after) {
     const owes = after > 0 ? b.name : a.name;
     right = `<span class="ledger-value">
       <span class="${pay ? 'ledger-pay' : ''}">${money(d)}</span>
-      <small class="muted">${after === 0 ? 'quitt' : `${esc(owes)} schuldet ${money(Math.abs(after))}`}</small>
+      <small class="muted">${after === 0 ? 'quitt' : `${esc(owes)} schuldet ${total(Math.abs(after))}`}</small>
     </span>`;
   }
   return `
@@ -264,6 +264,20 @@ function entryRow(e, p, after) {
       ${right}
     </li>`;
 }
+
+// Gesamtstand verdeckt („CHF *****“), bis man ihn antippt – auf den ersten Blick soll er nicht zu sehen sein.
+// Wieder verdeckt, sobald man die Abrechnung verlässt oder die App in den Hintergrund geht.
+let totalShown = false;
+const hiddenMoney = () => `${state.settings.currency} *****`;
+const total = (cents, opts) => (totalShown ? money(cents, opts) : hiddenMoney());
+window.addEventListener('hashchange', () => { totalShown = false; });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && totalShown) {
+    totalShown = false;
+    refresh();
+  }
+});
+const totalButton = (inner, cls = '') => `<button type="button" class="total-toggle ${cls}" data-action="toggleTotal" aria-pressed="${totalShown}" aria-label="${totalShown ? 'Betrag verbergen' : 'Betrag anzeigen'}">${inner}</button>`;
 
 function ledger(p) {
   const entries = [...state.expenses].sort(byDateDesc);
@@ -308,7 +322,7 @@ export default {
         <section class="card balance-card">
           ${p.amount ? `
             <div class="balance-who">${avatar(p.debtor)}<span>${esc(p.debtor.name)} schuldet ${esc(p.creditor.name)}</span>${avatar(p.creditor)}</div>
-            <div class="hero-number">${money(p.amount)}</div>`
+            ${totalButton(`<span class="hero-number">${total(p.amount)}</span><small>${totalShown ? 'Antippen zum Verbergen' : 'Antippen zum Anzeigen'}</small>`, 'total-hero')}`
             : `<div class="balance-who"><span>Ihr seid quitt</span></div><div class="hero-number">${money(0)}</div>`}
         </section>`;
     } else {
@@ -316,7 +330,7 @@ export default {
       head = `<ul class="list">${state.members.map((m) => {
         const v = bal.get(m.id);
         return `<li>${avatar(m)}<span class="list-main">${esc(m.name)}<small>${v > 0 ? 'bekommt' : v < 0 ? 'schuldet' : 'ausgeglichen'}</small></span>
-          <span class="list-value ${v > 0 ? 'amount-plus' : v < 0 ? 'amount-minus' : 'muted'}">${money(v, { sign: true })}</span></li>`;
+          ${totalButton(`<span class="list-value ${v > 0 ? 'amount-plus' : v < 0 ? 'amount-minus' : 'muted'}">${total(v, { sign: true })}</span>`)}</li>`;
       }).join('')}</ul>`;
     }
     const list = ledger(p);
@@ -331,6 +345,10 @@ export default {
   },
 
   actions: {
+    toggleTotal() {
+      totalShown = !totalShown;
+      refresh();
+    },
     newPayment() {
       const p = state.members.length === 2 ? pair() : null;
       editPayment(null, p && p.amount ? { from: p.debtor.id, to: p.creditor.id, amount: p.amount } : { from: currentMember()?.id });
