@@ -48,6 +48,22 @@ function setOpen(value) {
 
 // Offene zuerst nach Datum (ohne Datum zuletzt), dann die neuesten
 const byDue = (a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (a.time || '99').localeCompare(b.time || '99') || (b.addedAt || 0) - (a.addedAt || 0);
+// In der Liste: selbst angeordnete zuerst in ihrer Reihenfolge (order), die übrigen nach Datum
+const orderOf = (t) => (Number.isFinite(t.order) ? t.order : Infinity);
+const byOrder = (a, b) => (orderOf(a) === orderOf(b) ? byDue(a, b) : orderOf(a) < orderOf(b) ? -1 : 1);
+let arrangingTodos = false; // ToDos der geöffneten Liste werden gerade angeordnet
+
+// ToDo um eine Stelle verschieben und die Reihenfolge aller offenen ToDos der Liste festhalten
+function moveTodo(cur, id, dir) {
+  cur.change((d) => {
+    const items = d.todos.filter((t) => t.listId === cur.list.id && !t.done).sort(byOrder);
+    const i = items.findIndex((t) => t.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= items.length) return;
+    [items[i], items[j]] = [items[j], items[i]];
+    items.forEach((t, n) => { t.order = n; });
+  });
+}
 
 function dueLabel(t) {
   if (!t.due) return '';
@@ -303,9 +319,18 @@ const HIDE_DONE_AFTER = 2 * 86400000;
 const recentDone = (t) => !t.doneAt || Date.now() - t.doneAt < HIDE_DONE_AFTER;
 let showOldDone = false;
 
+// Zeile beim Anordnen: nur Titel und Pfeile
+const arrangeItem = (t, n, count) => `
+  <li class="todo-arrange">
+    <span class="list-main">${esc(t.title)}${t.due ? `<small>${esc(dueLabel(t))}</small>` : ''}</span>
+    <button type="button" class="icon-btn" data-action="moveTodo" data-id="${t.id}" data-dir="-1" aria-label="${esc(t.title)} nach oben"${n === 0 ? ' disabled' : ''}>${icon('up', 'icon-sm')}</button>
+    <button type="button" class="icon-btn" data-action="moveTodo" data-id="${t.id}" data-dir="1" aria-label="${esc(t.title)} nach unten"${n === count - 1 ? ' disabled' : ''}>${icon('down', 'icon-sm')}</button>
+  </li>`;
+
 function listView(scope, list, d) {
   const items = d.todos.filter((t) => t.listId === list.id);
-  const openItems = items.filter((t) => !t.done).sort(byDue);
+  const openItems = items.filter((t) => !t.done).sort(byOrder);
+  const sorted = openItems.some((t) => Number.isFinite(t.order));
   const allDone = items.filter((t) => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
   const done = showOldDone ? allDone : allDone.filter(recentDone);
   const hidden = allDone.length - done.length;
@@ -322,8 +347,14 @@ function listView(scope, list, d) {
       <input class="input" id="todo-input" name="title" placeholder="Was ist zu tun?" autocomplete="off" enterkeyhint="done" required maxlength="120">
       <button type="submit" class="btn btn-primary" aria-label="Hinzufügen">${icon('plus')}</button>
     </form>
+    ${openItems.length > 1 ? `<div class="todo-tools">
+      ${arrangingTodos
+        ? `${sorted ? `<button type="button" class="btn btn-ghost btn-sm" data-action="sortByDate">Nach Datum</button>` : ''}
+           <button type="button" class="btn btn-primary btn-sm" data-action="arrangeTodos">Fertig</button>`
+        : `<button type="button" class="btn btn-ghost btn-sm" data-action="arrangeTodos">${icon('sort', 'icon-sm')} Anordnen</button>`}
+    </div>` : ''}
     ${openItems.length
-      ? `<ul class="list">${openItems.map(todoItem).join('')}</ul>`
+      ? `<ul class="list">${openItems.map((t, n) => (arrangingTodos ? arrangeItem(t, n, openItems.length) : todoItem(t))).join('')}</ul>`
       : `<div class="empty"><strong>Nichts zu tun</strong>Neue ToDos oben eintragen. Antippen für Datum, Notiz und Kalender.</div>`}
     ${allDone.length ? `
       <h2 class="section-title">Erledigt (${allDone.length})
@@ -588,9 +619,25 @@ export default {
     },
     moveList(el) { moveList(el.dataset.scope, el.dataset.id, Number(el.dataset.dir)); },
     openList(el) {
+      arrangingTodos = false;
       setOpen({ scope: el.dataset.scope, id: el.dataset.id });
       refresh();
       window.scrollTo(0, 0);
+    },
+    arrangeTodos() {
+      arrangingTodos = !arrangingTodos;
+      refresh();
+    },
+    moveTodo(el) {
+      const cur = current();
+      if (cur) moveTodo(cur, el.dataset.id, Number(el.dataset.dir));
+      // Fokus beim verschobenen ToDo lassen, damit man mehrmals tippen kann
+      document.querySelector(`[data-action="moveTodo"][data-id="${el.dataset.id}"][data-dir="${el.dataset.dir}"]:not([disabled])`)?.focus();
+    },
+    // Eigene Reihenfolge aufheben: wieder nach Datum
+    sortByDate() {
+      const cur = current();
+      cur?.change((d) => { for (const t of d.todos) if (t.listId === cur.list.id) delete t.order; });
     },
     showOldDone() {
       showOldDone = !showOldDone;
@@ -598,6 +645,7 @@ export default {
     },
     back() {
       showOldDone = false;
+      arrangingTodos = false;
       setOpen(null);
       refresh();
       window.scrollTo(0, 0);
@@ -629,7 +677,9 @@ export default {
       if (!cur || !title) return;
       const id = uid();
       cur.change((d) => {
-        d.todos.push({ id, listId: cur.list.id, title: title.slice(0, 120), note: '', done: false, due: '', time: '', addedAt: Date.now() });
+        // Hat die Liste eine eigene Reihenfolge, kommt das neue ToDo zuoberst
+        const orders = d.todos.filter((t) => t.listId === cur.list.id && !t.done && Number.isFinite(t.order)).map((t) => t.order);
+        d.todos.push({ id, listId: cur.list.id, title: title.slice(0, 120), note: '', done: false, due: '', time: '', addedAt: Date.now(), ...(orders.length ? { order: Math.min(...orders) - 1 } : {}) });
       });
       // Gleich die weiteren Angaben (Datum, Uhrzeit, für wen, Erinnern …) – „Speichern“ oder Schliessen genügt,
       // wenn keine nötig sind; das ToDo steht schon in der Liste
