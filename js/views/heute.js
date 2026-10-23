@@ -1,6 +1,7 @@
 // Startseite „Heute“: alles Wichtige auf einen Blick, als Kacheln (Bento). Antippen führt in den Bereich.
 //  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten
-//  - ToDos, die heute dran sind (fällig bis heute) aus geteilten und eigenen persönlichen Listen – direkt abhakbar
+//  - ToDos, die heute dran sind (fällig bis heute) aus geteilten (nur für alle oder mir zugewiesen) und eigenen
+//    persönlichen Listen – direkt abhakbar
 //  - Abfuhrkalender (nächste Termine) und Kühlschrank (was bald weg muss)
 
 import { state, termKey } from '../store.js';
@@ -62,12 +63,19 @@ function mealTile() {
 }
 
 // Fällige ToDos (bis heute), geteilte und persönliche, Überfälliges zuerst
+// Geteilte ToDos nur, wenn sie mich betreffen: für alle (niemand zugewiesen) oder mir zugewiesen. Was einer anderen
+// Person zugewiesen ist, steht nur in der Liste selbst. Gibt es die zugewiesene Person nicht mehr, gilt es für alle.
+function concernsMe(t) {
+  const me = currentMember()?.id;
+  return !me || !t.assignee || t.assignee === me || !state.members.some((m) => m.id === t.assignee);
+}
+
 function dueTodos() {
   const today = todayKey();
-  const pick = (scope, d) => d.todos
-    .filter((t) => !t.done && t.due && t.due <= today && d.lists.some((l) => l.id === t.listId))
+  const pick = (scope, d, mine = () => true) => d.todos
+    .filter((t) => !t.done && t.due && t.due <= today && d.lists.some((l) => l.id === t.listId) && mine(t))
     .map((t) => ({ scope, t }));
-  return [...pick('shared', { lists: state.todolists, todos: state.todos }), ...pick('personal', personal())]
+  return [...pick('shared', { lists: state.todolists, todos: state.todos }, concernsMe), ...pick('personal', personal())]
     .sort((a, b) => a.t.due.localeCompare(b.t.due) || (a.t.time || '99').localeCompare(b.t.time || '99'));
 }
 
