@@ -1,5 +1,5 @@
 // Startseite „Heute“: alles Wichtige auf einen Blick, als Kacheln (Bento). Antippen führt in den Bereich.
-//  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten
+//  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten und Link zum Rezept
 //  - ToDos, die heute dran sind (fällig bis heute) aus geteilten (nur für alle oder mir zugewiesen) und eigenen
 //    persönlichen Listen – direkt abhakbar
 //  - Abfuhrkalender (nächste Termine) und Kühlschrank (was bald weg muss)
@@ -7,7 +7,7 @@
 import { state, termKey } from '../store.js';
 import { personal } from '../personal.js';
 import { currentMember } from '../login.js';
-import { esc, icon } from '../ui.js';
+import { esc, icon, safeLink } from '../ui.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { fridgeSorted, isUrgent, leftLabel } from '../fridge.js';
@@ -52,10 +52,15 @@ function mealTile() {
       <span class="tile-btn">${icon('calendar', 'icon-sm')} Wochenplan öffnen</span></button>`;
   }
   const missing = missingFor(t.meal);
+  // Rezept-Link der Idee (falls hinterlegt): direkt aus der Kachel öffnen, ohne die Idee zu suchen
+  const url = safeLink(state.ideas.find((i) => i.id === t.meal.ideaId)?.url);
   return `<div class="tile tile-hero wide">
     <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
     <h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3>
-    <div class="tile-big">${esc(mealTitle(t.meal))}</div>
+    <div class="tile-meal">
+      <div class="tile-big">${esc(mealTitle(t.meal))}</div>
+      ${url ? `<a class="tile-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
+    </div>
     ${missing.length
       ? `<button type="button" class="tile-btn" data-action="shopMeal">${icon('cart', 'icon-sm')} ${missing.length} ${missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'}</button>`
       : `<span class="tile-note">${state.ideas.some((i) => i.id === t.meal.ideaId) ? 'Alle Zutaten da oder auf der Liste ✓' : ''}</span>`}

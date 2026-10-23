@@ -699,6 +699,13 @@ button { cursor: pointer; }
 .tile-plain { background: var(--card); color: var(--text); }
 .tile-hero { background: var(--hero); color: var(--on-hero); }
 .tile-link { position: absolute; inset: 0; border: 0; background: transparent; border-radius: inherit; }
+.tile-meal { display: flex; align-items: flex-start; gap: 10px; }
+.tile-meal .tile-big { flex: 1; min-width: 0; }
+.tile-recipe {
+  position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; margin-top: -6px; border-radius: 50%;
+  background: color-mix(in srgb, var(--on-hero) 16%, transparent); color: var(--on-hero);
+}
 .tile-btn {
   position: relative; display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
   min-height: 40px; padding: 0 14px; border: 0; border-radius: 14px;
