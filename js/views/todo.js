@@ -8,6 +8,7 @@ import { addToCalendar, isInCalendar } from '../calendar.js';
 import { openReminder, reminderSummary } from '../reminder.js';
 import { notifyAssigned, pushConfigured } from '../push.js';
 import { ALARM_CHOICES, alarmLabel } from '../alarms.js';
+import { fromTemplate, newPackItem, packActions, packInfo, packView, saveTemplate, templates } from '../packliste.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { currentMember } from '../login.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
@@ -113,9 +114,10 @@ function moveList(scope, id, dir) {
 }
 
 function listRow(scope, list, todos, pos = {}) {
-  const items = todos.filter((t) => t.listId === list.id && !t.done).sort(byDue);
-  const next = items.find((t) => t.due);
-  const info = [
+  const pack = list.kind === 'pack' ? packInfo(list, todos) : null;
+  const items = pack ? todos.filter((t) => t.listId === list.id && !t.done) : todos.filter((t) => t.listId === list.id && !t.done).sort(byDue);
+  const next = !pack && items.find((t) => t.due);
+  const info = pack ? `🧳 ${pack.text}` : [
     items.length ? `${items.length} offen` : 'Alles erledigt',
     next ? `nächstes: ${dueLabel(next)}` : '',
   ].filter(Boolean).join(' · ');
@@ -178,17 +180,42 @@ function newList(scope) {
       <label class="field"><span>Name</span>
         <input class="input" name="name" required maxlength="60" autocomplete="off" placeholder="${scope === 'personal' ? 'z. B. Geschenke, Arbeit' : 'z. B. Putzplan, Ferien'}">
       </label>
-      <p class="muted small" style="margin:0">${scope === 'personal' ? 'Nur du siehst diese Liste.' : 'Alle im Haushalt sehen und bearbeiten diese Liste.'}</p>`,
+      <p class="muted small" style="margin:0 0 12px">${scope === 'personal' ? 'Nur du siehst diese Liste.' : 'Alle im Haushalt sehen und bearbeiten diese Liste.'}</p>
+      <label class="check-field"><input type="checkbox" name="pack"> 🧳 Packliste</label>
+      <div class="pack-new" hidden>
+        <p class="muted small" style="margin:-4px 0 10px">Gepacktes bleibt sichtbar, nach Kategorien, mit „Neu packen“ für die nächste Reise.</p>
+        <div class="row">
+          <label class="field"><span>Vorlage</span>
+            <select class="select" name="template"><option value="">Leer</option>${templates().map((t) => `<option value="${esc(t.id)}">${esc(t.name)} (${t.items.length})</option>`).join('')}</select>
+          </label>
+          <label class="field" style="flex:0 0 32%"><span>Tage</span><input class="input" type="number" name="days" min="1" max="90" inputmode="numeric" placeholder="7"></label>
+        </div>
+      </div>`,
     submitLabel: 'Anlegen',
+    actions: {
+      change(el, f) {
+        if (el.name === 'pack') f.querySelector('.pack-new').hidden = !el.checked;
+        // Vorlage gewählt: Tage und (leerer) Name daraus
+        if (el.name === 'template') {
+          const tpl = templates().find((t) => t.id === el.value);
+          if (tpl?.days && !f.elements.days.value) f.elements.days.value = tpl.days;
+          if (tpl && !f.elements.name.value.trim()) f.elements.name.value = tpl.name;
+        }
+      },
+    },
     onSubmit(data) {
       const name = String(data.get('name')).trim();
       if (!name) return false;
       const id = uid();
+      const pack = Boolean(data.get('pack'));
+      const tpl = pack && templates().find((t) => t.id === data.get('template'));
+      const days = Math.min(90, Math.max(0, Math.round(Number(data.get('days')) || 0)));
       setOpen({ scope, id }); // gleich die neue Liste zeigen
       SCOPES[scope].change((d) => {
         // ans Ende der selbst gewählten Reihenfolge
         const max = Math.max(-1, ...d.lists.map((l) => (Number.isFinite(l.order) ? l.order : -1)));
-        d.lists.push({ id, name: name.slice(0, 60), createdAt: Date.now(), ...(max >= 0 ? { order: max + 1 } : {}) });
+        d.lists.push({ id, name: name.slice(0, 60), createdAt: Date.now(), ...(max >= 0 ? { order: max + 1 } : {}), ...(pack ? { kind: 'pack', days } : {}) });
+        if (tpl) d.todos.push(...fromTemplate(tpl, id));
       });
       window.scrollTo(0, 0);
       setTimeout(() => document.getElementById('todo-input')?.focus());
@@ -334,16 +361,19 @@ function listView(scope, list, d) {
   const allDone = items.filter((t) => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
   const done = showOldDone ? allDone : allDone.filter(recentDone);
   const hidden = allDone.length - done.length;
-  return `
+  const head = `
     <div class="todo-head">
       <button type="button" class="icon-btn" data-action="back" aria-label="Zurück zu allen Listen">${icon('left')}</button>
       <div class="todo-head-title">
         <strong>${esc(list.name)}</strong>
-        <small class="muted">${scope === 'personal' ? `${icon('lock', 'icon-xs')} Nur für mich` : `${icon('users', 'icon-xs')} Geteilt`}</small>
+        <small class="muted">${scope === 'personal' ? `${icon('lock', 'icon-xs')} Nur für mich` : `${icon('users', 'icon-xs')} Geteilt`}${list.kind === 'pack' ? ' · 🧳 Packliste' : ''}</small>
       </div>
       <button type="button" class="icon-btn" data-action="editList" aria-label="Liste umbenennen oder löschen">${icon('settings')}</button>
     </div>
-    <form class="add-row" data-form="addTodo">
+  `;
+  if (list.kind === 'pack') return packView(scope, list, d, head);
+  return `
+    ${head}    <form class="add-row" data-form="addTodo">
       <input class="input" id="todo-input" name="title" placeholder="Was ist zu tun?" autocomplete="off" enterkeyhint="done" required maxlength="120">
       <button type="submit" class="btn btn-primary" aria-label="Hinzufügen">${icon('plus')}</button>
     </form>
@@ -523,10 +553,21 @@ function editList(cur) {
         <input class="input" name="name" value="${esc(list.name)}" required maxlength="60" autocomplete="off">
       </label>
       ${cur.scope === 'shared' ? '<p class="muted small">Umbenennen und Löschen gilt für alle im Haushalt.</p>' : ''}
+      ${list.kind === 'pack' ? `
+      <label class="field"><span>Reisedauer (Tage) – für Mengen „pro Tag“</span>
+        <input class="input" type="number" name="days" min="0" max="90" inputmode="numeric" value="${list.days || ''}">
+      </label>
+      <div class="field"><span>Vorlage</span>
+        <div class="row">
+          <select class="select" name="addTemplate"><option value="">Vorlage dazunehmen …</option>${templates().map((t) => `<option value="${esc(t.id)}">${esc(t.name)} (${t.items.length})</option>`).join('')}</select>
+          <button type="button" class="btn" data-sheet-action="saveTemplate" style="flex:0 0 auto">Als Vorlage speichern</button>
+        </div>
+        <p class="muted small" style="margin:6px 0 0">Dazunehmen ergänzt nur, was noch fehlt. Eigene Vorlagen gelten für den ganzen Haushalt.</p>
+      </div>` : `
       <div class="field"><span>Abfuhrplan</span>
         <p class="muted small" style="margin:0 0 8px">Kalender-Datei (.ics) der Gemeinde einlesen: Altpapier, Grüngut, Karton … werden zu wiederkehrenden ToDos mit den Daten aus dem Plan.</p>
         <label class="btn btn-block">${icon('calendar', 'icon-sm')} Kalender-Datei wählen<input type="file" name="ics" accept=".ics,text/calendar" hidden></label>
-      </div>`,
+      </div>`}`,
     submitLabel: 'Speichern',
     footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Liste löschen</button>`,
     onSubmit(data) {
@@ -534,18 +575,31 @@ function editList(cur) {
       if (!name) return false;
       cur.change((d) => {
         const l = d.lists.find((x) => x.id === list.id);
-        if (l) l.name = name.slice(0, 60);
+        if (!l) return;
+        l.name = name.slice(0, 60);
+        if (l.kind === 'pack') l.days = Math.min(90, Math.max(0, Math.round(Number(data.get('days')) || 0)));
       });
     },
     actions: {
+      saveTemplate() { saveTemplate(update, list, cur.d.todos); },
       async change(el) {
+        // Vorlage dazunehmen: nur Einträge, die es (gleicher Name) noch nicht gibt
+        if (el.name === 'addTemplate' && el.value) {
+          const tpl = templates().find((t) => t.id === el.value);
+          const have = new Set(cur.d.todos.filter((t) => t.listId === list.id).map((t) => t.title.toLowerCase()));
+          const add = fromTemplate(tpl, list.id).filter((t) => !have.has(t.title.toLowerCase()));
+          cur.change((d) => { d.todos.push(...add); });
+          el.value = '';
+          return toast(`${add.length} ${add.length === 1 ? 'Eintrag' : 'Einträge'} aus „${tpl.name}“ dazugenommen`);
+        }
         if (el.name !== 'ics' || !el.files[0]) return;
         const groups = parseIcs(await el.files[0].text(), todayKey());
         if (!groups.length) return toast('Keine kommenden Termine in der Datei gefunden');
         importPlan(cur, groups);
       },
       delete() {
-        if (!confirm(`„${list.name}“${count ? ` mit ${count} ToDo${count === 1 ? '' : 's'}` : ''} löschen?`)) return;
+        const what = list.kind === 'pack' ? (count === 1 ? 'Eintrag' : 'Einträgen') : (count === 1 ? 'ToDo' : 'ToDos');
+        if (!confirm(`„${list.name}“${count ? ` mit ${count} ${what}` : ''} löschen?`)) return;
         cur.change((d) => {
           d.lists = d.lists.filter((x) => x.id !== list.id);
           d.todos = d.todos.filter((x) => x.listId !== list.id);
@@ -610,6 +664,7 @@ export default {
   },
 
   actions: {
+    ...packActions(current),
     sync() { syncSheet(); },
     newList(el) { newList(el.dataset.scope); },
     reminder() { openReminder(); },
@@ -675,6 +730,12 @@ export default {
       const cur = current();
       const title = form.elements.title.value.trim();
       if (!cur || !title) return;
+      // Packliste: nur eintragen (Kategorie am Namen erkannt), ohne Fenster – es kommen meist viele
+      if (cur.list.kind === 'pack') {
+        cur.change((d) => { d.todos.push(newPackItem(cur.list.id, title)); });
+        document.getElementById('todo-input')?.focus();
+        return;
+      }
       const id = uid();
       cur.change((d) => {
         // Hat die Liste eine eigene Reihenfolge, kommt das neue ToDo zuoberst

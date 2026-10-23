@@ -1,6 +1,6 @@
 // Aufräumen: Was erledigt oder abgerechnet ist, wird nach einer Frist gelöscht – in Supabase und auf den Geräten –,
 // damit nicht unnötig viel gespeichert bleibt. Läuft beim Start, höchstens einmal am Tag pro Gerät.
-//  - erledigte ToDos (geteilte und die eigenen persönlichen) und erledigte Einkäufe: 30 Tage nach dem Abhaken
+//  - erledigte ToDos (geteilte und die eigenen persönlichen, ausser in Packlisten) und erledigte Einkäufe: 30 Tage nach dem Abhaken
 //  - Abrechnung: Einträge, die älter als 12 Monate sind, aber nur bis zum letzten Zeitpunkt, an dem alle quitt
 //    waren. So bleibt der heutige Stand (und jeder „Danach“-Stand in der Liste) genau gleich.
 // Einträge ohne doneAt (vor dieser Regel abgehakt) bekommen zuerst das heutige Datum – sie gehen also frühestens
@@ -16,11 +16,12 @@ export const LEDGER_MONTHS = 12;
 const LAST_KEY = 'haushalt.cleanup.';
 
 // Erledigte: doneAt nachtragen, zu alte entfernen. Gibt die verbleibende Liste zurück (oder null = unverändert).
-function sweepDone(items, now) {
+// keep: Listen, deren Erledigtes bleibt (Packlisten – Gepacktes soll für die nächste Reise stehen bleiben)
+function sweepDone(items, now, keep = new Set()) {
   const limit = now - DONE_DAYS * 86400000;
   let changed = false;
   const kept = items.filter((x) => {
-    if (!x.done) return true;
+    if (!x.done || keep.has(x.listId)) return true;
     if (!x.doneAt) {
       x.doneAt = now;
       changed = true;
@@ -60,7 +61,8 @@ export function cleanup({ force = false } = {}) {
   } catch { /* privates Fenster: dann eben bei jedem Start */ }
   const now = Date.now();
 
-  const todos = sweepDone(structuredClone(state.todos), now);
+  const packLists = (lists) => new Set(lists.filter((l) => l.kind === 'pack').map((l) => l.id));
+  const todos = sweepDone(structuredClone(state.todos), now, packLists(state.todolists));
   const shopping = sweepDone(structuredClone(state.shopping), now);
   const settled = new Set(settledPrefix(state.expenses, day));
   if (todos || shopping || settled.size) {
@@ -71,6 +73,6 @@ export function cleanup({ force = false } = {}) {
     });
   }
 
-  const mine = sweepDone(structuredClone(personal().todos), now);
+  const mine = sweepDone(structuredClone(personal().todos), now, packLists(personal().lists));
   if (mine) updatePersonal((d) => { d.todos = mine; });
 }

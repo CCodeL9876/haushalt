@@ -874,3 +874,13 @@ button { cursor: pointer; }
 .todo-note-mark .icon-xs { width: 12px; height: 12px; vertical-align: 0; }
 .todo-tools { display: flex; justify-content: flex-end; gap: 6px; margin: -4px 0 8px; }
 .todo-arrange .icon-btn:disabled { opacity: 0.3; }
+
+/* ---------- Packliste (js/packliste.js) ---------- */
+.pack-progress { margin: 0 2px 12px; font-size: 14px; color: var(--muted); }
+.pack-progress strong { color: var(--text); font-size: 18px; }
+.pack-progress .mode-bar { background: var(--chip); margin-top: 6px; }
+.pack-filter { margin-bottom: 4px; }
+.pack-count { margin-left: auto; font-size: 13px; font-weight: 650; color: var(--muted); }
+.pack-buy { display: block; color: var(--accent-text); font-size: 12.5px; font-weight: 600; }
+.pack-actions { margin-top: 16px; }
+.pack-new { margin-top: 4px; }
