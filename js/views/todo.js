@@ -284,13 +284,13 @@ function todoItem(t) {
     <button type="button" class="check" data-action="toggle" data-id="${t.id}" aria-label="${t.done ? 'Wieder offen' : 'Erledigt'}: ${esc(t.title)}">${icon('check', 'icon-sm')}</button>
     <button type="button" class="list-main" data-action="edit" data-id="${t.id}" aria-label="${esc(t.title)}${who ? ` (für ${esc(who.name)})` : ''} bearbeiten">
       ${esc(t.title)}
-      ${t.due || t.note || t.repeat ? `<small>${[
+      ${t.due || t.repeat ? `<small>${[
         t.due ? `<span class="${overdue(t) ? 'amount-minus' : ''}">${esc(dueLabel(t))}</span>` : '',
         t.repeat && !t.done ? `<span class="todo-repeat">${icon('refresh', 'icon-xs')} ${esc(repeatLabel(t))}</span>` : '',
         t.remind && t.due && !t.done && remindShown() ? `<span class="todo-repeat" title="Erinnerung am Vortag">${icon('bell', 'icon-xs')} Vortag</span>` : '',
         t.alarm && t.time && !t.done ? `<span class="todo-repeat" title="Erinnerung vor dem ToDo">${icon('bell', 'icon-xs')} ${esc(alarmLabel(t.alarm))}</span>` : '',
-        esc(t.note),
       ].filter(Boolean).join(' · ')}</small>` : ''}
+      ${t.note ? `<small class="todo-note">${esc(t.note.replace(/\s+/g, ' '))}</small>` : ''}
     </button>
     ${who ? `<span class="todo-who" title="Für ${esc(who.name)}">${avatar(who)}</span>` : ''}
     ${isInCalendar(t.id) ? `<span class="todo-cal" title="Im Kalender eingetragen">${icon('calendar', 'icon-sm')}</span>` : ''}
