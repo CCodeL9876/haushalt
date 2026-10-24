@@ -6,6 +6,7 @@
 //   actions.name(el)      – Klick auf ein Element mit data-action="name"
 //   submit.name(form)     – Absenden eines Formulars mit data-form="name"
 //   input.name(el, root)  – Eingabe in ein Feld mit data-input="name"
+//   change.name(el, root) – Feld mit data-change="name" geändert (z. B. Datum gewählt)
 //   aliases, enter(id)   – weitere Adressen, die zu dieser Ansicht führen (z. B. #woche → Essen, Teil Wochenplan)
 //   data-keep-focus       – an Knöpfen: Antippen lässt den Fokus (und die iPhone-Tastatur) im Eingabefeld
 // Neuer Bereich = neue Datei in js/views/ und hier in VIEWS eintragen.
@@ -112,6 +113,10 @@ root.addEventListener('submit', (e) => {
 root.addEventListener('input', (e) => {
   const el = e.target.closest('[data-input]');
   if (el) current.input?.[el.dataset.input]?.(el, root);
+});
+root.addEventListener('change', (e) => {
+  const el = e.target.closest('[data-change]');
+  if (el) current.change?.[el.dataset.change]?.(el, root);
 });
 
 document.getElementById('btn-settings').innerHTML = icon('settings');

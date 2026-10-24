@@ -43,13 +43,17 @@ let data = empty();
 
 // ---------- Ablage: localStorage + IndexedDB ----------
 
+// Eine Verbindung für alles: so laufen die Schreibvorgänge in der Reihenfolge der Änderungen
+let dbPromise = null;
 function idb() {
-  return new Promise((resolve, reject) => {
+  dbPromise ||= new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => req.result.createObjectStore('plans');
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+  dbPromise.catch(() => { dbPromise = null; });
+  return dbPromise;
 }
 async function idbGet(key) {
   const db = await idb();
@@ -181,15 +185,29 @@ export const notMonthly = () => [
 export function monthSums(month) {
   const d = plan();
   const sum = (list) => list.reduce((s, x) => s + x.amount, 0);
-  const openBills = d.bills.filter((b) => openOf(b) > 0);
   return {
     income: sum(d.incomes.filter((i) => i.kind === 'm' || i.month === month)),
     fix: sum(d.costs.filter((c) => c.kind === 'fix')),
     abos: sum(d.abos.filter((a) => a.rhythm !== 'y')),
     active: sum(notMonthly().filter((x) => isActive(month, x.id))),
-    // Mit Ratenplan zählt die Rate, sonst der ganze offene Betrag
-    bills: openBills.reduce((s, b) => s + (b.rate ? Math.min(b.rate, openOf(b)) : openOf(b)), 0),
+    bills: d.bills.reduce((s, b) => s + billInMonth(b, month), 0),
   };
+}
+
+// Was von einer Rechnung im Monat anfällt:
+//  - vergangene Monate: was tatsächlich bezahlt wurde
+//  - dieser Monat: schon Bezahltes plus was noch ansteht (mit Ratenplan bis zur Rate, sonst der ganze offene Betrag)
+//  - spätere Monate: mit Ratenplan die Rate, solange noch etwas offen ist (angenommen, die Raten davor sind bezahlt);
+//    ohne Plan nichts mehr (der offene Betrag zählt im laufenden Monat)
+export function billInMonth(b, month) {
+  const now = curMonth();
+  const paidIn = arr(b.payments).filter((p) => p.date.startsWith(month)).reduce((s, p) => s + p.amount, 0);
+  if (month < now) return paidIn;
+  const open = openOf(b);
+  if (month === now) return paidIn + (b.rate ? Math.min(open, Math.max(0, b.rate - paidIn)) : open);
+  if (!b.rate || !open) return 0;
+  const before = Math.max(0, monthsBetween(rateStart(b), month)); // Raten zwischen jetzt und diesem Monat
+  return Math.min(b.rate, Math.max(0, open - before * b.rate));
 }
 
 // Zusatz „Bis …“: vom laufenden Monat bis und mit `end` – Monatliches × Monate, Aktiviertes in diesen Monaten,
@@ -251,7 +269,13 @@ export function removePayment(billId, paymentId) {
 
 // ---------- Sicherung ----------
 
-const b64 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+// In Stücken, sonst bricht String.fromCharCode(...) bei grossen Sicherungen ab (zu viele Argumente)
+function b64(bytes) {
+  const all = new Uint8Array(bytes);
+  let text = '';
+  for (let i = 0; i < all.length; i += 0x8000) text += String.fromCharCode(...all.subarray(i, i + 0x8000));
+  return btoa(text);
+}
 const unb64 = (text) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
 
 async function deriveKey(password, salt, iterations = ITERATIONS) {
@@ -301,6 +325,7 @@ export const isPlanFile = (file) => file?.format === FORMAT;
 
 // Datei + Passwort → Inhalt; falsches Passwort: verständlicher Fehler
 export async function readBackup(file, password) {
+  if (![file?.salt, file?.iv, file?.data].every((x) => typeof x === 'string')) throw new Error('Die Sicherungsdatei ist unvollständig');
   const iterations = Math.min(Math.max(Number(file.iterations) || ITERATIONS, 100000), 2000000);
   const key = await deriveKey(password, unb64(file.salt), iterations);
   let plain;

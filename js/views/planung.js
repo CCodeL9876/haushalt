@@ -1,6 +1,7 @@
 // Geld → Planung: persönliche Finanzplanung, nur auf diesem Gerät (Daten und Rechnen in js/planung.js).
 //  - Monat: Einnahmen minus Fixkosten, Abos, für den Monat aktivierte nicht monatliche Kosten und Rechnungen
-//    (mit Ratenplan nur die Rate). Ohne Multiplizieren; „Bis Ende Jahr“ nur auf Wunsch (Fenster).
+//    (was im Monat anfällt, mit Ratenplan nur die Rate – js/planung.js billInMonth). Ohne Multiplizieren;
+//    „Bis Ende Jahr“ nur auf Wunsch (Fenster).
 //  - Kosten (fix / wiederkehrend), Rechnungen (Teilzahlungen, Ratenplan, Stand an einem Datum), Abos, Einnahmen.
 // Beträge sind verdeckt, bis man sie zeigt – wieder verdeckt beim Verlassen und wenn die App in den Hintergrund geht.
 
@@ -23,7 +24,7 @@ let tab = (() => { try { const v = localStorage.getItem(TAB_KEY); return TABS.so
 let month = curMonth();
 let asOf = ''; // Rechnungen: Stand an diesem Datum ('' = heute)
 let shown = false;
-window.addEventListener('hashchange', () => { shown = false; month = curMonth(); });
+window.addEventListener('hashchange', () => { shown = false; month = curMonth(); asOf = ''; });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && shown) {
     shown = false;
@@ -60,7 +61,7 @@ function monthPart() {
       ${line('Fixkosten', s.fix, -1)}
       ${line('Abos (monatlich)', s.abos, -1)}
       ${items.length ? line('Aktiviert in diesem Monat', s.active, -1) : ''}
-      ${line('Rechnungen (offen bzw. Rate)', s.bills, -1)}
+      ${line('Rechnungen in diesem Monat', s.bills, -1)}
     </ul>
     ${items.length ? `
       <h2 class="section-title">Nicht monatlich – für ${esc(monthLabel(month).split(' ')[0])} aktivieren</h2>
@@ -152,7 +153,7 @@ function billsPart() {
     ${all.length ? `
       <section class="card plan-hero">
         <label class="plan-asof"><small>Offen am</small>
-          <input class="input" type="date" data-input="plAsOf" value="${esc(asOf || todayKey())}" aria-label="Stand an diesem Datum"></label>
+          <input class="input" type="date" data-change="plAsOf" value="${esc(asOf || todayKey())}" aria-label="Stand an diesem Datum"></label>
         <div class="hero-number">${m(open.reduce((s, b) => s + openOf(b, until || undefined), 0))}</div>
         <small>${open.length} ${open.length === 1 ? 'Rechnung' : 'Rechnungen'} offen${until ? ' – Stand an diesem Tag' : ''}</small>
       </section>
@@ -226,7 +227,7 @@ const editAbo = (x) => editItem('abos', x, {
   read: () => ({}),
 });
 
-const monthOptions = (selected) => Array.from({ length: 25 }, (_, i) => addMonths(curMonth(), i - 6))
+const monthOptions = (selected) => [...new Set([...Array.from({ length: 25 }, (_, i) => addMonths(curMonth(), i - 6)), selected])].sort()
   .map((k) => `<option value="${k}" ${k === selected ? 'selected' : ''}>${esc(monthLabel(k))}</option>`).join('');
 
 const editIncome = (x) => editItem('incomes', x, {
@@ -483,7 +484,8 @@ export default {
     plBackupNow() { doBackup(); },
   },
 
-  input: {
+  // Datum gewählt (change, nicht input: am iPhone schliesst ein Neuzeichnen das Datumsrad sonst nach dem ersten Drehen)
+  change: {
     plAsOf(el) {
       asOf = el.value;
       refresh();

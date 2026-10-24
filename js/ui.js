@@ -62,8 +62,12 @@ export function money(cents, { sign = false } = {}) {
 }
 
 // „12.50“, „12,5“, „CHF 12“ → 1250; ungültig → null
+// „1'850.50“, „1.850,50“ und „1,850.50“: steht beides drin, ist das letzte Zeichen das Dezimaltrennzeichen
 export function parseMoney(text) {
-  const clean = String(text).replace(/[^\d.,-]/g, '').replace(',', '.');
+  let clean = String(text).replace(/[^\d.,-]/g, '');
+  if (clean.includes('.') && clean.includes(',')) {
+    clean = clean.lastIndexOf(',') > clean.lastIndexOf('.') ? clean.replace(/\./g, '').replace(',', '.') : clean.replace(/,/g, '');
+  } else clean = clean.replace(',', '.');
   const value = Number.parseFloat(clean);
   return Number.isFinite(value) && value > 0 ? Math.round(value * 100) : null;
 }

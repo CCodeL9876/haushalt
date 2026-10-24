@@ -51,4 +51,5 @@ export default {
   },
   get submit() { return part().submit; },
   get input() { return part().input; },
+  get change() { return part().change; },
 };
