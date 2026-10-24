@@ -924,3 +924,23 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .pack-buy { display: block; color: var(--accent-text); font-size: 12.5px; font-weight: 600; }
 .pack-actions { margin-top: 16px; }
 .pack-new { margin-top: 4px; }
+
+/* Abhaken: Farbtupfer und Ring (js/celebrate.js) */
+.celebrate { position: fixed; inset: 0; pointer-events: none; z-index: 1000; overflow: hidden; }
+.celebrate-dot {
+  position: absolute; margin: -4px 0 0 -4px; opacity: 0;
+  animation: celebrate-fly 700ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+.celebrate-ring {
+  position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+  border: 3px solid var(--accent); animation: celebrate-ring 450ms ease-out forwards;
+}
+@keyframes celebrate-fly {
+  0% { opacity: 1; transform: translate(0, 0) scale(0.4) rotate(0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); }
+}
+@keyframes celebrate-ring {
+  from { opacity: 0.9; transform: scale(0.5); }
+  to { opacity: 0; transform: scale(1.8); }
+}

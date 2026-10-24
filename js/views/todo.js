@@ -8,6 +8,7 @@ import { addToCalendar, isInCalendar } from '../calendar.js';
 import { openReminder, reminderSummary } from '../reminder.js';
 import { notifyAssigned, pushConfigured } from '../push.js';
 import { ALARM_CHOICES, alarmLabel } from '../alarms.js';
+import { celebrate } from '../celebrate.js';
 import { ADDONS, combinedItems, fromTemplate, newPackItem, packActions, packInfo, packPicker, packPickerActions, packSource, packView, saveTemplate, templates } from '../packliste.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { currentMember } from '../login.js';
@@ -77,7 +78,11 @@ const overdue = (t) => !t.done && t.due && t.due < todayKey();
 
 // Abhaken bzw. wieder öffnen – auch von der Startseite „Heute“ (js/views/heute.js).
 // Wiederkehrend: statt erledigt mit dem nächsten Datum wieder offen.
-export function toggleTodo(scope, id) {
+// el: das angetippte Kästchen – beim Abhaken gibt es dort einen kleinen Effekt mit Ton (js/celebrate.js),
+// einen grösseren, wenn damit die ganze Liste erledigt ist
+export function toggleTodo(scope, id, el) {
+  const at = el?.getBoundingClientRect(); // vor dem Neuzeichnen der Liste
+  let cheer = null;
   SCOPES[scope]?.change((d) => {
     const t = d.todos.find((x) => x.id === id);
     if (!t) return;
@@ -86,12 +91,16 @@ export function toggleTodo(scope, id) {
       t.due = next;
       if (t.repeat.dates) t.repeat.dates = t.repeat.dates.filter((x) => x >= next);
       toast(`${t.title}: nächstes Mal ${fmtShort(next)}`);
+      cheer = { big: false };
       return;
     }
     t.done = !t.done;
-    if (t.done) t.doneAt = Date.now();
-    else delete t.doneAt;
+    if (t.done) {
+      t.doneAt = Date.now();
+      cheer = { big: !d.todos.some((x) => x.listId === t.listId && !x.done) };
+    } else delete t.doneAt;
   });
+  if (cheer) celebrate(at, cheer);
 }
 
 // ---------- Übersicht ----------
@@ -704,7 +713,7 @@ export default {
       window.scrollTo(0, 0);
     },
     toggle(el) {
-      if (open) toggleTodo(open.scope, el.dataset.id);
+      if (open) toggleTodo(open.scope, el.dataset.id, el);
     },
     edit(el) {
       const cur = current();

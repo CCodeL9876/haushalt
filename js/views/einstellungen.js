@@ -16,6 +16,7 @@ import { saveSession, shareLink } from '../session.js';
 import { validCodeChars } from '../remote.js';
 import { aisleLabel, aisleOrder } from '../aisles.js';
 import { PALETTES } from '../palettes.js';
+import { CELEBRATE_CHOICES, celebrate, celebrateMode, setCelebrateMode } from '../celebrate.js';
 
 // Farbdesign: jedes Gerät wählt sein eigenes (localStorage). js/palette-boot.js setzt es beim Start, bevor die
 // Seite gezeichnet wird; die Farben selbst stehen in css/palettes.css (erzeugt von tools/make-palettes.py).
@@ -130,6 +131,11 @@ export function openSettings() {
         <p class="muted small theme-hint" style="margin:-6px 0 10px">${currentTheme() === 'auto' ? 'Folgt der Einstellung des iPhones (hell am Tag, dunkel am Abend, falls so eingestellt).' : 'Gilt immer, unabhängig von der Einstellung des iPhones.'}</p>
         <div class="palette-grid">${paletteHtml()}</div>
       </div>
+      <div class="field"><span>Beim Abhaken <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
+        <div class="seg seg-wide celebrate-seg" role="group" aria-label="Beim Abhaken">${CELEBRATE_CHOICES.map(([id, label]) => `
+          <button type="button" class="seg-btn" data-sheet-action="celebrate" data-id="${id}" aria-pressed="${id === celebrateMode()}">${label}</button>`).join('')}</div>
+        <p class="muted small" style="margin:-6px 0 0">Kleiner Effekt mit Ton beim Erledigen eines ToDos. Am iPhone ist der Ton stumm, solange der Stummschalter an ist.</p>
+      </div>
       <h3 class="settings-group">Einkauf</h3>
       <button type="button" class="btn btn-block" data-sheet-action="terms" style="margin-bottom:10px">${icon('cart', 'icon-sm')} Einkaufsbegriffe verwalten (${state.terms.length})</button>
       <button type="button" class="btn btn-block" data-sheet-action="cards" style="margin-bottom:10px">${icon('card', 'icon-sm')} Kundenkarten (${cards().length}) <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></button>
@@ -197,6 +203,11 @@ export function openSettings() {
           : 'Gilt immer, unabhängig von der Einstellung des iPhones.';
         // Die Leiste mit Uhr und Akku übernimmt iOS erst beim nächsten Start (js/palette-boot.js)
         if (isIos() && isStandalone()) document.querySelector('#sheet .theme-hint').textContent += ' Ganz oben (Uhr, Akku) ab dem nächsten Öffnen der App.';
+      },
+      celebrate(btn) {
+        setCelebrateMode(btn.dataset.id);
+        for (const b of document.querySelectorAll('#sheet .celebrate-seg .seg-btn')) b.setAttribute('aria-pressed', String(b === btn));
+        celebrate(btn); // gleich vorführen (bei „Aus“ passiert nichts)
       },
       palette(btn) {
         applyPalette(btn.dataset.id);

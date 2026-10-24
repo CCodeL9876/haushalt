@@ -188,7 +188,7 @@ export default {
   actions: {
     go(el) { location.hash = el.dataset.hash; },
     waste() { openWaste(); },
-    toggleTodo(el) { toggleTodo(el.dataset.scope, el.dataset.id); },
+    toggleTodo(el) { toggleTodo(el.dataset.scope, el.dataset.id, el); },
     shopMeal() {
       const t = todaysMeal();
       if (t) shopIngredients(forMeal(t.day, t.meal), `für ${mealTitle(t.meal)}`);
