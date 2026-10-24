@@ -54,6 +54,20 @@ export const BUILTIN = [
       T('Tagesrucksack', 'unterwegs'), T('Regenschirm', 'unterwegs'), T('Wasserflasche', 'unterwegs'),
     ],
   },
+  {
+    id: 'berge', name: 'Ab in die Berge', days: 4,
+    items: [
+      T('Funktions-Shirt', 'kleidung', { perDay: 1 }), T('Unterwäsche', 'kleidung', { perDay: 1 }), T('Wandersocken', 'kleidung', { perDay: 1 }),
+      T('Wanderhose', 'kleidung', { qty: '2×' }), T('Fleece / Pullover', 'kleidung'), T('Regenjacke', 'kleidung'), T('Warme Jacke', 'kleidung'),
+      T('Mütze', 'kleidung'), T('Handschuhe', 'kleidung'), T('Wanderschuhe', 'kleidung'), T('Hausschuhe / Hüttenfinken', 'kleidung'), T('Pyjama', 'kleidung'),
+      T('Zahnbürste', 'hygiene'), T('Zahnpasta', 'hygiene'), T('Duschmittel', 'hygiene'), T('Deo', 'hygiene'), T('Sonnencreme (hoher Schutz)', 'hygiene'), T('Lippenpflege mit UV-Schutz', 'hygiene'),
+      T('Reiseapotheke', 'gesundheit'), T('Blasenpflaster', 'gesundheit'), T('Persönliche Medikamente', 'gesundheit'), T('Zeckenschutz', 'gesundheit'),
+      T('Handy-Ladekabel', 'elektronik'), T('Powerbank', 'elektronik'), T('Stirnlampe', 'elektronik'),
+      T('ID', 'dokumente'), T('Krankenkassenkarte', 'dokumente'), T('Kreditkarte', 'dokumente'), T('Bargeld', 'dokumente'), T('Halbtax / GA', 'dokumente'), T('Hüttenreservation', 'dokumente'),
+      T('Wanderrucksack', 'unterwegs'), T('Trinkflasche', 'unterwegs'), T('Sonnenbrille', 'unterwegs'), T('Sonnenhut / Kappe', 'unterwegs'), T('Wanderstöcke', 'unterwegs'),
+      T('Wanderkarte / App offline', 'unterwegs'), T('Taschenmesser', 'unterwegs'), T('Proviant & Snacks', 'unterwegs'), T('Hüttenschlafsack', 'unterwegs'),
+    ],
+  },
 ];
 export const templates = () => [...BUILTIN, ...(state.settings.packTemplates || [])];
 
