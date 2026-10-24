@@ -974,3 +974,42 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
   100% { opacity: 0; transform: scale(1.5); }
 }
 @keyframes celebrate-draw { to { stroke-dashoffset: 0; } }
+
+/* ---------- Geld → Planung (js/views/planung.js) ---------- */
+.plan-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -4px 0 10px; }
+.plan-top .muted { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.plan-top-actions { display: flex; gap: 6px; white-space: nowrap; }
+.plan-tabs .seg-btn { font-size: 13px; padding: 0 6px; }
+.plan-backup-due {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 12px; padding: 12px 14px; border: 0;
+  border-radius: var(--radius-sm); background: var(--hero); color: var(--on-hero); text-align: left;
+}
+.plan-backup-due small { display: block; opacity: 0.8; }
+.plan-month { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.plan-month strong { font-size: 18px; }
+.plan-hero { display: grid; gap: 2px; margin: 10px 0 12px; padding: 16px; text-align: center; }
+.plan-hero > small { color: var(--muted); }
+.plan-hero .hero-number { font-size: 30px; }
+.plan-lines li, .plan-until li { min-height: 44px; }
+.plan-sum { float: right; font-weight: 600; color: var(--muted); font-size: 13px; text-transform: none; letter-spacing: 0; }
+.plan-row { padding: 6px 0; border: 0; background: none; text-align: left; font: inherit; color: inherit; }
+.list li.is-off .list-main, .list li.is-off .list-value { opacity: 0.55; }
+.check.is-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.plan-asof { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.plan-asof .input { width: auto; min-height: 34px; padding: 0 10px; font-size: 14px; }
+.plan-bills li.plan-bill { display: block; padding: 12px 14px; }
+.plan-bill-head { display: flex; justify-content: space-between; gap: 10px; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; }
+.plan-bar { margin: 8px 0 4px; background: color-mix(in srgb, var(--text) 10%, transparent); }
+.plan-bill-info { display: block; color: var(--muted); font-size: 13px; }
+.plan-bill-info b { color: var(--text); }
+.plan-bill.is-paid { opacity: 0.7; }
+.plan-bill-actions { margin-top: 8px; }
+.plan-bill-actions .btn { flex: 1; }
+.plan-payments { margin-top: 6px; font-size: 13px; }
+.plan-payments summary { color: var(--accent-text); font-weight: 600; cursor: pointer; }
+.plan-payments ul { list-style: none; margin: 4px 0 0; padding: 0; }
+.plan-payments li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.plan-payments li span:first-child { flex: 1; }
+.plan-paid { margin-top: 14px; }
+.plan-paid summary { font-weight: 650; color: var(--muted); cursor: pointer; margin-bottom: 8px; }
+.plan-until-out { font-size: 16px; }

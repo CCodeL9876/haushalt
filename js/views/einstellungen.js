@@ -9,6 +9,7 @@ import { openTerms } from '../terms.js';
 import { cards, showCards } from '../cards.js';
 import { openWaste, wasteKinds } from '../waste.js';
 import { addons, openTemplates, templates } from '../packliste.js';
+import { wipePlan } from '../planung.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { todayKey } from '../dates.js';
 import { addMember, currentMember } from '../login.js';
@@ -282,6 +283,7 @@ export function openSettings() {
         if (!confirm('Wirklich alle Daten auf diesem Gerät löschen?')) return;
         resetAll();
         updatePersonal((d) => { d.lists = []; d.todos = []; }); // persönliche ToDo-Listen gehören auch dazu
+        wipePlan(); // und die persönliche Planung (Geld → Planung)
         closeSheet();
         toast('Alles zurückgesetzt');
       },

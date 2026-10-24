@@ -25,11 +25,11 @@ import heute from './views/heute.js';
 import einkauf from './views/einkauf.js';
 import todo from './views/todo.js';
 import essen from './views/essen.js';
-import abrechnung from './views/abrechnung.js';
+import geld from './views/geld.js';
 import { openSettings } from './views/einstellungen.js';
 
 // Reihenfolge der Tab-Leiste: Heute zuerst, Einkauf neben Essen. Start (und unbekannte Adressen) ist „Heute“.
-const VIEWS = [heute, todo, einkauf, essen, abrechnung];
+const VIEWS = [heute, todo, einkauf, essen, geld];
 const START = heute;
 
 const root = document.getElementById('view');
