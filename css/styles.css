@@ -244,6 +244,28 @@ button { cursor: pointer; }
 }
 .chip-toggle input { position: absolute; opacity: 0; pointer-events: none; }
 .chip-toggle:has(input:checked) { background: var(--accent); color: var(--on-accent); }
+/* Packliste anlegen: Vorlagen als Kacheln, Tage mit − / + */
+.tpl-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.tpl-tile {
+  position: relative; display: flex; flex-direction: column; gap: 2px; min-height: 84px; padding: 10px 12px;
+  border-radius: 18px; background: var(--chip); cursor: pointer;
+}
+.tpl-tile input { position: absolute; opacity: 0; pointer-events: none; }
+.tpl-tile strong { font-size: 15px; line-height: 1.2; overflow-wrap: anywhere; }
+.tpl-tile small { font-size: 12.5px; opacity: 0.75; }
+.tpl-emoji { font-size: 22px; line-height: 1.1; margin-bottom: 2px; }
+.tpl-tile:has(input:checked) { background: var(--hero); color: var(--on-hero); }
+.tpl-tile:has(input:checked)::after {
+  content: '✓'; position: absolute; top: 8px; right: 10px; display: grid; place-items: center; width: 22px; height: 22px;
+  border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 800;
+}
+.tpl-empty:not(:has(input:checked)) { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); }
+.tpl-preview { margin: -6px 0 12px; min-height: 1.4em; }
+.stepper-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.stepper-field > span { margin-bottom: 0; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper .icon-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--chip); font-size: 22px; font-weight: 600; }
+.stepper .input { width: 72px; text-align: center; font-weight: 700; }
 /* Vorschläge beim Einkauf: eine Zeile zum seitlichen Wischen direkt unter dem Eingabefeld */
 .suggest {
   display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
@@ -257,7 +279,11 @@ button { cursor: pointer; }
 /* Einkaufsliste nach Abteilungen */
 .seg { display: inline-flex; gap: 4px; padding: 3px; margin: 0 0 10px; border-radius: 999px; background: var(--seg-bg); }
 .seg-btn { min-height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--text-soft); font-size: 14px; font-weight: 600; }
-.seg-btn[aria-pressed="true"] { background: var(--seg-active-bg); color: var(--seg-active-text); box-shadow: var(--shadow); }
+.seg-btn[aria-pressed="true"], .seg-btn:has(input:checked) { background: var(--seg-active-bg); color: var(--seg-active-text); box-shadow: var(--shadow); }
+/* Umschalter aus Auswahlknöpfen (Neue Liste: ToDo | Packliste) */
+label.seg-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+label.seg-btn input { position: absolute; opacity: 0; pointer-events: none; }
+label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Umschalter über die ganze Breite (Essen: Wochenplan | Menüideen) */
 .seg-wide { display: flex; margin-bottom: 14px; }
 .seg-wide .seg-btn { flex: 1; min-width: 0; min-height: 36px; padding: 0 6px; }

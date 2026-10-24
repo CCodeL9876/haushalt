@@ -5,6 +5,7 @@
 //           perDay: Anzahl pro Tag (Menge = Tage × perDay, aufgerundet), qty: feste Menge („2×“, „1 Paar“)
 //           buy: fehlt noch – steht auf der Einkaufsliste
 //   Vorlagen: mitgelieferte (unten) und eigene in state.settings.packTemplates [{ id, name, days, items }]
+//   Zusatz-Pakete (ADDONS): kleine Ergänzungen zur Vorlage (Baby, Hund, Velo …), beim Anlegen frei kombinierbar
 
 import { refresh, state, uid } from './store.js';
 import { currentMember } from './login.js';
@@ -31,7 +32,7 @@ export const catOf = (name) => CAT_WORDS.find(([, re]) => re.test(name))?.[0] ||
 const T = (title, cat, extra = {}) => ({ title, cat, ...extra });
 export const BUILTIN = [
   {
-    id: 'strand', name: 'Strandferien', days: 7,
+    id: 'strand', emoji: '🏖️', name: 'Strandferien', days: 7,
     items: [
       T('T-Shirt', 'kleidung', { perDay: 1 }), T('Unterwäsche', 'kleidung', { perDay: 1 }), T('Socken', 'kleidung', { perDay: 0.5 }),
       T('Shorts', 'kleidung', { qty: '2×' }), T('Badekleid', 'kleidung', { qty: '2×' }), T('Pullover', 'kleidung'), T('Sandalen', 'kleidung'), T('Pyjama', 'kleidung'),
@@ -43,7 +44,7 @@ export const BUILTIN = [
     ],
   },
   {
-    id: 'stadt', name: 'Städtetrip', days: 3,
+    id: 'stadt', emoji: '🏙️', name: 'Städtetrip', days: 3,
     items: [
       T('T-Shirt', 'kleidung', { perDay: 1 }), T('Unterwäsche', 'kleidung', { perDay: 1 }), T('Socken', 'kleidung', { perDay: 1 }),
       T('Hose', 'kleidung', { qty: '2×' }), T('Pullover', 'kleidung'), T('Bequeme Schuhe', 'kleidung'), T('Regenjacke', 'kleidung'), T('Pyjama', 'kleidung'),
@@ -55,7 +56,7 @@ export const BUILTIN = [
     ],
   },
   {
-    id: 'berge', name: 'Ab in die Berge', days: 4,
+    id: 'berge', emoji: '🏔️', name: 'Ab in die Berge', days: 4,
     items: [
       T('Funktions-Shirt', 'kleidung', { perDay: 1 }), T('Unterwäsche', 'kleidung', { perDay: 1 }), T('Wandersocken', 'kleidung', { perDay: 1 }),
       T('Wanderhose', 'kleidung', { qty: '2×' }), T('Fleece / Pullover', 'kleidung'), T('Regenjacke', 'kleidung'), T('Warme Jacke', 'kleidung'),
@@ -70,6 +71,129 @@ export const BUILTIN = [
   },
 ];
 export const templates = () => [...BUILTIN, ...(state.settings.packTemplates || [])];
+
+// Zusatz-Pakete: werden zur gewählten Vorlage dazugenommen (Doppeltes nur einmal)
+export const ADDONS = [
+  {
+    id: 'baby', emoji: '👶', name: 'Baby',
+    items: [
+      T('Windeln', 'hygiene', { perDay: 6 }), T('Feuchttücher', 'hygiene'), T('Wickelunterlage', 'hygiene'), T('Baby-Sonnencreme', 'hygiene'),
+      T('Bodys', 'kleidung', { perDay: 2 }), T('Schlafsack (Baby)', 'kleidung'), T('Fieberthermometer', 'gesundheit'),
+      T('Schoppen / Fläschchen', 'sonstiges'), T('Babynahrung', 'sonstiges'), T('Nuggi', 'sonstiges'), T('Lieblingsplüschtier', 'sonstiges'),
+      T('Babytrage', 'unterwegs'), T('Reisebett', 'unterwegs'),
+    ],
+  },
+  {
+    id: 'hund', emoji: '🐕', name: 'Hund',
+    items: [
+      T('Hundefutter', 'sonstiges'), T('Napf', 'sonstiges'), T('Hundedecke', 'sonstiges'), T('Hundespielzeug', 'sonstiges'),
+      T('Leine', 'unterwegs'), T('Robidog-Säckli', 'unterwegs'), T('Heimtierpass', 'dokumente'), T('Zeckenmittel (Hund)', 'gesundheit'),
+    ],
+  },
+  {
+    id: 'velo', emoji: '🚲', name: 'Velo',
+    items: [
+      T('Velohelm', 'unterwegs'), T('Veloschloss', 'unterwegs'), T('Flickzeug', 'unterwegs'), T('Velopumpe', 'unterwegs'),
+      T('Velolicht', 'elektronik'), T('Velohose', 'kleidung'), T('Velohandschuhe', 'kleidung'), T('Trinkflasche', 'unterwegs'),
+    ],
+  },
+  {
+    id: 'winter', emoji: '⛷️', name: 'Wintersport',
+    items: [
+      T('Skijacke', 'kleidung'), T('Skihose', 'kleidung'), T('Skisocken', 'kleidung', { perDay: 1 }), T('Thermowäsche', 'kleidung', { qty: '2×' }),
+      T('Skihandschuhe', 'kleidung'), T('Halswärmer', 'kleidung'), T('Mütze', 'kleidung'),
+      T('Skibrille', 'unterwegs'), T('Helm', 'unterwegs'), T('Skipass', 'dokumente'), T('Sonnencreme (hoher Schutz)', 'hygiene'),
+    ],
+  },
+  {
+    id: 'arbeit', emoji: '💼', name: 'Arbeit',
+    items: [
+      T('Laptop', 'elektronik'), T('Laptop-Ladegerät', 'elektronik'), T('Notizbuch', 'sonstiges'), T('Kugelschreiber', 'sonstiges'),
+      T('Hemd / Bluse', 'kleidung', { qty: '2×' }), T('Badge / Ausweis Firma', 'dokumente'),
+    ],
+  },
+];
+
+// Vorlage oder Zusatz-Paket nach id (für „Dazunehmen“ bei einer bestehenden Liste)
+export const packSource = (id) => templates().find((t) => t.id === id) || ADDONS.find((a) => a.id === id) || null;
+
+// Einträge aus Vorlage und Paketen zusammen, gleicher Name nur einmal (der erste gewinnt)
+export function combinedItems(tplId, addonIds = []) {
+  const seen = new Set();
+  return [packSource(tplId), ...addonIds.map((id) => ADDONS.find((a) => a.id === id))]
+    .flatMap((x) => x?.items || [])
+    .filter((it) => {
+      const k = it.title.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+}
+
+// ---------- Auswahl beim Anlegen (Fenster „Neue Liste“ in js/views/todo.js) ----------
+// Kacheln für die Vorlagen (eigene mit ⭐), Zusatz-Pakete als Chips, Tage mit − / +, Vorschau nach Kategorien.
+
+export function packPicker() {
+  const tile = (t) => `
+    <label class="tpl-tile">
+      <input type="radio" name="template" value="${esc(t.id)}">
+      <span class="tpl-emoji" aria-hidden="true">${t.emoji || '⭐'}</span>
+      <strong>${esc(t.name)}</strong>
+      <small>${t.days ? `${t.days} ${t.days === 1 ? 'Tag' : 'Tage'} · ` : ''}${t.items.length} Sachen</small>
+    </label>`;
+  return `
+    <div class="field"><span>Vorlage</span>
+      <div class="tpl-grid">${templates().map(tile).join('')}
+        <label class="tpl-tile tpl-empty">
+          <input type="radio" name="template" value="" checked>
+          <span class="tpl-emoji" aria-hidden="true">＋</span><strong>Leer</strong><small>selbst füllen</small>
+        </label>
+      </div>
+    </div>
+    <div class="field"><span>Dazu packen</span>
+      <div class="chips">${ADDONS.map((a) => `<label class="chip chip-toggle"><input type="checkbox" name="addon" value="${a.id}">${a.emoji} ${esc(a.name)}</label>`).join('')}</div>
+    </div>
+    <p class="tpl-preview muted small" aria-live="polite"></p>
+    <div class="field stepper-field"><span>Tage</span>
+      <div class="stepper">
+        <button type="button" class="icon-btn" data-sheet-action="days" data-step="-1" aria-label="Ein Tag weniger">−</button>
+        <input class="input" type="number" name="days" min="1" max="90" inputmode="numeric" value="3" aria-label="Tage">
+        <button type="button" class="icon-btn" data-sheet-action="days" data-step="1" aria-label="Ein Tag mehr">+</button>
+      </div>
+    </div>`;
+}
+
+const addonsOf = (f) => [...f.querySelectorAll('[name="addon"]:checked')].map((x) => x.value);
+
+// Vorschau: „40 Sachen · 12 Kleidung · 6 Hygiene …“
+function preview(f) {
+  const items = combinedItems(f.elements.template.value, addonsOf(f));
+  const counts = CATS.map(([id, label]) => [label, items.filter((it) => (it.cat || catOf(it.title)) === id).length]).filter(([, n]) => n);
+  f.querySelector('.tpl-preview').textContent = items.length
+    ? `${items.length} Sachen · ${counts.map(([l, n]) => `${n} ${l}`).join(' · ')}`
+    : 'Leere Packliste – du füllst sie selbst.';
+}
+
+export const packPickerActions = {
+  // Vorlage gewählt: Tage und Name übernehmen (den Namen nur, solange er leer ist oder von der letzten Vorlage stammt)
+  change(el, f) {
+    if (el.name === 'template') {
+      const tpl = packSource(el.value);
+      if (tpl?.days) f.elements.days.value = tpl.days;
+      const name = f.elements.name;
+      if (!name.value.trim() || name.value === f.dataset.autoName) {
+        name.value = tpl?.name || '';
+        f.dataset.autoName = name.value;
+      }
+    }
+    if (el.name === 'template' || el.name === 'addon') preview(f);
+  },
+  days(btn, f) {
+    const input = f.elements.days;
+    input.value = Math.min(90, Math.max(1, (Number(input.value) || 0) + Number(btn.dataset.step)));
+  },
+  init(f) { preview(f); },
+};
 
 // Einträge einer Vorlage als neue Einträge der Liste
 export const fromTemplate = (tpl, listId) => (tpl?.items || []).map((it, n) => ({

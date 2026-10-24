@@ -8,7 +8,7 @@ import { addToCalendar, isInCalendar } from '../calendar.js';
 import { openReminder, reminderSummary } from '../reminder.js';
 import { notifyAssigned, pushConfigured } from '../push.js';
 import { ALARM_CHOICES, alarmLabel } from '../alarms.js';
-import { fromTemplate, newPackItem, packActions, packInfo, packView, saveTemplate, templates } from '../packliste.js';
+import { ADDONS, combinedItems, fromTemplate, newPackItem, packActions, packInfo, packPicker, packPickerActions, packSource, packView, saveTemplate, templates } from '../packliste.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { currentMember } from '../login.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
@@ -181,46 +181,41 @@ function newList(scope) {
         <input class="input" name="name" required maxlength="60" autocomplete="off" placeholder="${scope === 'personal' ? 'z. B. Geschenke, Arbeit' : 'z. B. Putzplan, Ferien'}">
       </label>
       <p class="muted small" style="margin:0 0 12px">${scope === 'personal' ? 'Nur du siehst diese Liste.' : 'Alle im Haushalt sehen und bearbeiten diese Liste.'}</p>
-      <label class="check-field"><input type="checkbox" name="pack"> 🧳 Packliste</label>
+      <div class="seg seg-wide" role="radiogroup" aria-label="Listenart">
+        <label class="seg-btn"><input type="radio" name="kind" value="todo" checked>${icon('check', 'icon-sm')} ToDo</label>
+        <label class="seg-btn"><input type="radio" name="kind" value="pack">🧳 Packliste</label>
+      </div>
       <div class="pack-new" hidden>
-        <p class="muted small" style="margin:-4px 0 10px">Gepacktes bleibt sichtbar, nach Kategorien, mit „Neu packen“ für die nächste Reise.</p>
-        <div class="row">
-          <label class="field"><span>Vorlage</span>
-            <select class="select" name="template"><option value="">Leer</option>${templates().map((t) => `<option value="${esc(t.id)}">${esc(t.name)} (${t.items.length})</option>`).join('')}</select>
-          </label>
-          <label class="field" style="flex:0 0 32%"><span>Tage</span><input class="input" type="number" name="days" min="1" max="90" inputmode="numeric" placeholder="7"></label>
-        </div>
+        <p class="muted small" style="margin:-4px 0 12px">Gepacktes bleibt sichtbar, nach Kategorien, mit „Neu packen“ für die nächste Reise.</p>
+        ${packPicker()}
       </div>`,
     submitLabel: 'Anlegen',
     actions: {
       change(el, f) {
-        if (el.name === 'pack') f.querySelector('.pack-new').hidden = !el.checked;
-        // Vorlage gewählt: Tage und (leerer) Name daraus
-        if (el.name === 'template') {
-          const tpl = templates().find((t) => t.id === el.value);
-          if (tpl?.days && !f.elements.days.value) f.elements.days.value = tpl.days;
-          if (tpl && !f.elements.name.value.trim()) f.elements.name.value = tpl.name;
-        }
+        if (el.name === 'kind') f.querySelector('.pack-new').hidden = el.value !== 'pack';
+        packPickerActions.change(el, f);
       },
+      days: packPickerActions.days,
     },
     onSubmit(data) {
       const name = String(data.get('name')).trim();
       if (!name) return false;
       const id = uid();
-      const pack = Boolean(data.get('pack'));
-      const tpl = pack && templates().find((t) => t.id === data.get('template'));
+      const pack = data.get('kind') === 'pack';
+      const items = pack ? combinedItems(data.get('template'), data.getAll('addon')) : [];
       const days = Math.min(90, Math.max(0, Math.round(Number(data.get('days')) || 0)));
       setOpen({ scope, id }); // gleich die neue Liste zeigen
       SCOPES[scope].change((d) => {
         // ans Ende der selbst gewählten Reihenfolge
         const max = Math.max(-1, ...d.lists.map((l) => (Number.isFinite(l.order) ? l.order : -1)));
         d.lists.push({ id, name: name.slice(0, 60), createdAt: Date.now(), ...(max >= 0 ? { order: max + 1 } : {}), ...(pack ? { kind: 'pack', days } : {}) });
-        if (tpl) d.todos.push(...fromTemplate(tpl, id));
+        if (items.length) d.todos.push(...fromTemplate({ items }, id));
       });
       window.scrollTo(0, 0);
       setTimeout(() => document.getElementById('todo-input')?.focus());
     },
   });
+  packPickerActions.init(form);
   form.elements.name.focus();
 }
 
@@ -559,7 +554,10 @@ function editList(cur) {
       </label>
       <div class="field"><span>Vorlage</span>
         <div class="row">
-          <select class="select" name="addTemplate"><option value="">Vorlage dazunehmen …</option>${templates().map((t) => `<option value="${esc(t.id)}">${esc(t.name)} (${t.items.length})</option>`).join('')}</select>
+          <select class="select" name="addTemplate"><option value="">Vorlage dazunehmen …</option>
+            <optgroup label="Vorlagen">${templates().map((t) => `<option value="${esc(t.id)}">${esc(t.name)} (${t.items.length})</option>`).join('')}</optgroup>
+            <optgroup label="Zusatz-Pakete">${ADDONS.map((a) => `<option value="${a.id}">${a.emoji} ${esc(a.name)} (${a.items.length})</option>`).join('')}</optgroup>
+          </select>
           <button type="button" class="btn" data-sheet-action="saveTemplate" style="flex:0 0 auto">Als Vorlage speichern</button>
         </div>
         <p class="muted small" style="margin:6px 0 0">Dazunehmen ergänzt nur, was noch fehlt. Eigene Vorlagen gelten für den ganzen Haushalt.</p>
@@ -585,7 +583,7 @@ function editList(cur) {
       async change(el) {
         // Vorlage dazunehmen: nur Einträge, die es (gleicher Name) noch nicht gibt
         if (el.name === 'addTemplate' && el.value) {
-          const tpl = templates().find((t) => t.id === el.value);
+          const tpl = packSource(el.value);
           const have = new Set(cur.d.todos.filter((t) => t.listId === list.id).map((t) => t.title.toLowerCase()));
           const add = fromTemplate(tpl, list.id).filter((t) => !have.has(t.title.toLowerCase()));
           cur.change((d) => { d.todos.push(...add); });
