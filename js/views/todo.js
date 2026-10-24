@@ -9,7 +9,7 @@ import { openReminder, reminderSummary } from '../reminder.js';
 import { notifyAssigned, pushConfigured } from '../push.js';
 import { ALARM_CHOICES, alarmLabel } from '../alarms.js';
 import { celebrate } from '../celebrate.js';
-import { ADDONS, combinedItems, fromTemplate, newPackItem, packActions, packInfo, packPicker, packPickerActions, packSource, packView, saveTemplate, templates } from '../packliste.js';
+import { addons, combinedItems, fromTemplate, newPackItem, packActions, packInfo, packPicker, packPickerActions, packSource, packView, saveTemplate, templates } from '../packliste.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { currentMember } from '../login.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
@@ -205,6 +205,7 @@ function newList(scope) {
         packPickerActions.change(el, f);
       },
       days: packPickerActions.days,
+      manageTemplates: packPickerActions.manageTemplates,
     },
     onSubmit(data) {
       const name = String(data.get('name')).trim();
@@ -565,7 +566,7 @@ function editList(cur) {
         <div class="row">
           <select class="select" name="addTemplate"><option value="">Vorlage dazunehmen …</option>
             <optgroup label="Vorlagen">${templates().map((t) => `<option value="${esc(t.id)}">${esc(t.name)} (${t.items.length})</option>`).join('')}</optgroup>
-            <optgroup label="Zusatz-Pakete">${ADDONS.map((a) => `<option value="${a.id}">${a.emoji} ${esc(a.name)} (${a.items.length})</option>`).join('')}</optgroup>
+            <optgroup label="Zusatz-Pakete">${addons().map((a) => `<option value="${esc(a.id)}">${esc(a.emoji || '⭐')} ${esc(a.name)} (${a.items.length})</option>`).join('')}</optgroup>
           </select>
           <button type="button" class="btn" data-sheet-action="saveTemplate" style="flex:0 0 auto">Als Vorlage speichern</button>
         </div>

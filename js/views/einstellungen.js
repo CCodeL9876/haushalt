@@ -8,6 +8,7 @@ import { reloadApp } from '../refresh.js';
 import { openTerms } from '../terms.js';
 import { cards, showCards } from '../cards.js';
 import { openWaste, wasteKinds } from '../waste.js';
+import { addons, openTemplates, templates } from '../packliste.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { todayKey } from '../dates.js';
 import { addMember, currentMember } from '../login.js';
@@ -147,6 +148,8 @@ export function openSettings() {
         <ul class="list aisle-order">${aisleListHtml()}</ul>
         <button type="button" class="btn btn-ghost btn-sm" data-sheet-action="resetAisles" style="margin-top:6px">Standard-Reihenfolge</button>
       </details>
+      <h3 class="settings-group">ToDo</h3>
+      <button type="button" class="btn btn-block" data-sheet-action="packTemplates" style="margin-bottom:10px">🧳 Packlisten-Vorlagen (${templates().length + addons().length})</button>
       <h3 class="settings-group">Entsorgung</h3>
       <button type="button" class="btn btn-block" data-sheet-action="waste" style="margin-bottom:10px">${icon('calendar', 'icon-sm')} Abfuhrkalender${wasteKinds().length ? ` (${wasteKinds().map((k) => k.short).join(', ')})` : ' einlesen'}</button>
       <h3 class="settings-group">Abrechnung</h3>
@@ -260,6 +263,7 @@ export function openSettings() {
       // Im Einkaufsmodus gibt es den Knopf „Kundenkarte zeigen“; hier erfassen und verwalten
       cards() { showCards(); },
       waste() { openWaste(); },
+      packTemplates() { openTemplates(); },
       export() { openBackup(); },
       async share() {
         const url = shareLink(session.key);
