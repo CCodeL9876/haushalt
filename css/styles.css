@@ -944,3 +944,27 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
   from { opacity: 0.9; transform: scale(0.5); }
   to { opacity: 0; transform: scale(1.8); }
 }
+.celebrate-check, .celebrate-text {
+  position: absolute; left: 50%; top: 42%; translate: -50% -50%;
+}
+.celebrate-check { width: 130px; height: 130px; animation: celebrate-grow 1000ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
+.celebrate-check.is-big { width: 170px; height: 170px; }
+.celebrate-check svg { width: 100%; height: 100%; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.25)); }
+.celebrate-check circle { fill: var(--accent); }
+.celebrate-check path {
+  fill: none; stroke: var(--on-accent); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 40; stroke-dashoffset: 40; animation: celebrate-draw 320ms 120ms ease-out forwards;
+}
+.celebrate-text {
+  white-space: nowrap; font-size: 46px; font-weight: 900; letter-spacing: -0.03em; color: var(--accent-text, var(--accent));
+  text-shadow: 0 2px 0 var(--bg), 0 8px 26px rgba(0, 0, 0, 0.22);
+  animation: celebrate-grow 1200ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+.celebrate-text.is-big { font-size: 32px; }
+@keyframes celebrate-grow {
+  0% { opacity: 0; transform: scale(0.3); }
+  25% { opacity: 1; transform: scale(1.05); }
+  60% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+@keyframes celebrate-draw { to { stroke-dashoffset: 0; } }
