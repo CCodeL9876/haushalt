@@ -185,7 +185,7 @@ button { cursor: pointer; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--radius-sm);
-  background: var(--chip); font-weight: 600;
+  background: var(--chip); font-weight: 600; color: inherit; text-decoration: none;
 }
 .btn-primary { background: var(--accent); color: var(--on-accent); }
 .btn-primary:active { background: var(--accent-hover); }
@@ -370,6 +370,13 @@ button { cursor: pointer; }
 .slot.is-empty { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); }
 .week-shop { background: var(--week-btn-bg); color: var(--week-btn-text); }
 .slot-title { flex: 1; min-width: 0; font-weight: 550; }
+.slot-wrap { position: relative; }
+.slot.has-recipe { padding-right: 52px; }
+.slot-recipe {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%;
+  background: color-mix(in srgb, currentColor 10%, transparent); color: var(--tile-text, var(--text));
+}
 .slot.is-empty .slot-title { color: var(--muted); font-weight: 400; }
 
 /* ---------- Menüideen ---------- */

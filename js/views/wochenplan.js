@@ -2,7 +2,7 @@
 // Oben ein Hinweis auf Reste im Kühlschrank; beim Gericht lassen sich Reste dorthin eintragen (js/fridge.js).
 
 import { refresh, state, update } from '../store.js';
-import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
+import { closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui.js';
 import { addDays, dateKey, fmtDayMonth, fmtShort, fmtWeekday, isoWeek, startOfWeek, todayKey } from '../dates.js';
 import { shopIngredients } from './einkauf.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
@@ -19,6 +19,8 @@ const ideaByTitle = (title) => state.ideas.find((i) => i.title.toLowerCase() ===
 const ideaOf = (meal) => (meal?.ideaId && state.ideas.find((i) => i.id === meal.ideaId)) || null;
 // Name im Plan: der aktuelle Name der verknüpften Menüidee (wurde sie umbenannt, gilt der neue), sonst der eingetragene
 export const mealTitle = (meal) => ideaOf(meal)?.title || meal?.title || '';
+// Rezept-Link der verknüpften Menüidee (nur http/https), sonst ''
+export const recipeLink = (meal) => safeLink(ideaOf(meal)?.url);
 
 export function setMeal(day, slot, title) {
   const idea = ideaByTitle(title);
@@ -104,7 +106,8 @@ function editMeal(day, slot) {
         : `<div class="field"><span>Aus den Menüideen</span><div class="chips">${ideaChips()}</div></div>`}
       <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>`,
     submitLabel: 'Speichern',
-    footer: meal ? `${ideaOf(meal)?.ingredients?.length ? `<button type="button" class="btn btn-block" data-sheet-action="shop">${icon('cart', 'icon-sm')} Zutaten einkaufen (${ideaOf(meal).ingredients.length})</button>` : ''}
+    footer: meal ? `${recipeLink(meal) ? `<a class="btn btn-block" href="${esc(recipeLink(meal))}" target="_blank" rel="noopener noreferrer">${icon('link', 'icon-sm')} Rezept öffnen</a>` : ''}
+      ${ideaOf(meal)?.ingredients?.length ? `<button type="button" class="btn btn-block" data-sheet-action="shop">${icon('cart', 'icon-sm')} Zutaten einkaufen (${ideaOf(meal).ingredients.length})</button>` : ''}
       <button type="button" class="btn btn-block" data-sheet-action="leftovers">Reste in den Kühlschrank</button>
       <button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Eintrag entfernen</button>` : '',
     actions: {
@@ -166,11 +169,16 @@ export default {
             <div class="slots">
               ${shown.map((s) => {
                 const meal = state.plan[key]?.[s.id];
-                return `<button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'}" data-action="edit" data-day="${key}" data-slot="${s.id}">
-                  <span class="slot-label">${s.label}</span>
-                  <span class="slot-title">${meal ? esc(mealTitle(meal)) : 'Noch nichts geplant'}</span>
-                  ${meal ? '' : icon('plus', 'icon-sm')}
-                </button>`;
+                // Rezept-Link neben dem Eintrag (ein Link darf nicht im Knopf stecken, darum daneben in einer Hülle)
+                const url = recipeLink(meal);
+                return `<div class="slot-wrap">
+                  <button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'} ${url ? 'has-recipe' : ''}" data-action="edit" data-day="${key}" data-slot="${s.id}">
+                    <span class="slot-label">${s.label}</span>
+                    <span class="slot-title">${meal ? esc(mealTitle(meal)) : 'Noch nichts geplant'}</span>
+                    ${meal ? '' : icon('plus', 'icon-sm')}
+                  </button>
+                  ${url ? `<a class="slot-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen: ${esc(mealTitle(meal))}" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
+                </div>`;
               }).join('')}
             </div>
           </section>`;
