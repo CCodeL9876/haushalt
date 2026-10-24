@@ -1013,3 +1013,4 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .plan-paid { margin-top: 14px; }
 .plan-paid summary { font-weight: 650; color: var(--muted); cursor: pointer; margin-bottom: 8px; }
 .plan-until-out { font-size: 16px; }
+.mode-got-title { margin-top: 22px; opacity: 0.8; }

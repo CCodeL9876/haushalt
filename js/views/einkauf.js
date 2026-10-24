@@ -290,7 +290,8 @@ function untilHtml(open, hidden, until) {
 
 // ---------- Einkaufsmodus (im Laden) ----------
 // Vollbild mit grosser Schrift, nach Abteilungen in der Reihenfolge des Ladens. Antippen = im Wagen (abgehakt,
-// bleibt durchgestrichen sichtbar, bis man „Fertig“ tippt). Der Bildschirm bleibt an (Wake Lock, ab iOS 16.4).
+// rutscht nach unten in „Im Wagen“ – zuletzt Abgehaktes zuoberst –, damit es beim Einkaufen nicht im Weg ist;
+// bleibt dort durchgestrichen sichtbar und lässt sich zurücklegen, bis man „Fertig“ tippt). Der Bildschirm bleibt an (Wake Lock, ab iOS 16.4).
 // Zeigt dieselben Artikel wie die Liste (auch mit „Einkaufen für … bis“).
 const MODE_KEY = 'haushalt.shopMode';
 let modeSince = (() => { try { return Number(sessionStorage.getItem(MODE_KEY)) || 0; } catch { return 0; } })();
@@ -315,7 +316,7 @@ function modeHtml(open) {
   const got = state.shopping.filter((i) => i.done && (i.doneAt || 0) >= modeSince);
   const items = [...open, ...got];
   const groups = new Map(aisleOrder(state.settings).map((id) => [id, []]));
-  for (const i of items) groups.get(aisleOf(i.name, state.terms)).push(i);
+  for (const i of open) groups.get(aisleOf(i.name, state.terms)).push(i);
   const row = (i) => `
     <button type="button" class="mode-item${i.done ? ' is-got' : ''}" data-action="toggle" data-id="${i.id}" aria-pressed="${i.done}" aria-label="${esc(i.name)}${i.done ? ' – im Wagen, antippen zum Zurücklegen' : ''}">
       <span class="mode-box">${icon('check')}</span>
@@ -335,8 +336,11 @@ function modeHtml(open) {
     <div class="mode-bar"><i style="width:${total ? Math.round((got.length / total) * 100) : 0}%"></i></div>
     ${total && !open.length ? '<p class="mode-all">Alles im Wagen 🎉</p>' : ''}
     ${[...groups].filter(([, list]) => list.length).map(([id, list], n) => `
-      <h3 class="mode-aisle">${esc(aisleLabel(id))}<span>${list.filter((i) => !i.done).length || '✓'}</span></h3>
-      <div class="mode-group mode-group-${(n % 3) + 1}">${list.sort((a, b) => Number(a.done) - Number(b.done) || a.name.localeCompare(b.name, 'de')).map(row).join('')}</div>`).join('')}
+      <h3 class="mode-aisle">${esc(aisleLabel(id))}<span>${list.length}</span></h3>
+      <div class="mode-group mode-group-${(n % 3) + 1}">${list.sort((a, b) => a.name.localeCompare(b.name, 'de')).map(row).join('')}</div>`).join('')}
+    ${got.length ? `
+      <h3 class="mode-aisle mode-got-title">Im Wagen<span>${got.length}</span></h3>
+      <div class="mode-group mode-got">${got.sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).map(row).join('')}</div>` : ''}
     ${total ? '' : '<p class="mode-all">Die Liste ist leer.</p>'}
     <button type="button" class="mode-pay${total && !open.length ? ' is-ready' : ''}" data-action="cards">${icon('card')} ${cards().length ? 'Kundenkarte zeigen' : 'Kundenkarte hinterlegen'}</button>
     <p class="mode-foot">Antippen = im Wagen · nochmals antippen = zurücklegen</p>`;

@@ -1,5 +1,6 @@
 // Startseite „Heute“: alles Wichtige auf einen Blick, als Kacheln (Bento). Antippen führt in den Bereich.
 //  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten und Link zum Rezept
+//  - am Samstag: Menü vom Sonntag mit fehlenden Zutaten – sonntags sind die Läden zu, also heute einkaufen
 //  - ToDos, die heute dran sind (fällig bis heute) aus geteilten (nur für alle oder mir zugewiesen) und eigenen
 //    persönlichen Listen – direkt abhakbar
 //  - Abfuhrkalender (nächste Termine) und Kühlschrank (was bald weg muss)
@@ -64,6 +65,26 @@ function mealTile() {
     ${missing.length
       ? `<button type="button" class="tile-btn" data-action="shopMeal">${icon('cart', 'icon-sm')} ${missing.length} ${missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'}</button>`
       : `<span class="tile-note">${state.ideas.some((i) => i.id === t.meal.ideaId) ? 'Alle Zutaten da oder auf der Liste ✓' : ''}</span>`}
+  </div>`;
+}
+
+// Samstag: Sonntagsmenüs (Mittag und Abend), für die noch Zutaten fehlen – sonntags sind die Läden zu
+function sundayMeals() {
+  if (new Date().getDay() !== 6) return null;
+  const day = dateKey(addDays(new Date(), 1));
+  const meals = ['mittag', 'abend'].map((slot) => state.plan[day]?.[slot]).filter(Boolean);
+  const missing = [...new Set(meals.flatMap(missingFor))];
+  return missing.length ? { day, meals, missing } : null;
+}
+
+function sundayTile() {
+  const t = sundayMeals();
+  if (!t) return '';
+  return `<div class="tile tile-2 wide">
+    <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
+    <h3>Morgen Sonntag · Läden zu</h3>
+    <div class="tile-big">${esc(t.meals.map(mealTitle).join(' · '))}</div>
+    <button type="button" class="tile-btn" data-action="shopSunday">${icon('cart', 'icon-sm')} ${t.missing.length} ${t.missing.length === 1 ? 'Zutat' : 'Zutaten'} heute einkaufen</button>
   </div>`;
 }
 
@@ -179,6 +200,7 @@ export default {
       <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
       <div class="bento">
         ${mealTile()}
+        ${sundayTile()}
         ${todoTile()}
         ${wasteTile()}
         ${fridgeTile()}
@@ -189,6 +211,10 @@ export default {
     go(el) { location.hash = el.dataset.hash; },
     waste() { openWaste(); },
     toggleTodo(el) { toggleTodo(el.dataset.scope, el.dataset.id, el); },
+    shopSunday() {
+      const t = sundayMeals();
+      if (t) shopIngredients(t.meals.flatMap((meal) => forMeal(t.day, meal)), `für Sonntag (${t.meals.map(mealTitle).join(', ')})`);
+    },
     shopMeal() {
       const t = todaysMeal();
       if (t) shopIngredients(forMeal(t.day, t.meal), `für ${mealTitle(t.meal)}`);
