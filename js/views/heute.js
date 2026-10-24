@@ -1,6 +1,7 @@
 // Startseite „Heute“: alles Wichtige auf einen Blick, als Kacheln (Bento). Antippen führt in den Bereich.
 //  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten und Link zum Rezept
-//  - am Samstag: Menü vom Sonntag mit fehlenden Zutaten – sonntags sind die Läden zu, also heute einkaufen
+//  - am Samstag: Menü vom Sonntag mit fehlenden Zutaten (oder ohne Zutatenliste: „an den Einkauf denken“) –
+//    sonntags sind die Läden zu, also heute einkaufen
 //  - ToDos, die heute dran sind (fällig bis heute) aus geteilten (nur für alle oder mir zugewiesen) und eigenen
 //    persönlichen Listen – direkt abhakbar
 //  - Abfuhrkalender (nächste Termine) und Kühlschrank (was bald weg muss)
@@ -68,13 +69,15 @@ function mealTile() {
   </div>`;
 }
 
-// Samstag: Sonntagsmenüs (Mittag und Abend), für die noch Zutaten fehlen – sonntags sind die Läden zu
+// Samstag: Sonntagsmenüs (Mittag und Abend) – sonntags sind die Läden zu. Hinweis, wenn Zutaten fehlen oder ein
+// Menü keine Zutatenliste hat (dann nur „an den Einkauf denken“); sind alle Zutaten da, kein Hinweis.
 function sundayMeals() {
   if (new Date().getDay() !== 6) return null;
   const day = dateKey(addDays(new Date(), 1));
   const meals = ['mittag', 'abend'].map((slot) => state.plan[day]?.[slot]).filter(Boolean);
   const missing = [...new Set(meals.flatMap(missingFor))];
-  return missing.length ? { day, meals, missing } : null;
+  const unknown = meals.filter((meal) => !state.ideas.find((i) => i.id === meal.ideaId)?.ingredients?.length);
+  return missing.length || unknown.length ? { day, meals, missing, unknown } : null;
 }
 
 function sundayTile() {
@@ -84,7 +87,12 @@ function sundayTile() {
     <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
     <h3>Morgen Sonntag · Läden zu</h3>
     <div class="tile-big">${esc(t.meals.map(mealTitle).join(' · '))}</div>
-    <button type="button" class="tile-btn" data-action="shopSunday">${icon('cart', 'icon-sm')} ${t.missing.length} ${t.missing.length === 1 ? 'Zutat' : 'Zutaten'} heute einkaufen</button>
+    ${t.missing.length
+      ? `<button type="button" class="tile-btn" data-action="shopSunday">${icon('cart', 'icon-sm')} ${t.missing.length} ${t.missing.length === 1 ? 'Zutat' : 'Zutaten'} heute einkaufen</button>`
+      : ''}
+    ${t.unknown.length
+      ? `<span class="tile-note">${t.missing.length ? `Für ${esc(t.unknown.map(mealTitle).join(', '))} keine Zutatenliste – ` : ''}An den Einkauf denken</span>`
+      : ''}
   </div>`;
 }
 
