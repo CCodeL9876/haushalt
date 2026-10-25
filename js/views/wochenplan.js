@@ -1,5 +1,6 @@
 // Wochenmenüplan: Montag bis Sonntag, je Mittag und Abend. Gerichte frei eintragen oder aus den Menüideen wählen.
 // Oben ein Hinweis auf Reste im Kühlschrank; beim Gericht lassen sich Reste dorthin eintragen (js/fridge.js).
+// Platzhalter („Nicht zuhause“, „Auswärts essen“): Mahlzeit ohne Kochen (away) – zählt als geplant, ohne Zutaten.
 
 import { refresh, state, update } from '../store.js';
 import { closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui.js';
@@ -21,6 +22,12 @@ const ideaOf = (meal) => (meal?.ideaId && state.ideas.find((i) => i.id === meal.
 export const mealTitle = (meal) => ideaOf(meal)?.title || meal?.title || '';
 // Rezept-Link der verknüpften Menüidee (nur http/https), sonst ''
 export const recipeLink = (meal) => safeLink(ideaOf(meal)?.url);
+
+export const PLACEHOLDERS = ['Nicht zuhause', 'Auswärts essen'];
+
+function setAway(day, slot, title) {
+  update((s) => { s.plan[day] = { ...(s.plan[day] || {}), [slot]: { title, ideaId: null, away: true } }; });
+}
 
 export function setMeal(day, slot, title) {
   const idea = ideaByTitle(title);
@@ -97,7 +104,7 @@ function editMeal(day, slot) {
     title: `${fmtShort(day)} · ${slotLabel}`,
     body: `
       <label class="field"><span>Gericht</span>
-        <input class="input" name="title" list="idea-list" value="${esc(mealTitle(meal))}" placeholder="z. B. Gemüsecurry" autocomplete="off">
+        <input class="input" name="title" list="idea-list" value="${meal?.away ? '' : esc(mealTitle(meal))}" placeholder="z. B. Gemüsecurry" autocomplete="off">
         <datalist id="idea-list">${mealIdeas().map((i) => `<option value="${esc(i.title)}">`).join('')}</datalist>
       </label>
       ${!mealIdeas().length ? '' : meal
@@ -106,14 +113,21 @@ function editMeal(day, slot) {
             <div class="chips" style="margin-top:8px">${ideaChips()}</div>
           </details>`
         : `<div class="field"><span>Aus den Menüideen</span><div class="chips">${ideaChips()}</div></div>`}
-      <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>`,
+      <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>
+      <div class="field"><span>Oder Platzhalter, z. B. wenn ihr nicht zuhause esst</span>
+        <div class="chips">${PLACEHOLDERS.map((t) => `<button type="button" class="chip chip-away" data-sheet-action="away" data-title="${esc(t)}">${icon('away', 'icon-xs')} ${esc(t)}</button>`).join('')}</div>
+      </div>`,
     submitLabel: 'Speichern',
-    footer: meal ? `${recipeLink(meal) ? `<a class="btn btn-block" href="${esc(recipeLink(meal))}" target="_blank" rel="noopener noreferrer">${icon('link', 'icon-sm')} Rezept öffnen</a>` : ''}
+    footer: meal?.away ? '<button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Platzhalter entfernen</button>' : meal ? `${recipeLink(meal) ? `<a class="btn btn-block" href="${esc(recipeLink(meal))}" target="_blank" rel="noopener noreferrer">${icon('link', 'icon-sm')} Rezept öffnen</a>` : ''}
       ${ideaOf(meal)?.ingredients?.length ? `<button type="button" class="btn btn-block" data-sheet-action="shop">${icon('cart', 'icon-sm')} Zutaten einkaufen (${ideaOf(meal).ingredients.length})</button>` : ''}
       <button type="button" class="btn btn-block" data-sheet-action="leftovers">Reste in den Kühlschrank</button>
       <button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Eintrag entfernen</button>` : '',
     actions: {
       pick(btn, form) { form.elements.title.value = btn.dataset.title; },
+      away(btn) {
+        setAway(day, slot, btn.dataset.title);
+        closeSheet();
+      },
       leftovers() { leftovers(meal); },
       // Zutaten der verknüpften Menüidee auswählen und auf die Einkaufsliste
       shop() { shopIngredients(forMeal(day, meal), `für ${mealTitle(meal)}`); },
@@ -174,10 +188,10 @@ export default {
                 // Rezept-Link neben dem Eintrag (ein Link darf nicht im Knopf stecken, darum daneben in einer Hülle)
                 const url = recipeLink(meal);
                 return `<div class="slot-wrap">
-                  <button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'} ${url ? 'has-recipe' : ''}" data-action="edit" data-day="${key}" data-slot="${esc(s.id)}">
+                  <button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'} ${meal?.away ? 'is-away' : ''} ${url ? 'has-recipe' : ''}" data-action="edit" data-day="${key}" data-slot="${esc(s.id)}">
                     <span class="slot-label">${s.label}</span>
                     <span class="slot-title">${meal ? esc(mealTitle(meal)) : 'Noch nichts geplant'}</span>
-                    ${meal ? '' : icon('plus', 'icon-sm')}
+                    ${meal ? (meal.away ? icon('away', 'icon-sm') : '') : icon('plus', 'icon-sm')}
                   </button>
                   ${url ? `<a class="slot-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen: ${esc(mealTitle(meal))}" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
                 </div>`;

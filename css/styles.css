@@ -400,6 +400,10 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .slot-abend { background: var(--abend-bg); }
 .slot-abend .slot-label { background: var(--abend-label-bg); color: var(--abend-label-text); }
 .slot.is-empty { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); }
+/* Platzhalter „Nicht zuhause“: gestrichelt, Text gedämpft */
+.slot.is-away { background: transparent; box-shadow: none; outline: 1.5px dashed var(--line); outline-offset: -1.5px; color: var(--muted); }
+.slot.is-away .slot-title { font-style: italic; }
+.chip-away { display: inline-flex; align-items: center; gap: 5px; }
 .week-shop { background: var(--week-btn-bg); color: var(--week-btn-text); }
 .slot-title { flex: 1; min-width: 0; font-weight: 550; }
 .slot-wrap { position: relative; }

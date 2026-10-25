@@ -24,7 +24,7 @@ function collect(range) {
     if (day > today || day < from) continue;
     for (const meal of Object.values(entry || {})) {
       const title = mealTitle(meal).trim();
-      if (!title) continue;
+      if (!title || meal.away) continue; // Platzhalter „Nicht zuhause“ ist kein Gericht
       const idea = meal.ideaId && state.ideas.some((i) => i.id === meal.ideaId) ? meal.ideaId : null;
       const key = idea ? `i:${idea}` : `t:${title.toLowerCase()}`;
       const row = byKey.get(key) || { title, count: 0, last: '' };

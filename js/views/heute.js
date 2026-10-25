@@ -62,6 +62,12 @@ function mealTile(hero = true) {
       <span class="tile-meal-text"><h3>Heute</h3><strong>Noch kein Menü geplant</strong></span>
       <span class="tile-btn tile-meal-btn">${icon('calendar', 'icon-sm')} Planen</span></button>`;
   }
+  if (t.meal.away) {
+    // Platzhalter im Wochenplan: heute kein Kochen
+    return `<button type="button" class="tile ${cls} wide tile-meal" data-action="go" data-hash="#woche">
+      <span class="tile-meal-text"><h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3><strong>${esc(mealTitle(t.meal))}</strong><small>Kein Kochen nötig</small></span>
+      ${icon('away')}</button>`;
+  }
   const missing = missingFor(t.meal);
   const known = state.ideas.some((i) => i.id === t.meal.ideaId);
   // Rezept-Link der Idee (falls hinterlegt): direkt aus der Kachel öffnen, ohne die Idee zu suchen
@@ -93,7 +99,7 @@ function closedMeals() {
   for (let d = addDays(today, 1); shopsClosed(d) && days.length < MAX_CLOSED; d = addDays(d, 1)) days.push(d);
   if (!days.length) return null;
   const meals = days.flatMap((d) => ['mittag', 'abend'].map((slot) => ({ day: dateKey(d), name: dayName(d), meal: state.plan[dateKey(d)]?.[slot] })))
-    .filter((x) => x.meal);
+    .filter((x) => x.meal && !x.meal.away);
   const missing = [...new Set(meals.flatMap((x) => missingFor(x.meal)))];
   const unknown = meals.filter((x) => !state.ideas.find((i) => i.id === x.meal.ideaId)?.ingredients?.length);
   const names = days.length === 1 ? dayName(days[0]) : `${dayName(days[0])} bis ${dayName(days.at(-1))}`;

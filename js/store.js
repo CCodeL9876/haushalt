@@ -14,7 +14,7 @@
 //             aisle: von Hand gewählte Abteilung im Laden (sonst am Namen erkannt, siehe js/aisles.js)
 //             bought: Zeitpunkte der letzten 6 Einkäufe, snooze: „Wieder mal?“ weggetippt bis (js/views/einkauf.js)
 //   ideas     [{ id, title, ingredients: [text], steps?: [text], tags: [text], note, url? }]   url: Link zum Rezept (Einlesen: js/recipes.js)
-//   plan      { 'JJJJ-MM-TT': { mittag: { title, ideaId }, abend: { … } } }
+//   plan      { 'JJJJ-MM-TT': { mittag: { title, ideaId, away? }, abend: { … } } }   away: Platzhalter „Nicht zuhause“ (kein Kochen)
 //   expenses  [{ id, kind: 'expense' | 'transfer', title, note?, amount (Rappen/Cent), payerId, splitIds, method?, category, date, createdAt? }]
 //             Rechnung (expense): payerId hat bezahlt, splitIds tragen es. Zahlung (transfer): payerId zahlt splitIds[0].
 //             method: Zahlungsart (Twint, Neon …), note: was die Rechnung/Zahlung beinhaltet (js/views/abrechnung.js)
