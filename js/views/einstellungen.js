@@ -1,4 +1,4 @@
-// Fenster „Haushalt“ (Knopf oben rechts): Personen, Zugang (Link, Code), Mitteilungen, Farbdesign, Währung, Kategorien, Sicherung.
+// Fenster „Haushalt“ (Knopf oben rechts): Personen, Zugang (Link, Code), Mitteilungen, Farbdesign, Kalender, Währung, Kategorien, Sicherung.
 
 import { changeCode, replaceAll, resetAll, session, state, update } from '../store.js';
 import { personal, updatePersonal } from '../personal.js';
@@ -8,6 +8,7 @@ import { reloadApp } from '../refresh.js';
 import { openTerms } from '../terms.js';
 import { cards, showCards } from '../cards.js';
 import { openWaste, wasteKinds } from '../waste.js';
+import { allCalendars, calendarsAvailable, openCalendars } from '../calendars.js';
 import { addons, openTemplates, templates } from '../packliste.js';
 import { wipePlan } from '../planung.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
@@ -150,6 +151,7 @@ export function openSettings() {
         <button type="button" class="btn btn-ghost btn-sm" data-sheet-action="resetAisles" style="margin-top:6px">Standard-Reihenfolge</button>
       </details>
       <h3 class="settings-group">ToDo</h3>
+      ${calendarsAvailable() ? `<button type="button" class="btn btn-block" data-sheet-action="calendars" style="margin-bottom:10px">${icon('calendar', 'icon-sm')} Kalender auf der Startseite${allCalendars().length ? ` (${allCalendars().length})` : ''}</button>` : ''}
       <button type="button" class="btn btn-block" data-sheet-action="packTemplates" style="margin-bottom:10px">🧳 Packlisten-Vorlagen (${templates().length + addons().length})</button>
       <h3 class="settings-group">Entsorgung</h3>
       <button type="button" class="btn btn-block" data-sheet-action="waste" style="margin-bottom:10px">${icon('calendar', 'icon-sm')} Abfuhrkalender${wasteKinds().length ? ` (${wasteKinds().map((k) => k.short).join(', ')})` : ' einlesen'}</button>
@@ -264,6 +266,7 @@ export function openSettings() {
       // Im Einkaufsmodus gibt es den Knopf „Kundenkarte zeigen“; hier erfassen und verwalten
       cards() { showCards(); },
       waste() { openWaste(); },
+      calendars() { openCalendars(); },
       packTemplates() { openTemplates(); },
       export() { openBackup(); },
       async share() {

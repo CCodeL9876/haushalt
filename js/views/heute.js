@@ -5,6 +5,8 @@
 //    Weihnachten), alle zusammen
 //  - ToDos, die heute dran sind (fällig bis heute) aus geteilten (nur für alle oder mir zugewiesen) und eigenen
 //    persönlichen Listen – direkt abhakbar
+//  - „Dein Tag“: Termine aus dem Apple-Kalender (js/calendars.js) und ToDos mit Uhrzeit als Zeitleiste mit Strich
+//    für „jetzt“; ganztägige Termine oben. ToDos mit Uhrzeit stehen dann dort statt unter „Heute zu tun“
 //  - Abfuhrkalender (nächste Termine) und Kühlschrank (was bald weg muss)
 
 import { state, termKey } from '../store.js';
@@ -18,6 +20,7 @@ import { openOnList, recentlyBought, shopIngredients } from './einkauf.js';
 import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
+import { eventsOn } from '../calendars.js';
 
 const MAX_TODOS = 5;
 
@@ -124,8 +127,55 @@ function dueTodos() {
     .sort((a, b) => a.t.due.localeCompare(b.t.due) || (a.t.time || '99').localeCompare(b.t.time || '99'));
 }
 
+// ToDos mit Uhrzeit für heute: stehen in „Dein Tag“
+const timedToday = ({ t }) => t.due === todayKey() && Boolean(t.time);
+
+// „Dein Tag“: Kalendertermine und ToDos mit Uhrzeit in zeitlicher Reihenfolge, „jetzt“ als Strich dazwischen
+function dayTile() {
+  const today = todayKey();
+  const events = eventsOn(today);
+  const allDay = events.filter((e) => e.allDay);
+  const timed = [
+    ...events.filter((e) => !e.allDay).map((e) => ({ at: e.start, e })),
+    ...dueTodos().filter(timedToday).map((x) => ({ at: new Date(`${today}T${x.t.time}:00`), todo: x })),
+  ].sort((a, b) => a.at - b.at);
+  if (!allDay.length && !timed.length) return '';
+  const now = new Date();
+  const hm = (d) => new Intl.DateTimeFormat('de-CH', { hour: '2-digit', minute: '2-digit' }).format(d);
+  const dayStart = new Date(`${today}T00:00:00`);
+  const row = ({ e, todo }) => {
+    if (todo) {
+      const { scope, t } = todo;
+      const past = new Date(`${today}T${t.time}:00`) < now;
+      return `<li class="${past ? 'is-past' : ''}">
+        <span class="day-time">${esc(t.time)}</span>
+        <button type="button" class="check day-check" data-action="toggleTodo" data-scope="${scope}" data-id="${esc(t.id)}" aria-label="Erledigt: ${esc(t.title)}">${icon('check', 'icon-xs')}</button>
+        <button type="button" class="day-body" data-action="go" data-hash="#todo/${scope}/${esc(t.listId)}"><strong>${esc(t.title)}</strong><small>ToDo</small></button>
+      </li>`;
+    }
+    const past = (+e.end > +e.start ? e.end : e.start) < now;
+    const startsEarlier = e.start < dayStart;
+    const sub = [esc(e.cal.name), startsEarlier ? `bis ${hm(e.end)}` : +e.end > +e.start ? `bis ${hm(e.end)}` : '', esc(e.location)].filter(Boolean).join(' · ');
+    return `<li class="${past ? 'is-past' : ''}">
+      <span class="day-time">${startsEarlier ? '…' : hm(e.start)}</span>
+      <span class="day-pin" style="background:${esc(e.cal.color)}" aria-hidden="true"></span>
+      <span class="day-body"><strong>${esc(e.title)}</strong><small>${sub}</small></span>
+    </li>`;
+  };
+  // Strich „jetzt“ vor dem ersten Eintrag, der noch nicht begonnen hat
+  const nowAt = timed.findIndex((x) => x.at > now);
+  const rows = timed.map(row);
+  if (timed.length && nowAt !== 0) rows.splice(nowAt < 0 ? rows.length : nowAt, 0, `<li class="day-now" aria-label="jetzt ${hm(now)}"><span class="day-time">${hm(now)}</span><span class="day-pin"></span><span class="day-line"></span></li>`);
+  return `<div class="tile tile-plain wide tile-day">
+    <h3>Dein Tag</h3>
+    ${allDay.length ? `<div class="day-allday">${allDay.map((e) => `<span class="day-chip"><i style="background:${esc(e.cal.color)}"></i>${esc(e.title)}</span>`).join('')}</div>` : ''}
+    ${timed.length ? `<ul class="day-list">${rows.join('')}</ul>` : ''}
+  </div>`;
+}
+
 function todoTile() {
-  const list = dueTodos();
+  const all = dueTodos();
+  const list = all.filter((x) => !timedToday(x));
   const today = todayKey();
   const shown = list.slice(0, MAX_TODOS);
   return `<div class="tile tile-plain wide">
@@ -137,7 +187,7 @@ function todoTile() {
         <small class="${t.due < today ? 'amount-minus' : ''}">${t.due < today ? esc(fmtShort(t.due).split(',')[0]) : t.time ? esc(t.time) : 'heute'}</small>
       </li>`).join('')}</ul>
       ${list.length > shown.length ? `<button type="button" class="tile-more" data-action="go" data-hash="#todo">+${list.length - shown.length} weitere</button>` : ''}`
-      : `<p class="tile-note">Nichts fällig 🎉</p>`}
+      : `<p class="tile-note">${all.length ? 'Alles mit Uhrzeit steht oben unter „Dein Tag“.' : 'Nichts fällig 🎉'}</p>`}
   </div>`;
 }
 
@@ -220,6 +270,7 @@ export default {
       <div class="bento">
         ${mealTile()}
         ${closedTile()}
+        ${dayTile()}
         ${todoTile()}
         ${wasteTile()}
         ${fridgeTile()}

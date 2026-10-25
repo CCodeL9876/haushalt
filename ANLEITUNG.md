@@ -184,6 +184,29 @@ Supabase – sonst könnte die Funktion sie nicht nennen. Das gilt nur für dies
 „Ausschalten“ oder der Wahl einer anderen Liste. Auf dem Sperrbildschirm erscheinen die Titel; wer das nicht
 möchte, stellt am iPhone unter Einstellungen → Mitteilungen → Haushalt die Vorschau auf „Wenn entsperrt“.
 
+## 11. Kalender auf der Startseite (einmalig einrichten)
+
+Unter **Haushalt → Kalender auf der Startseite** lassen sich Kalender aus der Apple-Kalender-App eintragen; ihre
+Termine von heute stehen dann auf der Startseite unter **„Dein Tag“** – zusammen mit den ToDos mit Uhrzeit.
+Eine Web-App darf nicht direkt in den Kalender des iPhones schauen, darum liest sie den Link
+„Öffentlicher Kalender“ – über eine kleine Funktion in Supabase:
+
+1. Im Supabase-Dashboard → **Edge Functions** → **Deploy a new function** → **Via Editor**.
+2. Als Namen genau `calendar-feed` eintragen, den Inhalt von
+   [supabase/functions/calendar-feed/index.ts](supabase/functions/calendar-feed/index.ts) hineinkopieren → **Deploy function**.
+3. Wie bei `recipe-import` die **JWT-Prüfung ausschalten**. Geschützt ist sie trotzdem: Sie antwortet nur mit dem
+   Haushalt-Schlüssel und dem richtigen Zugangscode.
+
+Danach in der App: **Haushalt → Kalender auf der Startseite → Kalender hinzufügen**. Den Link gibt es am iPhone in
+der Kalender-App unter **Kalender → ⓘ beim Kalender → Öffentlicher Kalender → Link teilen … → Kopieren** (nur bei
+iCloud-Kalendern; bei Google die „geheime Adresse im iCal-Format“). **Für alle im Haushalt** speichert den Kalender
+für alle, **Nur dieses Gerät** nur auf dem eigenen iPhone (z. B. „Arbeit“).
+
+**Datenschutz:** Wer den Link kennt, kann den Kalender lesen – nicht weitergeben. Die Funktion holt die Termine der
+nächsten 7 Tage und speichert nichts; die Termine liegen nur zwischengespeichert auf dem Gerät und werden alle
+15 Minuten erneuert. Neue Termine erscheinen darum mit etwas Verzögerung (auch iCloud aktualisiert den öffentlichen
+Kalender nicht sofort).
+
 ## Gut zu wissen
 
 - **Code ändern:** In der App unter Haushalt → Zugang → *Code ändern*. Alle anderen Geräte werden beim nächsten

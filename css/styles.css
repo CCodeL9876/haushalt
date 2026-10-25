@@ -863,6 +863,34 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .loyalty-dots i.is-on { background: var(--accent); width: 18px; border-radius: 4px; }
 
 /* ---------- Abfuhrkalender (js/waste.js) ---------- */
+/* Startseite: „Dein Tag“ – Kalendertermine und ToDos mit Uhrzeit als Zeitleiste (js/views/heute.js) */
+.day-allday { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.day-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border-radius: 999px; background: var(--chip); font-size: 13px; font-weight: 650; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-chip i, .cal-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.day-list { list-style: none; margin: 0; padding: 0; }
+.day-list li { display: grid; grid-template-columns: 44px 18px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 44px; }
+.day-time { font-size: 13px; font-weight: 700; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.day-pin { justify-self: center; width: 12px; height: 12px; border-radius: 4px; }
+.day-check { justify-self: center; width: 18px; height: 18px; min-width: 0; min-height: 0; border-radius: 6px; padding: 0; }
+.day-check .icon-xs { width: 11px; height: 11px; }
+.day-body { display: block; min-width: 0; padding: 4px 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; }
+.day-body strong { display: block; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-body small { display: block; font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-list li.is-past { opacity: 0.5; }
+.day-list li.day-now { min-height: 18px; }
+.day-now .day-time { color: var(--accent-text); }
+.day-now .day-pin { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.day-line { height: 2px; border-radius: 2px; background: var(--accent); }
+/* Haushalt → Kalender */
+.cal-list .cal-swatch { width: 14px; height: 14px; border-radius: 4px; }
+.cal-color { position: relative; width: 34px; height: 34px; border-radius: 10px; cursor: pointer; }
+.cal-color input { position: absolute; opacity: 0; pointer-events: none; }
+.cal-color:has(input:checked) { outline: 3px solid var(--text); outline-offset: 2px; }
+.cal-color:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cal-help { margin-bottom: 14px; padding: 10px 12px; border-radius: 14px; background: var(--chip); }
+.cal-help summary { font-weight: 650; cursor: pointer; }
+.cal-help ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+
 /* Startseite: Streifen für die nächste Abfuhr, übrige als Chips (js/views/heute.js) */
 .waste-b { grid-column: 1 / -1; display: grid; gap: 8px; min-width: 0; }
 .waste-next {

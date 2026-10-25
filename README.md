@@ -40,6 +40,7 @@ ohne Anmeldung und nur lokal (mit Beispieldaten).
 - `js/login.js` – Anmeldung (Link, Code, „Wer bist du?“) und Initialen-Knopf; `js/session.js` – was das Gerät sich merkt.
 - `js/remote.js` – Zugriff auf Supabase (REST, ohne Zusatzbibliothek); `supabase/schema.sql` – Tabellen und Zugriffsschutz.
 - `js/app.js` – Tab-Leiste, Wechsel der Ansichten, Weiterleitung der Klicks (`data-action`, `data-form`, `data-input`).
+- `js/calendars.js` – Kalender (Link „Öffentlicher Kalender“) für „Dein Tag“ auf der Startseite: gemeinsame in `settings.calendars`, persönliche nur auf dem Gerät; Termine über die Supabase-Funktion `calendar-feed` (liest .ics mit Wiederholungen und Zeitzonen).
 - `js/push.js` – Push-Mitteilungen ein-/ausschalten (Haushalt-Fenster); `sw.js` zeigt sie an; verschickt von `supabase/functions/push` (Kühlschrank-Erinnerungen ab 17 Uhr, Zeitplan `supabase/push-cron.sql`; „ToDo zugewiesen“ an die Geräte der Person).
 - `js/refresh.js` – Aktualisieren bei offener App: oben nach unten ziehen oder Haushalt → „App aktualisieren“ (lädt neueste Version und Daten).
 - `js/ui.js` – Symbole, Geldbeträge (intern in Rappen), Bottom-Sheet, Meldungen.

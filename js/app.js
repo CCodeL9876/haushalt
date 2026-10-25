@@ -15,6 +15,7 @@ import { pull, session, setSyncErrorHandler, subscribe } from './store.js';
 import { icon, toast } from './ui.js';
 import { boot, currentMember, ensureMe } from './login.js';
 import { refreshPush } from './push.js';
+import { refreshCalendars } from './calendars.js';
 import { refreshReminder } from './reminder.js';
 import { cleanup } from './cleanup.js';
 import { setupSwipe } from './swipe.js';
@@ -145,9 +146,11 @@ boot(() => {
   // nach einem neuen Zugangscode sind beide in Supabase gelöscht und werden so wieder hinterlegt
   refreshPush(currentMember()?.id).then(refreshReminder);
   scheduleAlarmSync(); // Erinnerungen vor ToDos in Supabase nachführen (js/alarms.js)
-  // Änderungen der anderen holen: regelmässig und sobald die App wieder in den Vordergrund kommt
-  setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 15000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pull(); });
+  // Änderungen der anderen holen: regelmässig und sobald die App wieder in den Vordergrund kommt. Kalender
+  // (js/calendars.js) dabei auch – sie laden selbst nur, wenn ihr Stand älter als 15 Minuten ist
+  refreshCalendars();
+  setInterval(() => { if (document.visibilityState === 'visible') { pull(); refreshCalendars(); } }, 15000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull(); refreshCalendars(); } });
   window.addEventListener('online', () => pull());
 });
 
