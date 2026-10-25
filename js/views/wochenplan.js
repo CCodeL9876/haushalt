@@ -86,7 +86,9 @@ function fridgeHint() {
 // Zutaten eines Menüs mit Tag – auf der Einkaufsliste lassen sie sich dann bis zu diesem Tag ausblenden
 export const forMeal = (day, meal) => (ideaOf(meal)?.ingredients || []).map((line) => ({ line, meal: { day, title: mealTitle(meal) } }));
 
-const ideaChips = () => state.ideas.map((i) => `<button type="button" class="chip" data-sheet-action="pick" data-title="${esc(i.title)}">${esc(i.title)}</button>`).join('');
+// Getränke (js/views/ideen.js) gehören nicht in die Menüauswahl
+const mealIdeas = () => state.ideas.filter((i) => i.kind !== 'drink');
+const ideaChips = () => mealIdeas().map((i) => `<button type="button" class="chip" data-sheet-action="pick" data-title="${esc(i.title)}">${esc(i.title)}</button>`).join('');
 
 function editMeal(day, slot) {
   const meal = state.plan[day]?.[slot];
@@ -96,11 +98,11 @@ function editMeal(day, slot) {
     body: `
       <label class="field"><span>Gericht</span>
         <input class="input" name="title" list="idea-list" value="${esc(mealTitle(meal))}" placeholder="z. B. Gemüsecurry" autocomplete="off">
-        <datalist id="idea-list">${state.ideas.map((i) => `<option value="${esc(i.title)}">`).join('')}</datalist>
+        <datalist id="idea-list">${mealIdeas().map((i) => `<option value="${esc(i.title)}">`).join('')}</datalist>
       </label>
-      ${!state.ideas.length ? '' : meal
+      ${!mealIdeas().length ? '' : meal
         // Schon ein Menü eingetragen: die Ideen nur auf Wunsch aufklappen (zum Ändern)
-        ? `<details class="field ideas-field"><summary>Anderes Menü aus den Menüideen (${state.ideas.length})</summary>
+        ? `<details class="field ideas-field"><summary>Anderes Menü aus den Menüideen (${mealIdeas().length})</summary>
             <div class="chips" style="margin-top:8px">${ideaChips()}</div>
           </details>`
         : `<div class="field"><span>Aus den Menüideen</span><div class="chips">${ideaChips()}</div></div>`}

@@ -1,8 +1,10 @@
 // Menüideen: Sammlung von Gerichten mit Zutaten und Stichworten – Quelle für Wochenplan und Einkaufsliste.
 // Eine Idee kann einen Rezept-Link haben (url). „Einlesen“ holt Titel, Zutaten und Stichworte von der Rezeptseite
 // (js/recipes.js); die Zutaten stehen mit Mengen da („400 g Kartoffeln“), beim Einkaufen wird die Menge zur Notiz.
+// Essen und Getränke (kind: 'drink', sonst Essen) – Umschalter oben, pro Gerät gemerkt. Getränke kommen nicht in die
+// Menüauswahl des Wochenplans.
 
-import { state, update, uid } from '../store.js';
+import { refresh, state, update, uid } from '../store.js';
 import { closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui.js';
 import { todayKey } from '../dates.js';
 import { shopIngredients } from './einkauf.js';
@@ -15,7 +17,18 @@ const splitList = (text, sep) => String(text || '').split(sep).map((x) => x.trim
 let query = '';
 const matches = (i) => !query || searchText(i).includes(query);
 
+const KIND_KEY = 'haushalt.ideen.kind';
+const KINDS = [['food', '🍽️ Essen'], ['drink', '🥤 Getränke']];
+let kind = (() => { try { return localStorage.getItem(KIND_KEY) === 'drink' ? 'drink' : 'food'; } catch { return 'food'; } })();
+export const isDrink = (i) => i?.kind === 'drink';
+const ofKind = (i, k = kind) => (k === 'drink') === isDrink(i);
+
 const searchText = (i) => [i.title, ...i.tags, ...i.ingredients].join(' ').toLowerCase();
+
+function setKind(k) {
+  kind = k === 'drink' ? 'drink' : 'food';
+  try { localStorage.setItem(KIND_KEY, kind); } catch { /* privates Fenster */ }
+}
 
 function editIdea(id) {
   const idea = state.ideas.find((i) => i.id === id);
@@ -33,21 +46,26 @@ function editIdea(id) {
       </details>
       ${safeLink(idea?.url) ? `<p class="small" style="margin:-6px 0 12px"><a class="recipe-link" href="${esc(safeLink(idea.url))}" target="_blank" rel="noopener noreferrer">Rezept öffnen ↗</a></p>` : ''}
 `;
+  const drink = idea ? isDrink(idea) : kind === 'drink';
   openSheet({
-    title: idea ? idea.title : 'Neue Menüidee',
+    title: idea ? idea.title : drink ? 'Neues Getränk' : 'Neue Menüidee',
     body: `
+      <div class="seg seg-wide" role="radiogroup" aria-label="Art">
+        <label class="seg-btn"><input type="radio" name="kind" value="food" ${drink ? '' : 'checked'}>🍽️ Essen</label>
+        <label class="seg-btn"><input type="radio" name="kind" value="drink" ${drink ? 'checked' : ''}>🥤 Getränk</label>
+      </div>
       ${idea ? '' : linkHtml}
       <label class="field"><span>Name</span>
-        <input class="input" name="title" value="${esc(idea?.title)}" required autocomplete="off" placeholder="z. B. Risotto">
+        <input class="input" name="title" value="${esc(idea?.title)}" required autocomplete="off" placeholder="${drink ? 'z. B. Eistee, Hugo' : 'z. B. Risotto'}">
       </label>
       <label class="field"><span>Zutaten (eine pro Zeile)</span>
-        <textarea class="textarea" name="ingredients" placeholder="Reis&#10;Zwiebel&#10;Bouillon">${esc((idea?.ingredients || []).join('\n'))}</textarea>
+        <textarea class="textarea" name="ingredients" placeholder="${drink ? 'Prosecco&#10;Holunderblütensirup&#10;Minze' : 'Reis&#10;Zwiebel&#10;Bouillon'}">${esc((idea?.ingredients || []).join('\n'))}</textarea>
       </label>
       <label class="field"><span>Zubereitung (ein Schritt pro Zeile)</span>
-        <textarea class="textarea" name="steps" placeholder="Zwiebel andünsten&#10;Reis dazugeben …">${esc((idea?.steps || []).join('\n'))}</textarea>
+        <textarea class="textarea" name="steps" placeholder="${drink ? 'Glas mit Eis füllen&#10;Sirup und Prosecco dazugeben …' : 'Zwiebel andünsten&#10;Reis dazugeben …'}">${esc((idea?.steps || []).join('\n'))}</textarea>
       </label>
       <label class="field"><span>Stichworte (mit Komma getrennt)</span>
-        <input class="input" name="tags" value="${esc((idea?.tags || []).join(', '))}" placeholder="Vegi, Schnell" autocomplete="off">
+        <input class="input" name="tags" value="${esc((idea?.tags || []).join(', '))}" placeholder="${drink ? 'Apéro, Alkoholfrei' : 'Vegi, Schnell'}" autocomplete="off">
       </label>
       <label class="field"><span>Notiz</span>
         <input class="input" name="note" value="${esc(idea?.note)}" placeholder="Tipp, Beilage, Portionen …" autocomplete="off">
@@ -56,7 +74,7 @@ function editIdea(id) {
     submitLabel: 'Speichern',
     footer: idea ? `
       <div class="row">
-        <button type="button" class="btn" data-sheet-action="plan">${icon('calendar', 'icon-sm')} Planen</button>
+        ${drink ? '' : `<button type="button" class="btn" data-sheet-action="plan">${icon('calendar', 'icon-sm')} Planen</button>`}
         <button type="button" class="btn" data-sheet-action="shop">${icon('cart', 'icon-sm')} Einkaufen</button>
       </div>
       <button type="button" class="btn btn-danger btn-block" data-sheet-action="remove">Idee löschen</button>` : '',
@@ -107,11 +125,15 @@ function editIdea(id) {
         steps: splitList(data.get('steps'), /\n/),
         tags: splitList(data.get('tags'), ','),
         note: String(data.get('note') || '').trim(),
+        kind: data.get('kind') === 'drink' ? 'drink' : undefined,
       };
+      // Neu als andere Art gespeichert: dorthin umschalten, sonst wäre sie gleich unsichtbar
+      if (!idea && (values.kind === 'drink') !== (kind === 'drink')) setKind(values.kind || 'food');
       update((s) => {
         const current = idea && s.ideas.find((i) => i.id === idea.id);
         if (current) {
           Object.assign(current, values);
+          if (!values.kind) delete current.kind;
           // Umbenannt: Einträge im Wochenplan, die auf diese Idee zeigen, bekommen den neuen Namen
           for (const day of Object.values(s.plan)) {
             for (const meal of Object.values(day)) if (meal?.ideaId === idea.id) meal.title = values.title;
@@ -224,30 +246,38 @@ export default {
   icon: 'book',
 
   render() {
+    const list = state.ideas.filter((i) => ofKind(i));
+    const drinks = kind === 'drink';
     return `
-${ideasAvailable() ? `<button type="button" class="ask-claude" data-action="ask">
+      <div class="seg seg-wide ideas-kind" role="group" aria-label="Essen oder Getränke">
+        ${KINDS.map(([id, label]) => `<button type="button" class="seg-btn" data-action="kind" data-kind="${id}" aria-pressed="${id === kind}">${label} <small>${state.ideas.filter((i) => ofKind(i, id)).length}</small></button>`).join('')}
+      </div>
+${ideasAvailable() && !drinks ? `<button type="button" class="ask-claude" data-action="ask">
         ${icon('sparkles')}
         <span><strong>Claude fragen</strong><small>Zutaten angeben, Rezeptideen bekommen</small></span>
         ${icon('right', 'icon-sm')}
       </button>` : ''}
       <div class="search">
         ${icon('search')}
-        <input class="input" type="search" data-input="filter" value="${esc(query)}" placeholder="Gericht, Zutat oder Stichwort" autocomplete="off" aria-label="Menüideen durchsuchen">
+        <input class="input" type="search" data-input="filter" value="${esc(query)}" placeholder="${drinks ? 'Getränk oder Zutat' : 'Gericht, Zutat oder Stichwort'}" autocomplete="off" aria-label="${drinks ? 'Getränke' : 'Menüideen'} durchsuchen">
       </div>
-      ${state.ideas.length ? [...state.ideas].sort((a, b) => a.title.localeCompare(b.title, 'de')).map((i) => `
+      ${list.length ? [...list].sort((a, b) => a.title.localeCompare(b.title, 'de')).map((i) => `
         <button type="button" class="card idea" data-action="edit" data-id="${i.id}" data-search="${esc(searchText(i))}" ${matches(i) ? '' : 'hidden'}>
           <h3>${esc(i.title)}</h3>
           <div class="muted small">${i.ingredients.length} Zutaten${i.steps?.length ? ' · mit Zubereitung' : i.url ? ' · mit Rezept' : ''}</div>
           ${i.note ? `<p class="small">${esc(i.note)}</p>` : ''}
           ${i.tags.length ? `<div class="chips">${i.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
         </button>`).join('')
-        : `<div class="empty"><strong>Noch keine Ideen</strong>Mit + das erste Lieblingsgericht anlegen.</div>`}
-      <p class="empty" data-no-results ${query && state.ideas.length && !state.ideas.some(matches) ? '' : 'hidden'}>Nichts gefunden.</p>
-      <button type="button" class="fab" data-action="edit" aria-label="Neue Menüidee">${icon('plus')}</button>`;
+        : drinks
+          ? `<div class="empty"><strong>Noch keine Getränke</strong>Mit + das erste Lieblingsgetränk anlegen – Cocktail, Bowle, Eistee …</div>`
+          : `<div class="empty"><strong>Noch keine Ideen</strong>Mit + das erste Lieblingsgericht anlegen.</div>`}
+      <p class="empty" data-no-results ${query && list.length && !list.some(matches) ? '' : 'hidden'}>Nichts gefunden.</p>
+      <button type="button" class="fab" data-action="edit" aria-label="${drinks ? 'Neues Getränk' : 'Neue Menüidee'}">${icon('plus')}</button>`;
   },
 
   actions: {
     edit(el) { editIdea(el.dataset.id); },
+    kind(el) { setKind(el.dataset.kind); refresh(); },
     ask() { askClaude(); },
   },
 
@@ -261,7 +291,7 @@ ${ideasAvailable() ? `<button type="button" class="ask-claude" data-action="ask"
         card.hidden = q && !card.dataset.search.includes(q);
         if (!card.hidden) visible += 1;
       }
-      root.querySelector('[data-no-results]').hidden = visible > 0 || !state.ideas.length;
+      root.querySelector('[data-no-results]').hidden = visible > 0 || !root.querySelector('[data-search]');
     },
   },
 };

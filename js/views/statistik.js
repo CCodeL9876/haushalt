@@ -50,6 +50,7 @@ function forgotten() {
   }
   const monthAgo = dateKey(addDays(new Date(), -30));
   return state.ideas
+    .filter((i) => i.kind !== 'drink')
     .map((i) => ({ title: i.title, last: last.get(i.id) || '' }))
     .filter((i) => i.last < monthAgo)
     .sort((a, b) => a.last.localeCompare(b.last) || a.title.localeCompare(b.title, 'de'))

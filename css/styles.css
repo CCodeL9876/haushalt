@@ -1031,3 +1031,5 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .plan-year li.is-now { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .plan-year li.is-past { opacity: 0.6; }
 .plan-year-warn { display: flex; align-items: center; gap: 6px; margin: 0 2px 10px; font-weight: 600; color: var(--minus); }
+.ideas-kind { margin-bottom: 12px; }
+.ideas-kind small { margin-left: 4px; font-size: 12px; opacity: 0.6; }
