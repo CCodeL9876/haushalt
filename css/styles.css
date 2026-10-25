@@ -881,7 +881,29 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .day-now .day-time { color: var(--accent-text); }
 .day-now .day-pin { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .day-line { height: 2px; border-radius: 2px; background: var(--accent); }
+/* Startseite: „Sport diese Woche“ – Kalender mit Darstellung „Klein“, schmal und waagrecht wischbar */
+.sport-strip { grid-column: 1 / -1; display: grid; gap: 6px; min-width: 0; }
+.sport-strip h3 { margin: 4px 4px 0; font-size: 12.5px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.sport-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -2px; padding: 0 2px 2px; scroll-snap-type: x proximity; }
+.sport-row::-webkit-scrollbar { display: none; }
+.sport-game {
+  flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 7px; align-items: center; max-width: 230px;
+  padding: 6px 12px 6px 9px; border: 0; border-radius: 14px; background: var(--card); color: var(--text); font: inherit; text-align: left; scroll-snap-align: start;
+}
+.sport-game.is-today { background: var(--tile-1-bg); color: var(--tile-text); }
+.sport-sym { grid-row: 1 / 3; display: grid; place-items: center; }
+.sport-when { font-size: 11.5px; font-weight: 700; opacity: 0.7; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sport-game.is-today .sport-when { opacity: 0.9; }
+.sport-what { font-size: 13.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Haushalt → Kalender */
+.cal-edit { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.cal-symbol { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--chip); color: var(--text); cursor: pointer; }
+.cal-symbol input { position: absolute; opacity: 0; pointer-events: none; }
+.cal-symbol:has(input:checked) { background: var(--accent); color: var(--on-accent); }
+.cal-symbol:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cal-symbols small { display: block; margin-top: 6px; font-size: 12.5px; }
+/* Symbol nur bei „Klein (Sport)“ */
+.sheet-form:not(:has(input[name="small"][value="1"]:checked)) .cal-symbols { display: none; }
 .cal-list .cal-swatch { width: 14px; height: 14px; border-radius: 4px; }
 .cal-color { position: relative; width: 34px; height: 34px; border-radius: 10px; cursor: pointer; }
 .cal-color input { position: absolute; opacity: 0; pointer-events: none; }

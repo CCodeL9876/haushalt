@@ -202,6 +202,12 @@ der Kalender-App unter **Kalender → ⓘ beim Kalender → Öffentlicher Kalend
 iCloud-Kalendern; bei Google die „geheime Adresse im iCal-Format“). **Für alle im Haushalt** speichert den Kalender
 für alle, **Nur dieses Gerät** nur auf dem eigenen iPhone (z. B. „Arbeit“).
 
+**Abonnierte Kalender, z. B. Sport:** den Link nehmen, mit dem der Kalender abonniert wurde (beginnt meist mit
+`webcal://`), und als Darstellung **Klein (Sport)** mit einem Symbol wählen. Solche Termine stehen nicht in
+„Dein Tag“, sondern als schmale Leiste **„Sport diese Woche“** (die nächsten 7 Tage, heute hervorgehoben;
+antippen zeigt den ganzen Titel). Schon eingetragene Kalender lassen sich unter Haushalt → Kalender antippen und
+umstellen.
+
 **Datenschutz:** Wer den Link kennt, kann den Kalender lesen – nicht weitergeben. Die Funktion holt die Termine der
 nächsten 7 Tage und speichert nichts; die Termine liegen nur zwischengespeichert auf dem Gerät und werden alle
 15 Minuten erneuert. Neue Termine erscheinen darum mit etwas Verzögerung (auch iCloud aktualisiert den öffentlichen

@@ -12,7 +12,7 @@
 import { state, termKey } from '../store.js';
 import { personal } from '../personal.js';
 import { currentMember } from '../login.js';
-import { esc, icon, safeLink } from '../ui.js';
+import { esc, icon, safeLink, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, holidayName, shopsClosed, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { fridgeSorted, isUrgent, leftLabel } from '../fridge.js';
@@ -20,7 +20,7 @@ import { openOnList, recentlyBought, shopIngredients } from './einkauf.js';
 import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
-import { eventsOn } from '../calendars.js';
+import { eventsOn, upcomingSmall } from '../calendars.js';
 
 const MAX_TODOS = 5;
 
@@ -173,6 +173,30 @@ function dayTile() {
   </div>`;
 }
 
+// „Sport diese Woche“: Kalender mit Darstellung „Klein“ (js/calendars.js) als schmale, waagrecht wischbare Leiste –
+// heute hervorgehoben, ohne Spiele gar nicht
+const MAX_SMALL = 12;
+function sportStrip() {
+  const events = upcomingSmall().slice(0, MAX_SMALL);
+  if (!events.length) return '';
+  const today = todayKey();
+  const tomorrow = dateKey(addDays(new Date(), 1));
+  const hm = (d) => new Intl.DateTimeFormat('de-CH', { hour: '2-digit', minute: '2-digit' }).format(d);
+  const dayName = (key) => (key <= today ? 'Heute' : key === tomorrow ? 'Morgen' : new Intl.DateTimeFormat('de-CH', { weekday: 'short' }).format(new Date(`${key}T12:00:00`)));
+  const chip = (e, i) => {
+    const key = e.allDay ? e.start : dateKey(e.start);
+    const when = e.allDay ? dayName(key) : `${dayName(key)} ${hm(e.start)}`;
+    return `<button type="button" class="sport-game${key <= today ? ' is-today' : ''}" data-action="sportInfo" data-i="${i}">
+      <span class="sport-sym" style="color:${esc(e.cal.color)}">${icon(e.cal.symbol || 'trophy', 'icon-sm')}</span>
+      <span class="sport-when">${esc(when)}</span><span class="sport-what">${esc(e.title)}</span>
+    </button>`;
+  };
+  return `<section class="sport-strip" aria-label="Sport diese Woche">
+    <h3>Sport diese Woche</h3>
+    <div class="sport-row">${events.map(chip).join('')}</div>
+  </section>`;
+}
+
 function todoTile() {
   const all = dueTodos();
   const list = all.filter((x) => !timedToday(x));
@@ -271,6 +295,7 @@ export default {
         ${mealTile()}
         ${closedTile()}
         ${dayTile()}
+        ${sportStrip()}
         ${todoTile()}
         ${wasteTile()}
         ${fridgeTile()}
@@ -280,6 +305,13 @@ export default {
   actions: {
     go(el) { location.hash = el.dataset.hash; },
     waste() { openWaste(); },
+    sportInfo(el) {
+      // Ganzer Titel, Ort und Kalender – in der Leiste wird der Titel abgeschnitten
+      const e = upcomingSmall()[Number(el.dataset.i)];
+      if (!e) return;
+      const fmt = (d) => new Intl.DateTimeFormat('de-CH', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
+      toast([e.title, e.allDay ? '' : fmt(e.start), e.location, e.cal.name].filter(Boolean).join(' · '));
+    },
     toggleTodo(el) { toggleTodo(el.dataset.scope, el.dataset.id, el); },
     shopClosed() {
       const t = closedMeals();
