@@ -64,7 +64,10 @@ function render(source = 'local') {
   }
   renderLater = false;
   const focusedId = root.contains(document.activeElement) ? document.activeElement.id : '';
+  // Seitwärts gescrollte Leisten (data-keep-scroll, z. B. „Sport diese Woche“) beim Neuzeichnen nicht zurückspringen lassen
+  const scrolled = [...root.querySelectorAll('[data-keep-scroll]')].map((el) => [el.dataset.keepScroll, el.scrollLeft]);
   root.innerHTML = current.render();
+  for (const [key, x] of scrolled) { const el = root.querySelector(`[data-keep-scroll="${key}"]`); if (el) el.scrollLeft = x; }
   if (focusedId) document.getElementById(focusedId)?.focus();
 }
 

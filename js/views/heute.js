@@ -174,10 +174,10 @@ function dayTile() {
 }
 
 // „Sport diese Woche“: Kalender mit Darstellung „Klein“ (js/calendars.js) als schmale, waagrecht wischbare Leiste –
-// heute hervorgehoben, ohne Spiele gar nicht
-const MAX_SMALL = 12;
+// heute hervorgehoben, ohne Spiele gar nicht. Alle Spiele der nächsten 7 Tage; die Leiste reicht bis an den
+// Bildschirmrand, damit man sieht, dass es seitwärts weitergeht.
 function sportStrip() {
-  const events = upcomingSmall().slice(0, MAX_SMALL);
+  const events = upcomingSmall();
   if (!events.length) return '';
   const today = todayKey();
   const tomorrow = dateKey(addDays(new Date(), 1));
@@ -192,8 +192,8 @@ function sportStrip() {
     </button>`;
   };
   return `<section class="sport-strip" aria-label="Sport diese Woche">
-    <h3>Sport diese Woche</h3>
-    <div class="sport-row">${events.map(chip).join('')}</div>
+    <h3>Sport diese Woche · ${events.length}</h3>
+    <div class="sport-row" data-keep-scroll="sport">${events.map(chip).join('')}</div>
   </section>`;
 }
 
@@ -294,8 +294,8 @@ export default {
       <div class="bento">
         ${mealTile()}
         ${closedTile()}
-        ${dayTile()}
         ${sportStrip()}
+        ${dayTile()}
         ${todoTile()}
         ${wasteTile()}
         ${fridgeTile()}
