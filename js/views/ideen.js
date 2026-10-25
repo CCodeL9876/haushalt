@@ -1,6 +1,6 @@
 // Menüideen: Sammlung von Gerichten mit Zutaten und Stichworten – Quelle für Wochenplan und Einkaufsliste.
 // Eine Idee kann einen Rezept-Link haben (url). „Einlesen“ holt Titel, Zutaten und Stichworte von der Rezeptseite
-// (js/recipes.js); die Zutaten stehen mit Mengen da („400 g Kartoffeln“), beim Einkaufen wird die Menge zur Notiz.
+// (js/recipes.js) – in der Liste führt das Link-Symbol auf der Karte direkt hin; die Zutaten stehen mit Mengen da („400 g Kartoffeln“), beim Einkaufen wird die Menge zur Notiz.
 // Essen und Getränke (kind: 'drink', sonst Essen) – Umschalter oben, pro Gerät gemerkt. Getränke kommen nicht in die
 // Menüauswahl des Wochenplans.
 
@@ -18,7 +18,7 @@ let query = '';
 const matches = (i) => !query || searchText(i).includes(query);
 
 const KIND_KEY = 'haushalt.ideen.kind';
-const KINDS = [['food', '🍽️ Essen'], ['drink', '🥤 Getränke']];
+const KINDS = [['food', 'Essen'], ['drink', 'Getränke']];
 let kind = (() => { try { return localStorage.getItem(KIND_KEY) === 'drink' ? 'drink' : 'food'; } catch { return 'food'; } })();
 export const isDrink = (i) => i?.kind === 'drink';
 const ofKind = (i, k = kind) => (k === 'drink') === isDrink(i);
@@ -51,8 +51,8 @@ function editIdea(id) {
     title: idea ? idea.title : drink ? 'Neues Getränk' : 'Neue Menüidee',
     body: `
       <div class="seg seg-wide" role="radiogroup" aria-label="Art">
-        <label class="seg-btn"><input type="radio" name="kind" value="food" ${drink ? '' : 'checked'}>🍽️ Essen</label>
-        <label class="seg-btn"><input type="radio" name="kind" value="drink" ${drink ? 'checked' : ''}>🥤 Getränk</label>
+        <label class="seg-btn"><input type="radio" name="kind" value="food" ${drink ? '' : 'checked'}>Essen</label>
+        <label class="seg-btn"><input type="radio" name="kind" value="drink" ${drink ? 'checked' : ''}>Getränk</label>
       </div>
       ${idea ? '' : linkHtml}
       <label class="field"><span>Name</span>
@@ -262,12 +262,15 @@ ${ideasAvailable() && !drinks ? `<button type="button" class="ask-claude" data-a
         <input class="input" type="search" data-input="filter" value="${esc(query)}" placeholder="${drinks ? 'Getränk oder Zutat' : 'Gericht, Zutat oder Stichwort'}" autocomplete="off" aria-label="${drinks ? 'Getränke' : 'Menüideen'} durchsuchen">
       </div>
       ${list.length ? [...list].sort((a, b) => a.title.localeCompare(b.title, 'de')).map((i) => `
-        <button type="button" class="card idea" data-action="edit" data-id="${i.id}" data-search="${esc(searchText(i))}" ${matches(i) ? '' : 'hidden'}>
-          <h3>${esc(i.title)}</h3>
-          <div class="muted small">${i.ingredients.length} Zutaten${i.steps?.length ? ' · mit Zubereitung' : i.url ? ' · mit Rezept' : ''}</div>
-          ${i.note ? `<p class="small">${esc(i.note)}</p>` : ''}
-          ${i.tags.length ? `<div class="chips">${i.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
-        </button>`).join('')
+        <div class="idea-wrap" data-search="${esc(searchText(i))}" ${matches(i) ? '' : 'hidden'}>
+          <button type="button" class="card idea ${safeLink(i.url) ? 'has-recipe' : ''}" data-action="edit" data-id="${i.id}">
+            <h3>${esc(i.title)}</h3>
+            <div class="muted small">${i.ingredients.length} Zutaten${i.steps?.length ? ' · mit Zubereitung' : ''}</div>
+            ${i.note ? `<p class="small">${esc(i.note)}</p>` : ''}
+            ${i.tags.length ? `<div class="chips">${i.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
+          </button>
+          ${safeLink(i.url) ? `<a class="idea-recipe" href="${esc(safeLink(i.url))}" target="_blank" rel="noopener noreferrer" aria-label="Rezept „${esc(i.title)}“ öffnen" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
+        </div>`).join('')
         : drinks
           ? `<div class="empty"><strong>Noch keine Getränke</strong>Mit + das erste Lieblingsgetränk anlegen – Cocktail, Bowle, Eistee …</div>`
           : `<div class="empty"><strong>Noch keine Ideen</strong>Mit + das erste Lieblingsgericht anlegen.</div>`}
