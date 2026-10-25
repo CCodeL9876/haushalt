@@ -1,7 +1,8 @@
 // Startseite „Heute“: alles Wichtige auf einen Blick, als Kacheln (Bento). Antippen führt in den Bereich.
 //  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten und Link zum Rezept
-//  - am Samstag: Menü vom Sonntag mit fehlenden Zutaten (oder ohne Zutatenliste: „an den Einkauf denken“) –
-//    sonntags sind die Läden zu, also heute einkaufen
+//  - vor Sonn- und Feiertagen (Läden zu, js/dates.js shopsClosed): Menüs dieser Tage mit fehlenden Zutaten (oder ohne
+//    Zutatenliste: „an den Einkauf denken“) – also heute einkaufen. Folgen mehrere zu-Tage aufeinander (Ostern,
+//    Weihnachten), alle zusammen
 //  - ToDos, die heute dran sind (fällig bis heute) aus geteilten (nur für alle oder mir zugewiesen) und eigenen
 //    persönlichen Listen – direkt abhakbar
 //  - Abfuhrkalender (nächste Termine) und Kühlschrank (was bald weg muss)
@@ -10,7 +11,7 @@ import { state, termKey } from '../store.js';
 import { personal } from '../personal.js';
 import { currentMember } from '../login.js';
 import { esc, icon, safeLink } from '../ui.js';
-import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
+import { addDays, dateKey, fmtShort, holidayName, shopsClosed, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { fridgeSorted, isUrgent, leftLabel } from '../fridge.js';
 import { openOnList, recentlyBought, shopIngredients } from './einkauf.js';
@@ -69,29 +70,39 @@ function mealTile() {
   </div>`;
 }
 
-// Samstag: Sonntagsmenüs (Mittag und Abend) – sonntags sind die Läden zu. Hinweis, wenn Zutaten fehlen oder ein
-// Menü keine Zutatenliste hat (dann nur „an den Einkauf denken“); sind alle Zutaten da, kein Hinweis.
-function sundayMeals() {
-  if (new Date().getDay() !== 6) return null;
-  const day = dateKey(addDays(new Date(), 1));
-  const meals = ['mittag', 'abend'].map((slot) => state.plan[day]?.[slot]).filter(Boolean);
-  const missing = [...new Set(meals.flatMap(missingFor))];
-  const unknown = meals.filter((meal) => !state.ideas.find((i) => i.id === meal.ideaId)?.ingredients?.length);
-  return missing.length || unknown.length ? { day, meals, missing, unknown } : null;
+// Morgen Sonntag oder Feiertag (bis zu 4 zu-Tage hintereinander): deren Menüs (Mittag und Abend). Hinweis, wenn
+// Zutaten fehlen oder ein Menü keine Zutatenliste hat (dann nur „an den Einkauf denken“); sind alle Zutaten da, kein
+// Hinweis. Ist heute selbst zu, auch nicht – einkaufen geht ja nicht.
+const MAX_CLOSED = 4;
+const dayName = (d) => holidayName(d) || new Intl.DateTimeFormat('de-CH', { weekday: 'long' }).format(d);
+
+function closedMeals() {
+  const today = new Date();
+  if (shopsClosed(today)) return null;
+  const days = [];
+  for (let d = addDays(today, 1); shopsClosed(d) && days.length < MAX_CLOSED; d = addDays(d, 1)) days.push(d);
+  if (!days.length) return null;
+  const meals = days.flatMap((d) => ['mittag', 'abend'].map((slot) => ({ day: dateKey(d), name: dayName(d), meal: state.plan[dateKey(d)]?.[slot] })))
+    .filter((x) => x.meal);
+  const missing = [...new Set(meals.flatMap((x) => missingFor(x.meal)))];
+  const unknown = meals.filter((x) => !state.ideas.find((i) => i.id === x.meal.ideaId)?.ingredients?.length);
+  const names = days.length === 1 ? dayName(days[0]) : `${dayName(days[0])} bis ${dayName(days.at(-1))}`;
+  return missing.length || unknown.length ? { names, several: days.length > 1, meals, missing, unknown } : null;
 }
 
-function sundayTile() {
-  const t = sundayMeals();
+function closedTile() {
+  const t = closedMeals();
   if (!t) return '';
+  const label = (x) => (t.several ? `${x.name}: ${mealTitle(x.meal)}` : mealTitle(x.meal));
   return `<div class="tile tile-2 wide">
     <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
-    <h3>Morgen Sonntag · Läden zu</h3>
-    <div class="tile-big">${esc(t.meals.map(mealTitle).join(' · '))}</div>
+    <h3>Morgen ${esc(t.names)} · Läden zu</h3>
+    <div class="tile-big${t.several ? ' tile-big-list' : ''}">${esc(t.meals.map(label).join(' · '))}</div>
     ${t.missing.length
-      ? `<button type="button" class="tile-btn" data-action="shopSunday">${icon('cart', 'icon-sm')} ${t.missing.length} ${t.missing.length === 1 ? 'Zutat' : 'Zutaten'} heute einkaufen</button>`
+      ? `<button type="button" class="tile-btn" data-action="shopClosed">${icon('cart', 'icon-sm')} ${t.missing.length} ${t.missing.length === 1 ? 'Zutat' : 'Zutaten'} heute einkaufen</button>`
       : ''}
     ${t.unknown.length
-      ? `<span class="tile-note">${t.missing.length ? `Für ${esc(t.unknown.map(mealTitle).join(', '))} keine Zutatenliste – ` : ''}An den Einkauf denken</span>`
+      ? `<span class="tile-note">${t.missing.length ? `Für ${esc(t.unknown.map((x) => mealTitle(x.meal)).join(', '))} keine Zutatenliste – ` : ''}An den Einkauf denken</span>`
       : ''}
   </div>`;
 }
@@ -208,7 +219,7 @@ export default {
       <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
       <div class="bento">
         ${mealTile()}
-        ${sundayTile()}
+        ${closedTile()}
         ${todoTile()}
         ${wasteTile()}
         ${fridgeTile()}
@@ -219,9 +230,9 @@ export default {
     go(el) { location.hash = el.dataset.hash; },
     waste() { openWaste(); },
     toggleTodo(el) { toggleTodo(el.dataset.scope, el.dataset.id, el); },
-    shopSunday() {
-      const t = sundayMeals();
-      if (t) shopIngredients(t.meals.flatMap((meal) => forMeal(t.day, meal)), `für Sonntag (${t.meals.map(mealTitle).join(', ')})`);
+    shopClosed() {
+      const t = closedMeals();
+      if (t) shopIngredients(t.meals.flatMap((x) => forMeal(x.day, x.meal)), `für ${t.names} (${t.meals.map((x) => mealTitle(x.meal)).join(', ')})`);
     },
     shopMeal() {
       const t = todaysMeal();

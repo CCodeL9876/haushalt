@@ -4,6 +4,7 @@
 //    „Bis Ende Jahr“ nur auf Wunsch (Fenster). Nicht monatliche Posten zählen im Monat ganz (Kästchen) oder mit
 //    einem Teilbetrag („Teil“, auch über mehrere Monate verteilt); angezeigt wird, wie viel im Jahr/Halbjahr/Quartal
 //    schon eingeplant ist.
+//  - Jahresübersicht (Fenster): „bleibt“ für jeden Monat eines Jahres, knappe Monate rot; antippen öffnet den Monat.
 //  - Kosten (fix / wiederkehrend), Rechnungen (Teilzahlungen, Ratenplan, Stand an einem Datum), Abos, Einnahmen.
 // Beträge sind verdeckt, bis man sie zeigt – wieder verdeckt beim Verlassen und wenn die App in den Hintergrund geht.
 
@@ -82,7 +83,10 @@ function monthPart() {
         </li>`;
       }).join('')}</ul>
       <p class="muted small" style="margin:6px 2px 0">Kästchen = ganzer Betrag in diesem Monat · „Teil“ = nur ein Teil, auch über mehrere Monate verteilt.</p>` : ''}
-    <button type="button" class="btn btn-block" data-action="plUntil" style="margin-top:14px">${icon('calendar', 'icon-sm')} Bis Ende Jahr berechnen …</button>`;
+    <div class="plan-more">
+      <button type="button" class="btn" data-action="plYear">${icon('chart', 'icon-sm')} Jahresübersicht</button>
+      <button type="button" class="btn" data-action="plUntil">${icon('calendar', 'icon-sm')} Bis Ende Jahr …</button>
+    </div>`;
 }
 
 const row = (action, x, sub, value = m(x.amount)) => `
@@ -420,6 +424,53 @@ function untilSheet() {
   result(form);
 }
 
+// Jahresübersicht: pro Monat Einnahmen, Ausgaben und was bleibt (wie in der Monatsansicht gerechnet). Balken nur bei
+// gezeigten Beträgen – sonst verrieten sie die Grössenordnung.
+function yearSheet(year = month.slice(0, 4)) {
+  const rows = Array.from({ length: 12 }, (_, i) => {
+    const key = `${year}-${String(i + 1).padStart(2, '0')}`;
+    const s = monthSums(key);
+    const out = s.fix + s.abos + s.active + s.bills;
+    return { key, income: s.income, out, rest: s.income - out };
+  });
+  const max = Math.max(1, ...rows.map((r) => Math.abs(r.rest)));
+  const total = rows.reduce((t, r) => ({ income: t.income + r.income, out: t.out + r.out, rest: t.rest + r.rest }), { income: 0, out: 0, rest: 0 });
+  const low = rows.reduce((a, r) => (r.rest < a.rest ? r : a));
+  const now = curMonth();
+  const short = (key) => monthLabel(key).split(' ')[0];
+  openSheet({
+    title: `Jahr ${year}`,
+    headerActions: `
+      <button type="button" class="icon-btn" data-sheet-action="year" data-step="-1" aria-label="Jahr zurück">${icon('left')}</button>
+      <button type="button" class="icon-btn" data-sheet-action="year" data-step="1" aria-label="Jahr vor">${icon('right')}</button>`,
+    body: `
+      <section class="card plan-hero">
+        <small>Bleibt im ganzen Jahr</small>
+        <div class="hero-number ${shown && total.rest < 0 ? 'amount-minus' : ''}">${m(total.rest, { sign: true })}</div>
+        <small>Einnahmen ${m(total.income)} · Ausgaben ${m(total.out)}</small>
+      </section>
+      ${shown && low.rest < 0 ? `<p class="plan-year-warn">${icon('warning', 'icon-sm')} Knappster Monat: ${esc(short(low.key))} (${m(low.rest, { sign: true })})</p>` : ''}
+      <ul class="list plan-year">${rows.map((r) => `
+        <li class="${r.key === now ? 'is-now' : ''} ${r.key < now ? 'is-past' : ''}">
+          <button type="button" class="plan-year-row" data-sheet-action="open" data-month="${r.key}" aria-label="${esc(monthLabel(r.key))} öffnen">
+            <span class="plan-year-name">${esc(short(r.key).slice(0, 3))}</span>
+            <span class="plan-year-bar">${shown ? `<i class="${r.rest < 0 ? 'is-minus' : ''}" style="width:${Math.round((Math.abs(r.rest) / max) * 100)}%"></i>` : ''}</span>
+            <span class="list-value ${shown && r.rest < 0 ? 'amount-minus' : ''}">${m(r.rest, { sign: true })}<small>${m(r.income)} / −${m(r.out)}</small></span>
+          </button>
+        </li>`).join('')}</ul>
+      <p class="muted small" style="margin:8px 2px 0">Pro Monat: bleibt · darunter Einnahmen / Ausgaben. Fixkosten und Abos mit den heutigen Beträgen, Rechnungen wie in der Monatsansicht (später nur Raten). Antippen öffnet den Monat.</p>`,
+    actions: {
+      year(el) { yearSheet(String(Number(year) + Number(el.dataset.step))); },
+      open(el) {
+        month = el.dataset.month;
+        tab = 'monat';
+        closeSheet();
+        refresh();
+      },
+    },
+  });
+}
+
 // Passwort festlegen (zweimal), dann gleich sichern
 function backupPasswordSheet() {
   openSheet({
@@ -537,6 +588,7 @@ export default {
       if (x) partSheet(x);
     },
     plUntil() { untilSheet(); },
+    plYear() { yearSheet(); },
     plCost(el) { editCost(plan().costs.find((x) => x.id === el.dataset.id)); },
     plAbo(el) { editAbo(plan().abos.find((x) => x.id === el.dataset.id)); },
     plIncome(el) { editIncome(plan().incomes.find((x) => x.id === el.dataset.id)); },

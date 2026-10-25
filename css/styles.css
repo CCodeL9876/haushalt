@@ -731,6 +731,7 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .tile.wide { grid-column: 1 / -1; }
 .tile h3 { margin: 0 0 4px; font-size: 12.5px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
 .tile-big { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 6px; overflow-wrap: anywhere; }
+.tile-big-list { font-size: 17px; }
 .tile-note { display: block; font-size: 13.5px; font-weight: 600; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .tile-1 { background: var(--tile-1-bg); }
 .tile-2 { background: var(--tile-2-bg); }
@@ -1018,3 +1019,15 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .plan-nm .list-value { text-align: right; }
 .plan-part { display: block; font-size: 11px; font-weight: 700; color: var(--accent-text); text-transform: uppercase; letter-spacing: 0.04em; }
 .plan-part-btn { flex: none; min-height: 32px; padding: 0 10px; }
+.plan-more { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.plan-year li { padding: 0; }
+.plan-year-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 14px; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.plan-year-name { font-weight: 700; }
+.plan-year-bar { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--text) 8%, transparent); overflow: hidden; }
+.plan-year-bar i { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.plan-year-bar i.is-minus { background: var(--minus); }
+.plan-year .list-value { text-align: right; }
+.plan-year .list-value small { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.plan-year li.is-now { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.plan-year li.is-past { opacity: 0.6; }
+.plan-year-warn { display: flex; align-items: center; gap: 6px; margin: 0 2px 10px; font-weight: 600; color: var(--minus); }
