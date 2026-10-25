@@ -1,7 +1,9 @@
 // Geld → Planung: persönliche Finanzplanung, nur auf diesem Gerät (Daten und Rechnen in js/planung.js).
 //  - Monat: Einnahmen minus Fixkosten, Abos, für den Monat aktivierte nicht monatliche Kosten und Rechnungen
 //    (was im Monat anfällt, mit Ratenplan nur die Rate – js/planung.js billInMonth). Ohne Multiplizieren;
-//    „Bis Ende Jahr“ nur auf Wunsch (Fenster).
+//    „Bis Ende Jahr“ nur auf Wunsch (Fenster). Nicht monatliche Posten zählen im Monat ganz (Kästchen) oder mit
+//    einem Teilbetrag („Teil“, auch über mehrere Monate verteilt); angezeigt wird, wie viel im Jahr/Halbjahr/Quartal
+//    schon eingeplant ist.
 //  - Kosten (fix / wiederkehrend), Rechnungen (Teilzahlungen, Ratenplan, Stand an einem Datum), Abos, Einnahmen.
 // Beträge sind verdeckt, bis man sie zeigt – wieder verdeckt beim Verlassen und wenn die App in den Hintergrund geht.
 
@@ -12,8 +14,9 @@ import { saveFile } from '../backup.js';
 import { celebrate } from '../celebrate.js';
 import {
   BACKUP_DAYS, addMonths, addPayment, backupDue, backupText, curMonth, hasBackupPassword, isPlanFile, markBackedUp,
-  monthSums, notMonthly, openOf, paidOf, plan, rateInfo, readBackup, rememberPayee, removePayment, restorePlan,
-  setBackupPassword, toggleActive, untilSums, updatePlan,
+  amountIn, monthSums, monthsBetween, notMonthly, openOf, paidOf, partOf, periodMonths, periodOf, plan, plannedInPeriod,
+  rateInfo, readBackup, rememberPayee, removePayment, restorePlan, setBackupPassword, setPartFrom, toggleActive, untilSums,
+  updatePlan,
 } from '../planung.js';
 
 const TABS = [['monat', 'Monat'], ['kosten', 'Kosten'], ['rechnungen', 'Rechnungen'], ['abos', 'Abos'], ['einnahmen', 'Einnahmen']];
@@ -44,7 +47,6 @@ function monthPart() {
   const s = monthSums(month);
   const rest = s.income - s.fix - s.abos - s.active - s.bills;
   const items = notMonthly();
-  const active = new Set(plan().active[month] || []);
   const line = (label, v, sign) => `<li><span class="list-main">${label}</span><span class="list-value ${sign > 0 ? 'amount-plus' : ''}">${v ? `${sign > 0 ? '+' : '−'} ${m(v)}` : '–'}</span></li>`;
   return `
     <div class="plan-month">
@@ -65,12 +67,21 @@ function monthPart() {
     </ul>
     ${items.length ? `
       <h2 class="section-title">Nicht monatlich – für ${esc(monthLabel(month).split(' ')[0])} aktivieren</h2>
-      <ul class="list">${items.map((x) => `
-        <li class="${active.has(x.id) ? '' : 'is-off'}">
-          <button type="button" class="check ${active.has(x.id) ? 'is-on' : ''}" data-action="plActive" data-id="${esc(x.id)}" aria-pressed="${active.has(x.id)}" aria-label="${esc(x.name)} ${active.has(x.id) ? 'nicht mehr' : ''} in diesem Monat zählen">${icon('check', 'icon-sm')}</button>
-          <span class="list-main">${esc(x.name)}<small>${x.src === 'abo' ? 'Abo · ' : ''}${esc(RHYTHM[x.rhythm] || '')}</small></span>
-          <span class="list-value">${m(x.amount)}</span>
-        </li>`).join('')}</ul>` : ''}
+      <ul class="list plan-nm">${items.map((x) => {
+        const here = amountIn(month, x);
+        const part = partOf(month, x.id);
+        const planned = plannedInPeriod(month, x);
+        const [from, to] = periodOf(month, x.rhythm);
+        const period = x.rhythm === 'y' ? from.slice(0, 4) : `${monthLabel(from).split(' ')[0].slice(0, 3)}–${monthLabel(to).split(' ')[0].slice(0, 3)}`;
+        return `
+        <li class="${here ? '' : 'is-off'}">
+          <button type="button" class="check ${here ? 'is-on' : ''}" data-action="plActive" data-id="${esc(x.id)}" aria-pressed="${Boolean(here)}" aria-label="${esc(x.name)} ${here ? 'nicht mehr' : 'ganz'} in diesem Monat zählen">${icon('check', 'icon-sm')}</button>
+          <span class="list-main">${esc(x.name)}<small>${x.src === 'abo' ? 'Abo · ' : ''}${esc(RHYTHM[x.rhythm] || '')} · ${esc(period)}: <span class="${shown && planned > x.amount ? 'amount-minus' : ''}">${m(planned)}</span> von ${m(x.amount)}${shown && planned > x.amount ? ' – mehr als nötig' : ''}</small></span>
+          <span class="list-value">${part ? `<small class="plan-part">Teil</small>${m(part)}` : m(x.amount)}</span>
+          <button type="button" class="btn btn-sm plan-part-btn" data-action="plPart" data-id="${esc(x.id)}" aria-label="Teilbetrag für ${esc(x.name)}">Teil</button>
+        </li>`;
+      }).join('')}</ul>
+      <p class="muted small" style="margin:6px 2px 0">Kästchen = ganzer Betrag in diesem Monat · „Teil“ = nur ein Teil, auch über mehrere Monate verteilt.</p>` : ''}
     <button type="button" class="btn btn-block" data-action="plUntil" style="margin-top:14px">${icon('calendar', 'icon-sm')} Bis Ende Jahr berechnen …</button>`;
 }
 
@@ -319,11 +330,71 @@ function payBill(b) {
   });
 }
 
+// Teilbetrag eines nicht monatlichen Postens: in diesem und auf Wunsch den folgenden Monaten
+function partSheet(x) {
+  const len = periodMonths(x.rhythm);
+  const [, to] = periodOf(month, x.rhythm);
+  const restMonths = monthsBetween(month, to) + 1; // bis Ende Jahr/Halbjahr/Quartal
+  const existing = partOf(month, x.id);
+  // Was in den gewählten Monaten noch fehlt, gleichmässig verteilt (auf 5 Rappen aufgerundet)
+  const spread = (count) => {
+    let outside = plannedInPeriod(month, x);
+    for (let i = 0; i < count; i += 1) {
+      const mm = addMonths(month, i);
+      if (mm <= to) outside -= amountIn(mm, x);
+    }
+    return Math.max(0, Math.ceil(Math.max(0, x.amount - outside) / count / 5) * 5);
+  };
+  const form = openSheet({
+    title: `Teilbetrag · ${x.name}`,
+    body: `
+      <p class="muted small" style="margin-top:0">${esc(RHYTHM[x.rhythm] || '')} ${m(x.amount)} · im Zeitraum eingeplant: ${m(plannedInPeriod(month, x))}</p>
+      <div class="row">
+        <label class="field"><span>Betrag pro Monat (${esc(cur())})</span>
+          <input class="input" name="amount" inputmode="decimal" value="${amountValue(existing || spread(restMonths))}" required autocomplete="off"></label>
+        <label class="field" style="flex:0 0 44%"><span>Monate ab ${esc(monthLabel(month).split(' ')[0])}</span>
+          <select class="select" name="count">${Array.from({ length: 12 }, (_, i) => i + 1).map((n) => `<option value="${n}" ${n === (existing ? 1 : restMonths) ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" data-sheet-action="spread">Rest gleichmässig verteilen</button>
+      <p class="muted small plan-part-hint" style="margin:8px 0 0"></p>`,
+    submitLabel: 'Übernehmen',
+    footer: existing ? '<button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Teilbetrag in diesem Monat entfernen</button>' : '',
+    onSubmit(data) {
+      const cents = parseMoney(data.get('amount'));
+      if (!cents) {
+        toast('Bitte einen Betrag eingeben');
+        return false;
+      }
+      setPartFrom(month, x.id, cents, Number(data.get('count')) || 1);
+    },
+    actions: {
+      spread(btn, f) {
+        f.elements.amount.value = amountValue(spread(Number(f.elements.count.value) || 1));
+        hint(f);
+      },
+      clear() {
+        setPartFrom(month, x.id, 0, 1);
+        closeSheet();
+      },
+      change(el, f) { hint(f); },
+    },
+  });
+  // Hinweis: wie viele Monate, bis wann, und Summe
+  function hint(f) {
+    const count = Number(f.elements.count.value) || 1;
+    const cents = parseMoney(f.elements.amount.value) || 0;
+    f.querySelector('.plan-part-hint').textContent = `${count} × ${shown ? money(cents) : `${cur()} *****`} = ${shown ? money(cents * count) : `${cur()} *****`}`
+      + ` (${monthLabel(month)}${count > 1 ? ` bis ${monthLabel(addMonths(month, count - 1))}` : ''})${len && count > restMonths ? ' – geht über den Zeitraum hinaus' : ''}`;
+  }
+  form.elements.amount.addEventListener('input', () => hint(form));
+  hint(form);
+}
+
 function untilSheet() {
   const year = curMonth().slice(0, 4);
   let end = `${year}-12`;
   if (end < curMonth()) end = curMonth();
-  const parts = [['income', 'Einnahmen', 1], ['fix', 'Fixkosten', -1], ['abos', 'Abos (monatlich)', -1], ['active', 'Aktivierte nicht monatliche', -1], ['bills', 'Rechnungen (offen bzw. Raten)', -1]];
+  const parts = [['income', 'Einnahmen', 1], ['fix', 'Fixkosten', -1], ['abos', 'Abos (monatlich)', -1], ['active', 'Nicht monatliche (aktiviert/Teile)', -1], ['bills', 'Rechnungen (offen bzw. Raten)', -1]];
   const result = (f) => {
     const s = untilSums(f.elements.end.value);
     const on = (k) => f.elements[`p_${k}`]?.checked;
@@ -461,6 +532,10 @@ export default {
     plShow() { shown = !shown; refresh(); },
     plMonth(el) { month = addMonths(month, Number(el.dataset.step)); refresh(); },
     plActive(el) { toggleActive(month, el.dataset.id); },
+    plPart(el) {
+      const x = notMonthly().find((y) => y.id === el.dataset.id);
+      if (x) partSheet(x);
+    },
     plUntil() { untilSheet(); },
     plCost(el) { editCost(plan().costs.find((x) => x.id === el.dataset.id)); },
     plAbo(el) { editAbo(plan().abos.find((x) => x.id === el.dataset.id)); },

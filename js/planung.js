@@ -13,7 +13,8 @@
 //   abos     [{ id, name, amount, rhythm: 'm' | 'y' }]
 //   bills    [{ id, name, amount, rate?, payments: [{ id, date, amount }], doneAt?, addedAt }]
 //   incomes  [{ id, name, amount, kind: 'm' | 'once', month? ('JJJJ-MM', bei einmaligen) }]
-//   active   { 'JJJJ-MM': [ids] }   nicht monatliche Kosten/Abos, die in diesem Monat zählen
+//   active   { 'JJJJ-MM': [ids] }   nicht monatliche Kosten/Abos, die in diesem Monat ganz zählen
+//   parts    { 'JJJJ-MM': { id: Rappen } }   … oder nur mit einem Teilbetrag (z. B. Jahreskosten auf Monate verteilt)
 //   payees   [{ name, amount }]      gemerkte Rechnungssteller (zuletzt verwendete zuerst)
 //   backup   { at, changedAt }       letzte Sicherung, letzte Änderung (für die Erinnerung)
 
@@ -30,11 +31,12 @@ export const BACKUP_DAYS = 14;
 const PAID_KEEP_DAYS = 30;
 
 const storageKey = () => PREFIX + owner();
-const empty = () => ({ costs: [], abos: [], bills: [], incomes: [], active: {}, payees: [], backup: {} });
+const empty = () => ({ costs: [], abos: [], bills: [], incomes: [], active: {}, parts: {}, payees: [], backup: {} });
 const arr = (x) => (Array.isArray(x) ? x : []);
 const clean = (d) => ({
   costs: arr(d?.costs), abos: arr(d?.abos), bills: arr(d?.bills), incomes: arr(d?.incomes),
-  active: d?.active && typeof d.active === 'object' ? d.active : {}, payees: arr(d?.payees),
+  active: d?.active && typeof d.active === 'object' ? d.active : {},
+  parts: d?.parts && typeof d.parts === 'object' ? d.parts : {}, payees: arr(d?.payees),
   backup: d?.backup && typeof d.backup === 'object' ? d.backup : {},
 });
 
@@ -138,10 +140,13 @@ function sweep() {
   const limit = Date.now() - PAID_KEEP_DAYS * 86400000;
   const bills = data.bills.filter((b) => !b.doneAt || b.doneAt >= limit);
   const old = monthKey(new Date(new Date().getFullYear() - 2, new Date().getMonth(), 1));
-  const months = Object.keys(data.active).filter((m) => m < old);
+  const months = [...Object.keys(data.active), ...Object.keys(data.parts)].filter((m) => m < old);
   if (bills.length === data.bills.length && !months.length) return;
   data.bills = bills;
-  for (const m of months) delete data.active[m];
+  for (const m of months) {
+    delete data.active[m];
+    delete data.parts[m];
+  }
   write(storageKey(), data);
 }
 
@@ -176,6 +181,27 @@ export function rateInfo(bill) {
 }
 
 const isActive = (month, id) => arr(data.active[month]).includes(id);
+// Betrag eines nicht monatlichen Postens im Monat: Teilbetrag, sonst ganz (aktiviert), sonst nichts
+export const partOf = (month, id) => plan().parts[month]?.[id] || 0;
+export const amountIn = (month, x) => partOf(month, x.id) || (isActive(month, x.id) ? x.amount : 0);
+
+// Zeitraum des Postens, in dem der Monat liegt: jährlich = Kalenderjahr, halbjährlich = Jan–Jun / Jul–Dez,
+// alle 3 Monate = Quartal → [erster, letzter Monat]
+export function periodOf(month, rhythm) {
+  const [y, mo] = month.split('-').map(Number);
+  const len = rhythm === 'q' ? 3 : rhythm === 'h' ? 6 : 12;
+  const first = Math.floor((mo - 1) / len) * len + 1;
+  return [`${y}-${String(first).padStart(2, '0')}`, `${y}-${String(first + len - 1).padStart(2, '0')}`];
+}
+export const periodMonths = (rhythm) => (rhythm === 'q' ? 3 : rhythm === 'h' ? 6 : 12);
+
+// Im ganzen Zeitraum eingeplant (alle Monate, ganz oder als Teil)
+export function plannedInPeriod(month, x) {
+  const [from, to] = periodOf(month, x.rhythm);
+  let total = 0;
+  for (let m = from; m <= to; m = addMonths(m, 1)) total += amountIn(m, x);
+  return total;
+}
 export const notMonthly = () => [
   ...plan().costs.filter((c) => c.kind === 'repeat').map((c) => ({ ...c, src: 'cost' })),
   ...plan().abos.filter((a) => a.rhythm === 'y').map((a) => ({ ...a, src: 'abo' })),
@@ -189,7 +215,7 @@ export function monthSums(month) {
     income: sum(d.incomes.filter((i) => i.kind === 'm' || i.month === month)),
     fix: sum(d.costs.filter((c) => c.kind === 'fix')),
     abos: sum(d.abos.filter((a) => a.rhythm !== 'y')),
-    active: sum(notMonthly().filter((x) => isActive(month, x.id))),
+    active: notMonthly().reduce((t, x) => t + amountIn(month, x), 0),
     bills: d.bills.reduce((s, b) => s + billInMonth(b, month), 0),
   };
 }
@@ -229,18 +255,43 @@ export function untilSums(end) {
     income: monthly(d.incomes.filter((i) => i.kind === 'm')) + sum(d.incomes.filter((i) => i.kind === 'once' && months.includes(i.month))),
     fix: monthly(d.costs.filter((c) => c.kind === 'fix')),
     abos: monthly(d.abos.filter((a) => a.rhythm !== 'y')),
-    active: months.reduce((s, m) => s + sum(notMonthly().filter((x) => isActive(m, x.id))), 0),
+    active: months.reduce((t, m) => t + notMonthly().reduce((u, x) => u + amountIn(m, x), 0), 0),
     bills,
   };
 }
 
+function setActive(d, month, id, on) {
+  const set = new Set(arr(d.active[month]));
+  if (on) set.add(id);
+  else set.delete(id);
+  if (set.size) d.active[month] = [...set];
+  else delete d.active[month];
+}
+function setPart(d, month, id, cents) {
+  const parts = { ...(d.parts[month] || {}) };
+  if (cents) parts[id] = cents;
+  else delete parts[id];
+  if (Object.keys(parts).length) d.parts[month] = parts;
+  else delete d.parts[month];
+}
+
+// Kästchen: ganz zählen ein/aus (ein Teilbetrag in diesem Monat wird dabei entfernt)
 export function toggleActive(month, id) {
   updatePlan((d) => {
-    const set = new Set(arr(d.active[month]));
-    if (set.has(id)) set.delete(id);
-    else set.add(id);
-    if (set.size) d.active[month] = [...set];
-    else delete d.active[month];
+    const on = !(arr(d.active[month]).includes(id) || d.parts[month]?.[id]);
+    setPart(d, month, id, 0);
+    setActive(d, month, id, on);
+  });
+}
+
+// Teilbetrag in `count` Monaten ab `month` (0 = Teilbetrag in diesem Monat entfernen)
+export function setPartFrom(month, id, cents, count = 1) {
+  updatePlan((d) => {
+    for (let i = 0; i < Math.max(1, count); i += 1) {
+      const m = addMonths(month, i);
+      setActive(d, m, id, false);
+      setPart(d, m, id, cents);
+    }
   });
 }
 

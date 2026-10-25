@@ -1014,3 +1014,7 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .plan-paid summary { font-weight: 650; color: var(--muted); cursor: pointer; margin-bottom: 8px; }
 .plan-until-out { font-size: 16px; }
 .mode-got-title { margin-top: 22px; opacity: 0.8; }
+.plan-nm li { gap: 10px; }
+.plan-nm .list-value { text-align: right; }
+.plan-part { display: block; font-size: 11px; font-weight: 700; color: var(--accent-text); text-transform: uppercase; letter-spacing: 0.04em; }
+.plan-part-btn { flex: none; min-height: 32px; padding: 0 10px; }
