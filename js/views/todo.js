@@ -136,15 +136,15 @@ function listRow(scope, list, todos, pos = {}) {
     <li class="list-tile is-arranging">
       <div class="tile-row">
         <span class="tile-main"><strong>${esc(list.name)}</strong><small>${esc(info)}</small></span>
-        <button type="button" class="icon-btn" data-action="moveList" data-scope="${scope}" data-id="${list.id}" data-dir="-1" aria-label="${esc(list.name)} nach oben"${pos.first ? ' disabled' : ''}>${icon('up', 'icon-sm')}</button>
-        <button type="button" class="icon-btn" data-action="moveList" data-scope="${scope}" data-id="${list.id}" data-dir="1" aria-label="${esc(list.name)} nach unten"${pos.last ? ' disabled' : ''}>${icon('down', 'icon-sm')}</button>
+        <button type="button" class="icon-btn" data-action="moveList" data-scope="${scope}" data-id="${esc(list.id)}" data-dir="-1" aria-label="${esc(list.name)} nach oben"${pos.first ? ' disabled' : ''}>${icon('up', 'icon-sm')}</button>
+        <button type="button" class="icon-btn" data-action="moveList" data-scope="${scope}" data-id="${esc(list.id)}" data-dir="1" aria-label="${esc(list.name)} nach unten"${pos.last ? ' disabled' : ''}>${icon('down', 'icon-sm')}</button>
       </div>
     </li>`;
   }
   // Farbige Kachel (Farbe reihum, css: .list-tile) – hebt sich von den hellen ToDo-Punkten ab
   return `
     <li class="list-tile">
-      <button type="button" data-action="openList" data-scope="${scope}" data-id="${list.id}">
+      <button type="button" data-action="openList" data-scope="${scope}" data-id="${esc(list.id)}">
         <span class="tile-count" aria-label="${items.length} offen">${items.length || icon('check', 'icon-sm')}</span>
         <span class="tile-main"><strong>${esc(list.name)}</strong><small class="${items.some(overdue) ? 'tile-overdue' : ''}">${esc(info)}</small></span>
         ${icon('right', 'icon-sm')}
@@ -329,8 +329,8 @@ function todoItem(t) {
   const who = assignee(t);
   return `
   <li class="${t.done ? 'is-done' : ''}">
-    <button type="button" class="check" data-action="toggle" data-id="${t.id}" aria-label="${t.done ? 'Wieder offen' : 'Erledigt'}: ${esc(t.title)}">${icon('check', 'icon-sm')}</button>
-    <button type="button" class="list-main" data-action="edit" data-id="${t.id}" aria-label="${esc(t.title)}${who ? ` (für ${esc(who.name)})` : ''} bearbeiten">
+    <button type="button" class="check" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? 'Wieder offen' : 'Erledigt'}: ${esc(t.title)}">${icon('check', 'icon-sm')}</button>
+    <button type="button" class="list-main" data-action="edit" data-id="${esc(t.id)}" aria-label="${esc(t.title)}${who ? ` (für ${esc(who.name)})` : ''} bearbeiten">
       ${esc(t.title)}${t.note ? ` <span class="todo-note-mark" title="Mit Notiz" aria-label="mit Notiz">${icon('note', 'icon-xs')}</span>` : ''}
       ${t.due || t.repeat ? `<small>${[
         t.due ? `<span class="${overdue(t) ? 'amount-minus' : ''}">${esc(dueLabel(t))}</span>` : '',
@@ -341,7 +341,7 @@ function todoItem(t) {
     </button>
     ${who ? `<span class="todo-who" title="Für ${esc(who.name)}">${avatar(who)}</span>` : ''}
     ${isInCalendar(t.id) ? `<span class="todo-cal" title="Im Kalender eingetragen">${icon('calendar', 'icon-sm')}</span>` : ''}
-    <button type="button" class="icon-btn" data-action="remove" data-id="${t.id}" aria-label="${esc(t.title)} löschen">${icon('x', 'icon-sm')}</button>
+    <button type="button" class="icon-btn" data-action="remove" data-id="${esc(t.id)}" aria-label="${esc(t.title)} löschen">${icon('x', 'icon-sm')}</button>
   </li>`;
 }
 
@@ -355,8 +355,8 @@ let showOldDone = false;
 const arrangeItem = (t, n, count) => `
   <li class="todo-arrange">
     <span class="list-main">${esc(t.title)}${t.due ? `<small>${esc(dueLabel(t))}</small>` : ''}</span>
-    <button type="button" class="icon-btn" data-action="moveTodo" data-id="${t.id}" data-dir="-1" aria-label="${esc(t.title)} nach oben"${n === 0 ? ' disabled' : ''}>${icon('up', 'icon-sm')}</button>
-    <button type="button" class="icon-btn" data-action="moveTodo" data-id="${t.id}" data-dir="1" aria-label="${esc(t.title)} nach unten"${n === count - 1 ? ' disabled' : ''}>${icon('down', 'icon-sm')}</button>
+    <button type="button" class="icon-btn" data-action="moveTodo" data-id="${esc(t.id)}" data-dir="-1" aria-label="${esc(t.title)} nach oben"${n === 0 ? ' disabled' : ''}>${icon('up', 'icon-sm')}</button>
+    <button type="button" class="icon-btn" data-action="moveTodo" data-id="${esc(t.id)}" data-dir="1" aria-label="${esc(t.title)} nach unten"${n === count - 1 ? ' disabled' : ''}>${icon('down', 'icon-sm')}</button>
   </li>`;
 
 function listView(scope, list, d) {
@@ -480,7 +480,7 @@ function editTodo(cur, id, { isNew = false } = {}) {
       <fieldset class="field todo-assign"><legend>Für wen?</legend>
         <div class="chips">
           <label class="chip chip-toggle"><input type="radio" name="assignee" value="" ${who ? '' : 'checked'}>Alle</label>
-          ${state.members.map((m) => `<label class="chip chip-toggle">${avatar(m)}<input type="radio" name="assignee" value="${m.id}" ${m.id === who ? 'checked' : ''}>${esc(m.name)}</label>`).join('')}
+          ${state.members.map((m) => `<label class="chip chip-toggle">${avatar(m)}<input type="radio" name="assignee" value="${esc(m.id)}" ${m.id === who ? 'checked' : ''}>${esc(m.name)}</label>`).join('')}
         </div>
       </fieldset>` : ''}
       <div class="row">
@@ -695,7 +695,7 @@ export default {
       const cur = current();
       if (cur) moveTodo(cur, el.dataset.id, Number(el.dataset.dir));
       // Fokus beim verschobenen ToDo lassen, damit man mehrmals tippen kann
-      document.querySelector(`[data-action="moveTodo"][data-id="${el.dataset.id}"][data-dir="${el.dataset.dir}"]:not([disabled])`)?.focus();
+      document.querySelector(`[data-action="moveTodo"][data-id="${esc(el.dataset.id)}"][data-dir="${el.dataset.dir}"]:not([disabled])`)?.focus();
     },
     // Eigene Reihenfolge aufheben: wieder nach Datum
     sortByDate() {

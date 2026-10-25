@@ -9,7 +9,7 @@ import { AISLES, aisleLabel, aisleOf, aisleOrder, guessAisle } from './aisles.js
 
 const aisleOptions = (selected, auto) => `
   <option value="" ${selected ? '' : 'selected'}>Automatisch${auto ? ` (${esc(aisleLabel(auto))})` : ''}</option>
-  ${AISLES.map((a) => `<option value="${a.id}" ${a.id === selected ? 'selected' : ''}>${esc(a.label)}</option>`).join('')}`;
+  ${AISLES.map((a) => `<option value="${esc(a.id)}" ${a.id === selected ? 'selected' : ''}>${esc(a.label)}</option>`).join('')}`;
 
 const used = (t) => (t.count ? `${t.count}× auf der Liste` : 'noch nie auf der Liste');
 
@@ -98,7 +98,7 @@ function editTerm(id) {
       <div class="field"><span>Abteilung im Laden</span>
         <div class="chips">
           <label class="chip chip-toggle"><input type="radio" name="aisle" value="" ${current ? '' : 'checked'}>Automatisch (${esc(aisleLabel(guessAisle(term.name)))})</label>
-          ${AISLES.map((a) => `<label class="chip chip-toggle"><input type="radio" name="aisle" value="${a.id}" ${a.id === current ? 'checked' : ''}>${esc(a.label)}</label>`).join('')}
+          ${AISLES.map((a) => `<label class="chip chip-toggle"><input type="radio" name="aisle" value="${esc(a.id)}" ${a.id === current ? 'checked' : ''}>${esc(a.label)}</label>`).join('')}
         </div>
       </div>
       <p class="muted small">${used(term)}</p>`,

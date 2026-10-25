@@ -43,7 +43,9 @@ self.addEventListener('push', (event) => {
 // Antippen: App öffnen (oder die offene nach vorne holen) und den passenden Bereich zeigen, z. B. #kuehlschrank
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || '', self.registration.scope).href;
+  // Nur Bereiche der App (#…) – eine Adresse ausserhalb (https://…) wird nie geöffnet
+  const url = String(event.notification.data?.url || '');
+  const target = new URL(/^#[\w/-]*$/.test(url) ? url : '', self.registration.scope).href;
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const win = wins.find((w) => w.url.startsWith(self.registration.scope));

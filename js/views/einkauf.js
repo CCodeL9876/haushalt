@@ -318,7 +318,7 @@ function modeHtml(open) {
   const groups = new Map(aisleOrder(state.settings).map((id) => [id, []]));
   for (const i of open) groups.get(aisleOf(i.name, state.terms)).push(i);
   const row = (i) => `
-    <button type="button" class="mode-item${i.done ? ' is-got' : ''}" data-action="toggle" data-id="${i.id}" aria-pressed="${i.done}" aria-label="${esc(i.name)}${i.done ? ' – im Wagen, antippen zum Zurücklegen' : ''}">
+    <button type="button" class="mode-item${i.done ? ' is-got' : ''}" data-action="toggle" data-id="${esc(i.id)}" aria-pressed="${i.done}" aria-label="${esc(i.name)}${i.done ? ' – im Wagen, antippen zum Zurücklegen' : ''}">
       <span class="mode-box">${icon('check')}</span>
       <span class="mode-name">${esc(i.name)}${i.star && !i.done ? ` ${icon('star', 'icon-xs')}` : ''}${smallHtml(i)}</span>
       ${i.qty ? `<span class="mode-qty">${esc(i.qty)}</span>` : ''}
@@ -354,12 +354,12 @@ const smallHtml = (i) => {
 };
 const item = (i) => `
   <li class="${i.done ? 'is-done' : ''}">
-    <button type="button" class="check" data-action="toggle" data-id="${i.id}" aria-label="${i.done ? 'Wieder offen' : 'Erledigt'}: ${esc(i.name)}">${icon('check', 'icon-sm')}</button>
+    <button type="button" class="check" data-action="toggle" data-id="${esc(i.id)}" aria-label="${i.done ? 'Wieder offen' : 'Erledigt'}: ${esc(i.name)}">${icon('check', 'icon-sm')}</button>
     ${i.done
       ? `<span class="list-main">${esc(i.name)}${qtyHtml(i)}${smallHtml(i)}</span>`
-      : `<button type="button" class="list-main" data-action="aisle" data-id="${i.id}" aria-label="${esc(i.name)}${i.qty ? ` (${esc(i.qty)})` : ''} – Menge, Notiz, Abteilung">${esc(i.name)}${qtyHtml(i)}${smallHtml(i)}</button>`}
-    ${i.done ? '' : `<button type="button" class="icon-btn star-btn${i.star ? ' is-on' : ''}" data-action="star" data-id="${i.id}" aria-pressed="${Boolean(i.star)}" aria-label="${esc(i.name)} ${i.star ? 'nicht mehr wichtig' : 'als wichtig markieren'}">${icon('star', 'icon-sm')}</button>`}
-    <button type="button" class="icon-btn" data-action="remove" data-id="${i.id}" aria-label="${esc(i.name)} löschen">${icon('x', 'icon-sm')}</button>
+      : `<button type="button" class="list-main" data-action="aisle" data-id="${esc(i.id)}" aria-label="${esc(i.name)}${i.qty ? ` (${esc(i.qty)})` : ''} – Menge, Notiz, Abteilung">${esc(i.name)}${qtyHtml(i)}${smallHtml(i)}</button>`}
+    ${i.done ? '' : `<button type="button" class="icon-btn star-btn${i.star ? ' is-on' : ''}" data-action="star" data-id="${esc(i.id)}" aria-pressed="${Boolean(i.star)}" aria-label="${esc(i.name)} ${i.star ? 'nicht mehr wichtig' : 'als wichtig markieren'}">${icon('star', 'icon-sm')}</button>`}
+    <button type="button" class="icon-btn" data-action="remove" data-id="${esc(i.id)}" aria-label="${esc(i.name)} löschen">${icon('x', 'icon-sm')}</button>
   </li>`;
 
 export default {
@@ -485,7 +485,7 @@ export default {
           </div>
           <div class="field"><span>Abteilung im Laden <small class="muted" style="font-weight:500">· gilt für alle</small></span>
           <div class="chips">${AISLES.map((a) => `
-            <button type="button" class="chip aisle-chip" data-sheet-action="set" data-aisle="${a.id}" aria-pressed="${a.id === current}">${esc(a.label)}</button>`).join('')}</div>
+            <button type="button" class="chip aisle-chip" data-sheet-action="set" data-aisle="${esc(a.id)}" aria-pressed="${a.id === current}">${esc(a.label)}</button>`).join('')}</div>
           </div>`,
         submitLabel: 'Speichern',
         onSubmit(data) {

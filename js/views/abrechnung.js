@@ -56,7 +56,7 @@ const methodOptions = (current) => {
   if (current && !list.includes(current)) list.push(current); // ältere oder gelöschte Zahlungsart beibehalten
   return `<option value="">–</option>${list.map((m) => `<option ${m === current ? 'selected' : ''}>${esc(m)}</option>`).join('')}`;
 };
-const memberOptions = (selected, list = state.members) => list.map((m) => `<option value="${m.id}" ${m.id === selected ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
+const memberOptions = (selected, list = state.members) => list.map((m) => `<option value="${esc(m.id)}" ${m.id === selected ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
 
 function removeButton(e) {
   return e ? `<button type="button" class="btn btn-danger btn-block" data-sheet-action="remove">${isPayment(e) ? 'Rückzahlung' : 'Rechnung'} löschen</button>` : '';
@@ -258,7 +258,7 @@ function entryRow(e, p, after) {
   return `
     <li>
       <span class="ledger-kind ${pay ? 'is-payment' : 'is-bill'}" aria-hidden="true">${icon(pay ? 'arrow' : 'receipt', 'icon-sm')}</span>
-      <button type="button" class="list-main" data-action="edit" data-id="${e.id}" aria-label="${pay ? 'Rückzahlung' : 'Rechnung'} ${esc(title)} bearbeiten">
+      <button type="button" class="list-main" data-action="edit" data-id="${esc(e.id)}" aria-label="${pay ? 'Rückzahlung' : 'Rechnung'} ${esc(title)} bearbeiten">
         ${esc(title)}<small>${esc(meta)}</small>
       </button>
       ${right}

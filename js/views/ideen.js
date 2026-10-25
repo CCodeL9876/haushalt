@@ -228,7 +228,7 @@ function planIdea(idea) {
       <div class="row">
         <label class="field"><span>Tag</span><input class="input" type="date" name="day" value="${todayKey()}" required></label>
         <label class="field"><span>Mahlzeit</span>
-          <select class="select" name="slot">${SLOTS.map((s) => `<option value="${s.id}" ${s.id === 'abend' ? 'selected' : ''}>${s.label}</option>`).join('')}</select>
+          <select class="select" name="slot">${SLOTS.map((s) => `<option value="${esc(s.id)}" ${s.id === 'abend' ? 'selected' : ''}>${s.label}</option>`).join('')}</select>
         </label>
       </div>`,
     submitLabel: 'In den Wochenplan',
@@ -263,7 +263,7 @@ ${ideasAvailable() && !drinks ? `<button type="button" class="ask-claude" data-a
       </div>
       ${list.length ? [...list].sort((a, b) => a.title.localeCompare(b.title, 'de')).map((i) => `
         <div class="idea-wrap" data-search="${esc(searchText(i))}" ${matches(i) ? '' : 'hidden'}>
-          <button type="button" class="card idea ${safeLink(i.url) ? 'has-recipe' : ''}" data-action="edit" data-id="${i.id}">
+          <button type="button" class="card idea ${safeLink(i.url) ? 'has-recipe' : ''}" data-action="edit" data-id="${esc(i.id)}">
             <h3>${esc(i.title)}</h3>
             <div class="muted small">${i.ingredients.length} Zutaten${i.steps?.length ? ' · mit Zubereitung' : ''}</div>
             ${i.note ? `<p class="small">${esc(i.note)}</p>` : ''}

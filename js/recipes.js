@@ -2,8 +2,10 @@
 // Browser fremde Seiten nicht selbst abrufen darf. Ergebnis: { title, ingredients, servings, minutes, tags, url }.
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, RECIPE_IMPORT_URL } from './config.js';
+import { loadSession } from './session.js';
 
-export const recipeImportAvailable = () => Boolean(RECIPE_IMPORT_URL || (SUPABASE_URL && SUPABASE_ANON_KEY));
+// Nur im gemeinsamen Haushalt: die Funktion prüft Haushalt-Schlüssel und Zugangscode
+export const recipeImportAvailable = () => Boolean((RECIPE_IMPORT_URL || (SUPABASE_URL && SUPABASE_ANON_KEY)) && loadSession().key);
 
 // „bettybossi.ch/…“ → „https://bettybossi.ch/…“; alles ausser http(s) → ''.
 // Geteilter Text aus einer App („Schau mal, Risotto: https://…“) enthält die Adresse irgendwo – die erste nehmen.
@@ -23,7 +25,8 @@ export function normalizeUrl(value) {
 export async function importRecipe(url) {
   if (!recipeImportAvailable()) throw new Error('Einlesen braucht das Supabase-Projekt des Haushalts (siehe ANLEITUNG.md).');
   const endpoint = RECIPE_IMPORT_URL || `${SUPABASE_URL}/functions/v1/recipe-import`;
-  const headers = { 'Content-Type': 'application/json' };
+  const { key, code } = loadSession();
+  const headers = { 'Content-Type': 'application/json', 'x-hh-key': key || '', 'x-hh-code': code || '' };
   if (SUPABASE_ANON_KEY) headers.apikey = SUPABASE_ANON_KEY;
   if (SUPABASE_ANON_KEY.startsWith('eyJ')) headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
   let res;
@@ -36,6 +39,7 @@ export async function importRecipe(url) {
   try { data = await res.json(); } catch { /* keine JSON-Antwort */ }
   if (res.status === 404 && !data?.error) throw new Error('Die Funktion „recipe-import“ ist in Supabase noch nicht eingerichtet (siehe ANLEITUNG.md).');
   if (res.status === 401) throw new Error('Supabase lehnt ab – bei der Funktion „recipe-import“ die JWT-Prüfung ausschalten (ANLEITUNG.md).');
+  if (res.status === 403) throw new Error('Einlesen geht nur im gemeinsamen Haushalt – oder die Funktion „recipe-import“ in Supabase ist noch nicht auf dem neuesten Stand (ANLEITUNG.md).');
   if (!res.ok || !data) throw new Error(data?.error || `Fehler ${res.status}`);
   return data;
 }

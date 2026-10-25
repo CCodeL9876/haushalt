@@ -5,6 +5,7 @@
 // zusätzlich maschinenlesbar im schema.org-Format „Recipe“ (JSON-LD). Genau das wird gelesen; als Ersatz die
 // Mikrodaten-Variante (itemprop="recipeIngredient"). Gibt nur diese Angaben zurück, nie die Seite selbst, und
 // speichert und protokolliert nichts. Einrichtung: ANLEITUNG.md, Abschnitt „Rezepte per Link“ (JWT-Prüfung aus).
+// Nur für angemeldete Haushalte (Schlüssel und Zugangscode), damit niemand sonst die Funktion als Abrufdienst nutzt.
 //
 // Bewusst als eine einzige Datei in reinem JavaScript (gültiges TypeScript), damit sie sich im Supabase-Dashboard
 // per Kopieren und Einfügen einrichten lässt. extractRecipe() hat keine Abhängigkeiten – so lässt sie sich auch
@@ -174,7 +175,7 @@ function allowedUrl(value) {
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-hh-key, x-hh-code',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const json = (body, status = 200) =>
@@ -225,9 +226,27 @@ async function fetchPage(start) {
   throw new BlockedRedirect();
 }
 
+// Stimmen Schlüssel und Code? Fragt dieselbe Datenbankfunktion wie die App bei der Anmeldung.
+async function householdOk(req) {
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_ANON_KEY');
+  const hhKey = req.headers.get('x-hh-key') || '';
+  const hhCode = req.headers.get('x-hh-code') || '';
+  if (!url || !key || !/^[a-f0-9]{32,128}$/i.test(hhKey) || !hhCode) return false;
+  const headers = { apikey: key, 'Content-Type': 'application/json', 'x-hh-key': hhKey, 'x-hh-code': hhCode };
+  if (key.startsWith('eyJ')) headers.Authorization = `Bearer ${key}`;
+  try {
+    const res = await fetch(`${url}/rest/v1/rpc/household_login`, { method: 'POST', headers, body: '{}', signal: AbortSignal.timeout(10000) });
+    return res.ok && (await res.json())?.status === 'ok';
+  } catch {
+    return false;
+  }
+}
+
 async function handle(req) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'nur POST' }, 405);
+  if (!(await householdOk(req))) return json({ error: 'Nur für angemeldete Haushalte.' }, 403);
   let input = '';
   try {
     input = String((await req.json())?.url || '').trim();

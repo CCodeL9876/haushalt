@@ -139,7 +139,7 @@ export function quickAdd() {
     body: `
       <input class="input qa-input" name="text" placeholder="Was steht an? z. B. 2x Milch, Velo Service Freitag 17:30" autocomplete="off" enterkeyhint="done">
       <div class="qa-types" role="radiogroup" aria-label="Art">${TYPES.map((t) => `
-        <button type="button" class="qa-type" data-sheet-action="type" data-type="${t.id}" aria-pressed="${t.id === type}">${icon(t.icon)}${t.label}</button>`).join('')}
+        <button type="button" class="qa-type" data-sheet-action="type" data-type="${esc(t.id)}" aria-pressed="${t.id === type}">${icon(t.icon)}${t.label}</button>`).join('')}
       </div>
       <p class="small qa-preview" aria-live="polite"></p>
       <label class="field qa-list" hidden><span>Liste</span>

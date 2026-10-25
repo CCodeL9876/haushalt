@@ -61,7 +61,7 @@ const themeHtml = () => {
 const paletteHtml = () => {
   const cur = currentPalette();
   return PALETTES.map((p) => `
-    <button type="button" class="palette-btn" data-sheet-action="palette" data-id="${p.id}" aria-pressed="${p.id === cur}">
+    <button type="button" class="palette-btn" data-sheet-action="palette" data-id="${esc(p.id)}" aria-pressed="${p.id === cur}">
       <span class="palette-dots" aria-hidden="true">${p.swatches.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
       <span class="palette-name">${esc(p.name)}</span>
     </button>`).join('');
@@ -109,7 +109,7 @@ export function openSettings() {
       <div class="field"><span>Personen</span>
         ${state.members.length ? `<ul class="list" style="margin-bottom:10px">${state.members.map((m) => `
           <li>${avatar(m)}<span class="list-main">${esc(m.name)}</span>
-            <button type="button" class="icon-btn" data-sheet-action="removeMember" data-id="${m.id}" aria-label="${esc(m.name)} entfernen">${icon('trash', 'icon-sm')}</button>
+            <button type="button" class="icon-btn" data-sheet-action="removeMember" data-id="${esc(m.id)}" aria-label="${esc(m.name)} entfernen">${icon('trash', 'icon-sm')}</button>
           </li>`).join('')}</ul>` : ''}
         <div class="add-row">
           <input class="input" name="member" placeholder="Name" autocomplete="off" enterkeyhint="done">
@@ -256,7 +256,7 @@ export function openSettings() {
         const list = document.querySelector('#sheet .aisle-order');
         list.innerHTML = aisleListHtml();
         // Fokus beim verschobenen Eintrag lassen, damit man mehrmals hintereinander tippen kann
-        list.querySelector(`[data-id="${btn.dataset.id}"][data-dir="${btn.dataset.dir}"]:not([disabled])`)?.focus();
+        list.querySelector(`[data-id="${esc(btn.dataset.id)}"][data-dir="${btn.dataset.dir}"]:not([disabled])`)?.focus();
       },
       resetAisles() {
         update((s) => { delete s.settings.aisleOrder; });

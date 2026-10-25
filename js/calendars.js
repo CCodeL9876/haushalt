@@ -13,7 +13,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config.js';
 import { refresh, session, state, uid, update } from './store.js';
 import { loadSession } from './session.js';
 import { addDays, dateKey, todayKey } from './dates.js';
-import { closeSheet, esc, icon, openSheet, toast } from './ui.js';
+import { closeSheet, esc, icon, openSheet, safeColor, toast } from './ui.js';
 
 // Farben wie in der Kalender-App (gut sichtbar hell und dunkel)
 export const CAL_COLORS = ['#3B82F6', '#22A06B', '#F59E0B', '#E5484D', '#8E4EC6', '#12A594'];
@@ -44,14 +44,15 @@ const myCalendars = () => (session.key ? readJson(mineKey(), []) : []);
 
 export function allCalendars() {
   if (!calendarsAvailable()) return [];
+  // Farbe kommt aus gespeicherten Daten und landet in style="…": nur #rrggbb zulassen
   return [
-    ...(state.settings.calendars || []).map((c) => ({ ...c, scope: 'shared' })),
-    ...myCalendars().map((c) => ({ ...c, scope: 'personal' })),
+    ...(state.settings.calendars || []).map((c) => ({ ...c, color: safeColor(c.color), scope: 'shared' })),
+    ...myCalendars().map((c) => ({ ...c, color: safeColor(c.color), scope: 'personal' })),
   ];
 }
 
 const clean = (cal) => ({
-  id: cal.id, name: cal.name.slice(0, 40), url: cal.url.slice(0, 2000), color: cal.color,
+  id: cal.id, name: cal.name.slice(0, 40), url: cal.url.slice(0, 2000), color: safeColor(cal.color),
   ...(cal.small ? { small: true, symbol: SYMBOLS.some(([k]) => k === cal.symbol) ? cal.symbol : 'trophy' } : {}),
 });
 

@@ -21,8 +21,8 @@ function quickPicks() {
 
 const item = (f) => `
   <li class="${isUrgent(f) ? 'is-urgent' : ''}">
-    <button type="button" class="check" data-action="fridgeUsed" data-id="${f.id}" aria-label="Aufgebraucht: ${esc(f.name)}">${icon('check', 'icon-sm')}</button>
-    <button type="button" class="list-main" data-action="fridgeEdit" data-id="${f.id}" aria-label="${esc(f.name)} bearbeiten">
+    <button type="button" class="check" data-action="fridgeUsed" data-id="${esc(f.id)}" aria-label="Aufgebraucht: ${esc(f.name)}">${icon('check', 'icon-sm')}</button>
+    <button type="button" class="list-main" data-action="fridgeEdit" data-id="${esc(f.id)}" aria-label="${esc(f.name)} bearbeiten">
       ${esc(f.name)}
       <small><span class="${isUrgent(f) ? 'amount-minus' : ''}">${esc(leftLabel(f))}</span>${f.from ? ` · von ${esc(f.from)}` : ''}</small>
     </button>

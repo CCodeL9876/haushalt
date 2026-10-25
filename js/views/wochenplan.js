@@ -174,7 +174,7 @@ export default {
                 // Rezept-Link neben dem Eintrag (ein Link darf nicht im Knopf stecken, darum daneben in einer Hülle)
                 const url = recipeLink(meal);
                 return `<div class="slot-wrap">
-                  <button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'} ${url ? 'has-recipe' : ''}" data-action="edit" data-day="${key}" data-slot="${s.id}">
+                  <button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'} ${url ? 'has-recipe' : ''}" data-action="edit" data-day="${key}" data-slot="${esc(s.id)}">
                     <span class="slot-label">${s.label}</span>
                     <span class="slot-title">${meal ? esc(mealTitle(meal)) : 'Noch nichts geplant'}</span>
                     ${meal ? '' : icon('plus', 'icon-sm')}

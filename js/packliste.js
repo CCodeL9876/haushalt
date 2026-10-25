@@ -168,7 +168,7 @@ export function packPicker() {
       </div>
     </div>
     <div class="field"><span>Dazu packen</span>
-      <div class="chips">${addons().map((a) => `<label class="chip chip-toggle"><input type="checkbox" name="addon" value="${a.id}">${a.emoji} ${esc(a.name)}</label>`).join('')}</div>
+      <div class="chips">${addons().map((a) => `<label class="chip chip-toggle"><input type="checkbox" name="addon" value="${esc(a.id)}">${a.emoji} ${esc(a.name)}</label>`).join('')}</div>
     </div>
     <p class="tpl-preview muted small" aria-live="polite"></p>
     <div class="field stepper-field"><span>Tage</span>
@@ -240,13 +240,13 @@ const packRow = (t, list, shared) => {
   const qty = qtyText(t, list.days);
   return `
   <li class="${t.done ? 'is-done' : ''}">
-    <button type="button" class="check" data-action="toggle" data-id="${t.id}" aria-label="${t.done ? 'Wieder auspacken' : 'Gepackt'}: ${esc(t.title)}">${icon('check', 'icon-sm')}</button>
-    <button type="button" class="list-main" data-action="editPack" data-id="${t.id}" aria-label="${esc(t.title)} bearbeiten">
+    <button type="button" class="check" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? 'Wieder auspacken' : 'Gepackt'}: ${esc(t.title)}">${icon('check', 'icon-sm')}</button>
+    <button type="button" class="list-main" data-action="editPack" data-id="${esc(t.id)}" aria-label="${esc(t.title)} bearbeiten">
       ${esc(t.title)}${qty ? ` <span class="qty-pill">${esc(qty)}</span>` : ''}${t.note ? ` <span class="todo-note-mark" title="Mit Notiz">${icon('note', 'icon-xs')}</span>` : ''}
       ${t.buy && !t.done ? `<small class="pack-buy">${icon('cart', 'icon-xs')} fehlt noch – auf der Einkaufsliste</small>` : ''}
     </button>
     ${who ? `<span class="todo-who" title="Packt ${esc(who.name)}">${avatar(who)}</span>` : ''}
-    <button type="button" class="icon-btn" data-action="remove" data-id="${t.id}" aria-label="${esc(t.title)} löschen">${icon('x', 'icon-sm')}</button>
+    <button type="button" class="icon-btn" data-action="remove" data-id="${esc(t.id)}" aria-label="${esc(t.title)} löschen">${icon('x', 'icon-sm')}</button>
   </li>`;
 };
 
@@ -317,7 +317,7 @@ export function editPackItem(cur, id) {
       <fieldset class="field todo-assign"><legend>Wer packt es ein?</legend>
         <div class="chips">
           <label class="chip chip-toggle"><input type="radio" name="assignee" value="" ${t.assignee ? '' : 'checked'}>Alle</label>
-          ${state.members.map((m) => `<label class="chip chip-toggle">${avatar(m)}<input type="radio" name="assignee" value="${m.id}" ${m.id === t.assignee ? 'checked' : ''}>${esc(m.name)}</label>`).join('')}
+          ${state.members.map((m) => `<label class="chip chip-toggle">${avatar(m)}<input type="radio" name="assignee" value="${esc(m.id)}" ${m.id === t.assignee ? 'checked' : ''}>${esc(m.name)}</label>`).join('')}
         </div>
       </fieldset>` : ''}
       <label class="field"><span>Notiz</span><textarea class="textarea" name="note" maxlength="500">${esc(t.note)}</textarea></label>

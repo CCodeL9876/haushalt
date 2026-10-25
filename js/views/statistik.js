@@ -78,7 +78,7 @@ export default {
     const old = forgotten();
     return `
       <div class="seg" role="group" aria-label="Zeitraum">
-        ${RANGES.map((r) => `<button type="button" class="seg-btn" data-action="statRange" data-range="${r.id}" aria-pressed="${r.id === rangeId}">${r.label}</button>`).join('')}
+        ${RANGES.map((r) => `<button type="button" class="seg-btn" data-action="statRange" data-range="${esc(r.id)}" aria-pressed="${r.id === rangeId}">${r.label}</button>`).join('')}
       </div>
       <div class="stat-tiles">
         <div class="card stat-tile"><span class="stat-number">${meals}</span><span class="muted small">Mahlzeiten geplant und gegessen</span></div>

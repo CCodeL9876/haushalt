@@ -452,7 +452,7 @@ function yearSheet(year = month.slice(0, 4)) {
       ${shown && low.rest < 0 ? `<p class="plan-year-warn">${icon('warning', 'icon-sm')} Knappster Monat: ${esc(short(low.key))} (${m(low.rest, { sign: true })})</p>` : ''}
       <ul class="list plan-year">${rows.map((r) => `
         <li class="${r.key === now ? 'is-now' : ''} ${r.key < now ? 'is-past' : ''}">
-          <button type="button" class="plan-year-row" data-sheet-action="open" data-month="${r.key}" aria-label="${esc(monthLabel(r.key))} öffnen">
+          <button type="button" class="plan-year-row" data-sheet-action="open" data-month="${esc(r.key)}" aria-label="${esc(monthLabel(r.key))} öffnen">
             <span class="plan-year-name">${esc(short(r.key).slice(0, 3))}</span>
             <span class="plan-year-bar">${shown ? `<i class="${r.rest < 0 ? 'is-minus' : ''}" style="width:${Math.round((Math.abs(r.rest) / max) * 100)}%"></i>` : ''}</span>
             <span class="list-value ${shown && r.rest < 0 ? 'amount-minus' : ''}">${m(r.rest, { sign: true })}<small>${m(r.income)} / −${m(r.out)}</small></span>

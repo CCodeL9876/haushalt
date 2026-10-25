@@ -333,7 +333,7 @@ function focus() {
       title: `${waste.names} rausstellen`,
       note: tomorrow ? `Abfuhr morgen früh · ${fmtShort(waste.day)}` : `Abfuhr heute · ${fmtShort(waste.day)}`,
       buttons: [
-        `<button type="button" class="tile-btn" data-action="wasteOut" data-day="${waste.day}">${icon('check', 'icon-sm')} Ist draussen</button>`,
+        `<button type="button" class="tile-btn" data-action="wasteOut" data-day="${esc(waste.day)}">${icon('check', 'icon-sm')} Ist draussen</button>`,
         '<button type="button" class="tile-btn tile-btn-soft" data-action="waste">Abfuhrplan</button>',
       ],
     }) };
