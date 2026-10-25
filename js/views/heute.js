@@ -22,7 +22,7 @@ import { addToShopping, openOnList, recentlyBought, shopIngredients } from './ei
 import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
-import { eventsOn, upcomingSmall } from '../calendars.js';
+import { eventsOn, isFavourite, upcomingSmall } from '../calendars.js';
 
 const MAX_TODOS = 5;
 
@@ -178,7 +178,7 @@ function dayTile() {
 }
 
 // „Sport diese Woche“: Kalender mit Darstellung „Klein“ (js/calendars.js) als schmale, waagrecht wischbare Leiste –
-// heute hervorgehoben, ohne Spiele gar nicht. Alle Spiele der nächsten 7 Tage; die Leiste reicht bis an den
+// heute hervorgehoben, Lieblingsmannschaften in der Akzentfarbe, ohne Spiele gar nicht. Alle Spiele der nächsten 7 Tage; die Leiste reicht bis an den
 // Bildschirmrand, damit man sieht, dass es seitwärts weitergeht.
 function sportStrip() {
   const events = upcomingSmall();
@@ -190,7 +190,7 @@ function sportStrip() {
   const chip = (e, i) => {
     const key = e.allDay ? e.start : dateKey(e.start);
     const when = e.allDay ? dayName(key) : `${dayName(key)} ${hm(e.start)}`;
-    return `<button type="button" class="sport-game${key <= today ? ' is-today' : ''}" data-action="sportInfo" data-i="${i}">
+    return `<button type="button" class="sport-game${key <= today ? ' is-today' : ''}${isFavourite(e.title) ? ' is-fav' : ''}" data-action="sportInfo" data-i="${i}">
       <span class="sport-sym" style="color:${esc(e.cal.color)}">${icon(e.cal.symbol || 'trophy', 'icon-sm')}</span>
       <span class="sport-when">${esc(when)}</span><span class="sport-what">${esc(e.title)}</span>
     </button>`;

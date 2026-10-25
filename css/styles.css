@@ -924,6 +924,10 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .sport-sym { grid-row: 1 / 3; display: grid; place-items: center; }
 .sport-when { font-size: 11.5px; font-weight: 700; opacity: 0.7; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sport-game.is-today .sport-when { opacity: 0.9; }
+/* Lieblingsmannschaft: Akzentfarbe des Designs; heute zusätzlich mit Rahmen */
+.sport-game.is-fav { background: var(--accent); color: var(--on-accent); }
+.sport-game.is-fav .sport-sym { color: var(--on-accent) !important; }
+.sport-game.is-fav.is-today { outline: 2px solid var(--text); outline-offset: -2px; }
 .sport-what { font-size: 13.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Haushalt → Kalender */
 .cal-edit { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }

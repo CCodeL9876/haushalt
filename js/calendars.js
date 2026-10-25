@@ -4,7 +4,8 @@
 //   gemeinsame Kalender: state.settings.calendars [{ id, name, url, color, small?, symbol? }] – für alle im Haushalt
 //   persönliche:         nur auf diesem Gerät (localStorage, pro Haushalt) – z. B. „Arbeit“
 // „Klein“ (small, z. B. abonnierte Sportkalender) erscheint nicht in „Dein Tag“, sondern als schmale Leiste
-// „Sport diese Woche“ mit Symbol (symbol: Name aus SYMBOLS).
+// „Sport diese Woche“ mit Symbol (symbol: Name aus SYMBOLS). Spiele der Lieblingsmannschaften (nur auf diesem Gerät,
+// Haushalt → Kalender → Mannschaften hervorheben) erscheinen dort in der Akzentfarbe des Designs.
 // Die Termine holt die Supabase-Funktion „calendar-feed“ (der Browser darf fremde Seiten nicht abrufen) für heute
 // und die nächsten Tage. Sie liegen auf dem Gerät zwischengespeichert und werden alle 15 Minuten erneuert.
 
@@ -26,6 +27,7 @@ export const calendarsAvailable = () => Boolean(SUPABASE_URL && SUPABASE_ANON_KE
 // ---------- Welche Kalender ----------
 
 const mineKey = () => `haushalt.mycalendars.${session.key}`;
+const teamsKey = () => `haushalt.sportteams.${session.key}`;
 const cacheKey = (id) => `haushalt.calcache.${id}`;
 
 function readJson(key, fallback) {
@@ -143,6 +145,45 @@ export function eventsOn(day) {
   return out.sort((a, b) => (a.allDay === b.allDay ? 0 : a.allDay ? -1 : 1) || (a.allDay ? a.title.localeCompare(b.title, 'de') : a.start - b.start));
 }
 
+// ---------- Lieblingsmannschaften ----------
+// Vorbelegt, bis man die Liste selbst ändert
+const DEFAULT_TEAMS = ['FC Basel', 'FC Liverpool', 'Panathinaikos AKTOR Athens', 'Fenerbahce Tarfin Istanbul', 'Valencia Basket', 'Olympiacos Piraeus'];
+// Kürzel wie „FC“ zählen nicht als Name – „FC Basel“ passt so auch zu „Basel – Lugano“
+const TEAM_PREFIX = new Set(['fc', 'sc', 'ac', 'as', 'bc', 'cf', 'ec', 'hc', 'sk', 'fk', 'sv', 'vfb', 'vfl', 'afc', 'ssc', 'real', 'club', 'the']);
+
+export const sportTeams = () => readJson(teamsKey(), DEFAULT_TEAMS);
+const norm = (text) => String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/ı/g, 'i');
+
+// Passt der Titel zu einer Lieblingsmannschaft? Ganzer Name oder sein erstes richtiges Wort (ohne „FC“ usw.),
+// also „Panathinaikos AKTOR Athens“ auch bei „Panathinaikos – Real Madrid“
+export function isFavourite(title) {
+  const t = norm(title);
+  return sportTeams().some((team) => {
+    const n = norm(team).trim();
+    const word = n.split(/[^a-z0-9]+/).find((w) => w.length >= 3 && !TEAM_PREFIX.has(w));
+    return n && (t.includes(n) || (word && new RegExp(`(^|[^a-z0-9])${word}([^a-z0-9]|$)`).test(t)));
+  });
+}
+
+function teamsSheet() {
+  openSheet({
+    title: 'Mannschaften hervorheben',
+    body: `
+      <p class="muted small" style="margin:0 0 12px">Spiele dieser Mannschaften erscheinen unter „Sport diese Woche“ in der Akzentfarbe. Eine pro Zeile; es reicht der Hauptname (z. B. „Basel“). Gilt nur auf diesem Gerät.</p>
+      <label class="field"><span>Mannschaften</span>
+        <textarea class="textarea" name="teams" rows="7" autocapitalize="words" spellcheck="false" placeholder="FC Basel&#10;FC Liverpool">${esc(sportTeams().join('\n'))}</textarea>
+      </label>`,
+    submitLabel: 'Speichern',
+    onSubmit(data) {
+      const teams = String(data.get('teams')).split('\n').map((x) => x.trim().slice(0, 60)).filter(Boolean).slice(0, 40);
+      writeJson(teamsKey(), teams);
+      refresh();
+      openCalendars();
+      return false;
+    },
+  });
+}
+
 // „Klein“-Kalender (Sport): was jetzt läuft und in den nächsten 7 Tagen kommt, nach Beginn sortiert
 export function upcomingSmall() {
   const now = new Date();
@@ -175,9 +216,11 @@ export function openCalendars() {
           <button type="button" class="icon-btn" data-sheet-action="remove" data-id="${esc(c.id)}" data-scope="${c.scope}" aria-label="${esc(c.name)} entfernen">${icon('trash', 'icon-sm')}</button>
         </li>`).join('')}</ul>` : '<p class="muted small" style="text-align:center;padding:8px 0 16px">Noch kein Kalender eingetragen.</p>'}`,
     footer: `<button type="button" class="btn btn-primary btn-block" data-sheet-action="add">${icon('plus', 'icon-sm')} Kalender hinzufügen</button>
+      ${cals.some((c) => c.small) ? `<button type="button" class="btn btn-block" data-sheet-action="teams">${icon('star', 'icon-sm')} Mannschaften hervorheben (${sportTeams().length})</button>` : ''}
       ${cals.length ? `<button type="button" class="btn btn-block" data-sheet-action="reload">${icon('refresh', 'icon-sm')} Jetzt neu laden</button>` : ''}`,
     actions: {
       add() { addCalendarSheet(); },
+      teams() { teamsSheet(); },
       edit(btn) {
         const c = cals.find((x) => x.id === btn.dataset.id);
         if (c) editCalendarSheet(c);
