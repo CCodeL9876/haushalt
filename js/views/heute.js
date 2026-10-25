@@ -1,4 +1,5 @@
 // Startseite „Heute“: alles Wichtige auf einen Blick, als Kacheln (Bento). Antippen führt in den Bereich.
+//  - zuoberst „Jetzt wichtig“ (focus): das Dringendste mit Knopf zum Erledigen, sonst das Menü von heute
 //  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten und Link zum Rezept
 //  - vor Sonn- und Feiertagen (Läden zu, js/dates.js shopsClosed): Menüs dieser Tage mit fehlenden Zutaten (oder ohne
 //    Zutatenliste: „an den Einkauf denken“) – also heute einkaufen. Folgen mehrere zu-Tage aufeinander (Ostern,
@@ -9,13 +10,13 @@
 //    für „jetzt“; ganztägige Termine oben. ToDos mit Uhrzeit stehen dann dort statt unter „Heute zu tun“
 //  - Abfuhrkalender (nächste Termine) und Kühlschrank (was bald weg muss)
 
-import { state, termKey } from '../store.js';
+import { state, termKey, update } from '../store.js';
 import { personal } from '../personal.js';
 import { currentMember } from '../login.js';
 import { esc, icon, safeLink, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, holidayName, shopsClosed, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
-import { fridgeSorted, isUrgent, leftLabel } from '../fridge.js';
+import { daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
 import { openOnList, recentlyBought, shopIngredients } from './einkauf.js';
 import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
@@ -50,17 +51,19 @@ function missingFor(meal) {
   });
 }
 
-function mealTile() {
+// hero: zuoberst als dunkle Kachel; sonst (wenn „Jetzt wichtig“ etwas anderes zeigt) hell darunter
+function mealTile(hero = true) {
   const t = todaysMeal();
+  const cls = hero ? 'tile-hero' : 'tile-1 tile-meal-plain';
   if (!t) {
-    return `<button type="button" class="tile tile-hero wide" data-action="go" data-hash="#woche">
+    return `<button type="button" class="tile ${cls} wide" data-action="go" data-hash="#woche">
       <h3>Heute</h3><div class="tile-big">Noch kein Menü geplant</div>
       <span class="tile-btn">${icon('calendar', 'icon-sm')} Wochenplan öffnen</span></button>`;
   }
   const missing = missingFor(t.meal);
   // Rezept-Link der Idee (falls hinterlegt): direkt aus der Kachel öffnen, ohne die Idee zu suchen
   const url = safeLink(state.ideas.find((i) => i.id === t.meal.ideaId)?.url);
-  return `<div class="tile tile-hero wide">
+  return `<div class="tile ${cls} wide">
     <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
     <h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3>
     <div class="tile-meal">
@@ -93,11 +96,11 @@ function closedMeals() {
   return missing.length || unknown.length ? { names, several: days.length > 1, meals, missing, unknown } : null;
 }
 
-function closedTile() {
+function closedTile(hero = false) {
   const t = closedMeals();
   if (!t) return '';
   const label = (x) => (t.several ? `${x.name}: ${mealTitle(x.meal)}` : mealTitle(x.meal));
-  return `<div class="tile tile-2 wide">
+  return `<div class="tile ${hero ? 'tile-hero' : 'tile-2'} wide">
     <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
     <h3>Morgen ${esc(t.names)} · Läden zu</h3>
     <div class="tile-big${t.several ? ' tile-big-list' : ''}">${esc(t.meals.map(label).join(' · '))}</div>
@@ -217,7 +220,8 @@ function todoTile() {
 
 // Abfuhrkalender (js/waste.js): ein Streifen für die nächste Abfuhr – am Vortag und am Tag selbst dunkel
 // hervorgehoben („Morgen: Kehricht rausstellen“) –, die übrigen Arten als kleine Chips darunter.
-function wasteTile() {
+// focused: die nächste Abfuhr steht schon oben unter „Jetzt wichtig“ – hier nur noch die übrigen
+function wasteTile(focused = false) {
   const kinds = wasteKinds();
   if (!kinds.length) return '';
   const today = todayKey();
@@ -237,14 +241,17 @@ function wasteTile() {
   const first = next.filter((k) => k.next === next[0].next);
   const rest = next.filter((k) => !first.includes(k));
   const n = days(first[0].next);
-  const soon = n <= 1;
-  const title = n === 0 ? `Heute: ${names(first)}` : n === 1 ? `Morgen: ${names(first)} rausstellen` : `Nächste Abfuhr: ${names(first)}`;
-  const sub = n === 0 ? `Abfuhr heute · ${fmtShort(first[0].next)}` : n === 1 ? `${fmtShort(first[0].next)} · am besten heute Abend` : `${fmtShort(first[0].next)} · in ${n} Tagen`;
+  // Unter „Jetzt wichtig“ als rausgestellt markiert (settings.wasteOut): nicht mehr hervorheben
+  const out = state.settings.wasteOut === first[0].next;
+  const soon = n <= 1 && !out;
+  const title = out ? `${n === 0 ? 'Heute' : 'Morgen'}: ${names(first)} ist draussen ✓` : n === 0 ? `Heute: ${names(first)}` : n === 1 ? `Morgen: ${names(first)} rausstellen` : `Nächste Abfuhr: ${names(first)}`;
+  const sub = out ? `Abfuhr ${fmtShort(first[0].next)}` : n === 0 ? `Abfuhr heute · ${fmtShort(first[0].next)}` : n === 1 ? `${fmtShort(first[0].next)} · am besten heute Abend` : `${fmtShort(first[0].next)} · in ${n} Tagen`;
   const chip = (k) => {
     const d = days(k.next);
     const when = d === 1 ? 'morgen' : d < 7 ? fmtShort(k.next).split(',')[0] : fmtShort(k.next).split(', ')[1];
     return `<span class="waste-chip">${dot(k, 'is-small')}${esc(k.short)} <b>${esc(when)}</b></span>`;
   };
+  if (focused) return rest.length || note ? `<div class="waste-b">${rest.length ? `<div class="waste-chips" aria-label="Weitere Abfuhren">${rest.map(chip).join('')}</div>` : ''}${note}</div>` : '';
   return `<div class="waste-b">
     <button type="button" class="tile waste-next${soon ? ' is-soon' : ''}" data-action="waste" aria-label="${esc(title)} – Abfuhrkalender öffnen">
       ${dot(first[0])}
@@ -282,6 +289,87 @@ function fridgeTile() {
   </button>`;
 }
 
+// ---------- „Jetzt wichtig“ ----------
+// Zuoberst eine Sache: die erste Regel, die zutrifft.
+//  1. Abfuhr: morgen (am Vorabend ab 18:45) oder heute (bis 9 Uhr) – bis jemand „Ist draussen“ tippt (für alle)
+//  2. Für das Menü von heute fehlen Zutaten (Menü-Kachel mit Knopf)
+//  3. Morgen Sonntag/Feiertag: Läden zu, Zutaten fehlen
+//  4. Reste im Kühlschrank laufen heute ab (oder sind abgelaufen)
+//  5. Überfällige ToDos
+//  6. Sonst das Menü von heute
+const WASTE_EVENING = '18:45';
+const WASTE_MORNING_UNTIL = '09:00';
+
+function wasteFocus() {
+  const now = new Date();
+  const hm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const today = todayKey();
+  const tomorrow = dateKey(addDays(now, 1));
+  const next = nextPickups(today);
+  const day = hm >= WASTE_EVENING && next.some((k) => k.next === tomorrow) ? tomorrow
+    : hm < WASTE_MORNING_UNTIL && next.some((k) => k.next === today) ? today : null;
+  if (!day || state.settings.wasteOut === day) return null;
+  const kinds = next.filter((k) => k.next === day);
+  return { day, kinds, names: kinds.map((k) => k.short).join(' und ') };
+}
+
+const overdueTodos = () => dueTodos().filter(({ t }) => t.due < todayKey());
+const fridgeToday = () => fridgeSorted().filter((f) => daysLeft(f) <= 0);
+
+const focusCard = ({ eyebrow, title, note, buttons }) => `<div class="tile tile-hero wide tile-focus">
+  <h3>${icon('bolt', 'icon-xs')} ${esc(eyebrow)}</h3>
+  <div class="tile-big">${esc(title)}</div>
+  ${note ? `<span class="tile-note">${esc(note)}</span>` : ''}
+  <div class="tile-acts">${buttons.join('')}</div>
+</div>`;
+
+function focus() {
+  const waste = wasteFocus();
+  if (waste) {
+    const tomorrow = waste.day !== todayKey();
+    return { kind: 'waste', html: focusCard({
+      eyebrow: 'Jetzt wichtig',
+      title: `${waste.names} rausstellen`,
+      note: tomorrow ? `Abfuhr morgen früh · ${fmtShort(waste.day)}` : `Abfuhr heute · ${fmtShort(waste.day)}`,
+      buttons: [
+        `<button type="button" class="tile-btn" data-action="wasteOut" data-day="${waste.day}">${icon('check', 'icon-sm')} Ist draussen</button>`,
+        '<button type="button" class="tile-btn tile-btn-soft" data-action="waste">Abfuhrplan</button>',
+      ],
+    }) };
+  }
+  const meal = todaysMeal();
+  if (meal && missingFor(meal.meal).length) return { kind: 'meal', html: mealTile() };
+  if (closedMeals()) return { kind: 'closed', html: closedTile(true) };
+  const fridge = fridgeToday();
+  if (fridge.length) {
+    const f = fridge[0];
+    return { kind: 'fridge', html: focusCard({
+      eyebrow: 'Kühlschrank',
+      title: `${f.name}: ${leftLabel(f)}`,
+      note: fridge.length > 1 ? `Auch: ${fridge.slice(1, 4).map((x) => x.name).join(', ')}${fridge.length > 4 ? ' …' : ''}` : '',
+      buttons: [
+        `<button type="button" class="tile-btn" data-action="fridgeUsed" data-id="${esc(f.id)}">${icon('check', 'icon-sm')} Aufgebraucht</button>`,
+        '<button type="button" class="tile-btn tile-btn-soft" data-action="go" data-hash="#kuehlschrank">Kühlschrank</button>',
+      ],
+    }) };
+  }
+  const overdue = overdueTodos();
+  if (overdue.length) {
+    const { scope, t } = overdue[0];
+    const days = Math.round((new Date(`${todayKey()}T12:00:00`) - new Date(`${t.due}T12:00:00`)) / 86400000);
+    return { kind: 'todo', html: focusCard({
+      eyebrow: overdue.length > 1 ? `Überfällig · ${overdue.length}` : 'Überfällig',
+      title: t.title,
+      note: days === 1 ? 'seit gestern fällig' : `seit ${days} Tagen fällig`,
+      buttons: [
+        `<button type="button" class="tile-btn" data-action="toggleTodo" data-scope="${scope}" data-id="${esc(t.id)}">${icon('check', 'icon-sm')} Erledigt</button>`,
+        `<button type="button" class="tile-btn tile-btn-soft" data-action="go" data-hash="#todo/${scope}/${esc(t.listId)}">Zur Liste</button>`,
+      ],
+    }) };
+  }
+  return { kind: 'meal', html: mealTile() };
+}
+
 export default {
   id: 'heute',
   title: 'Heute',
@@ -289,15 +377,17 @@ export default {
 
   render() {
     const day = new Intl.DateTimeFormat('de-CH', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+    const f = focus();
     return `
       <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
       <div class="bento">
-        ${mealTile()}
-        ${closedTile()}
+        ${f.html}
+        ${f.kind === 'meal' ? '' : mealTile(false)}
+        ${f.kind === 'closed' ? '' : closedTile()}
         ${sportStrip()}
         ${dayTile()}
         ${todoTile()}
-        ${wasteTile()}
+        ${wasteTile(f.kind === 'waste')}
         ${fridgeTile()}
       </div>`;
   },
@@ -305,6 +395,16 @@ export default {
   actions: {
     go(el) { location.hash = el.dataset.hash; },
     waste() { openWaste(); },
+    wasteOut(el) {
+      update((s) => { s.settings.wasteOut = el.dataset.day; });
+      toast('Danke! Für alle als erledigt markiert');
+    },
+    fridgeUsed(el) {
+      const f = state.fridge.find((x) => x.id === el.dataset.id);
+      if (!f) return;
+      removeFridgeItem(f.id);
+      toast(`${f.name} aus dem Kühlschrank entfernt`);
+    },
     sportInfo(el) {
       // Ganzer Titel, Ort und Kalender – in der Leiste wird der Titel abgeschnitten
       const e = upcomingSmall()[Number(el.dataset.i)];

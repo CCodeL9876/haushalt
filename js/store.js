@@ -18,8 +18,9 @@
 //   expenses  [{ id, kind: 'expense' | 'transfer', title, note?, amount (Rappen/Cent), payerId, splitIds, method?, category, date, createdAt? }]
 //             Rechnung (expense): payerId hat bezahlt, splitIds tragen es. Zahlung (transfer): payerId zahlt splitIds[0].
 //             method: Zahlungsart (Twint, Neon …), note: was die Rechnung/Zahlung beinhaltet (js/views/abrechnung.js)
-//   settings  { currency, categories, methods, aisleOrder?, fridgeDays? }   methods: Zahlungsarten in der Abrechnung   aisleOrder: Reihenfolge der Abteilungen im Laden
+//   settings  { currency, categories, methods, aisleOrder?, fridgeDays?, wasteOut? }   methods: Zahlungsarten in der Abrechnung   aisleOrder: Reihenfolge der Abteilungen im Laden
 //             fridgeDays: { 'pesto': 5 } zuletzt gewählte Haltbarkeit im Kühlschrank (js/fridge.js)
+//             wasteOut: 'JJJJ-MM-TT' Abfuhr dieses Tages ist rausgestellt („Jetzt wichtig“ auf der Startseite)
 //   todolists [{ id, name, createdAt }]                 geteilte ToDo-Listen (persönliche: js/personal.js, nie hier)
 //   todos     [{ id, listId, title, note, done, doneAt?, due?, time?, assignee?, addedAt }]   due 'JJJJ-MM-TT', time 'HH:MM', assignee = members.id
 //             doneAt: wann abgehakt (nach 2 Tagen ausgeblendet, nach 30 Tagen gelöscht)
