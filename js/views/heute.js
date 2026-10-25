@@ -1,5 +1,6 @@
 // Startseite „Heute“: alles Wichtige auf einen Blick, als Kacheln (Bento). Antippen führt in den Bereich.
 //  - zuoberst „Jetzt wichtig“ (focus): das Dringendste mit Knopf zum Erledigen, sonst das Menü von heute
+//  - Parmesan-Alarm: gelbe Karte, wenn kein Parmesan auf der Einkaufsliste steht
 //  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten und Link zum Rezept
 //  - vor Sonn- und Feiertagen (Läden zu, js/dates.js shopsClosed): Menüs dieser Tage mit fehlenden Zutaten (oder ohne
 //    Zutatenliste: „an den Einkauf denken“) – also heute einkaufen. Folgen mehrere zu-Tage aufeinander (Ostern,
@@ -10,14 +11,14 @@
 //    für „jetzt“; ganztägige Termine oben. ToDos mit Uhrzeit stehen dann dort statt unter „Heute zu tun“
 //  - Abfuhrkalender (nächste Termine) und Kühlschrank (was bald weg muss)
 
-import { state, termKey, update } from '../store.js';
+import { refresh, state, termKey, update } from '../store.js';
 import { personal } from '../personal.js';
 import { currentMember } from '../login.js';
 import { esc, icon, safeLink, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, holidayName, shopsClosed, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
-import { openOnList, recentlyBought, shopIngredients } from './einkauf.js';
+import { addToShopping, openOnList, recentlyBought, shopIngredients } from './einkauf.js';
 import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
@@ -370,6 +371,43 @@ function focus() {
   return { kind: 'meal', html: mealTile() };
 }
 
+// ---------- Parmesan-Alarm ----------
+// Steht kein Parmesan offen auf der Einkaufsliste und wurde in den letzten 4 Tagen keiner gekauft (abgehakt):
+// gelbe Käse-Karte mit „!“ unter „Jetzt wichtig“. „Später“ blendet sie auf diesem Gerät bis morgen aus.
+const PARMESAN = /parmesan|parmigiano/i;
+const PARMESAN_DAYS = 4;
+const PARMESAN_LATER = 'haushalt.parmesanLater';
+let wobbled = false; // das „!“ wackelt nur beim ersten Anzeigen, nicht bei jedem Neuzeichnen
+
+function parmesanAlarm() {
+  const items = state.shopping.filter((i) => PARMESAN.test(i.name));
+  if (items.some((i) => !i.done)) return null;
+  const last = Math.max(0, ...items.map((i) => i.doneAt || 0));
+  if (last > Date.now() - PARMESAN_DAYS * 86400000) return null;
+  try { if (localStorage.getItem(PARMESAN_LATER) === todayKey()) return null; } catch { /* ohne Speicher: immer zeigen */ }
+  const days = last ? Math.round((new Date(`${todayKey()}T12:00:00`) - new Date(`${dateKey(new Date(last))}T12:00:00`)) / 86400000) : null;
+  return { days };
+}
+
+function parmesanTile() {
+  const alarm = parmesanAlarm();
+  if (!alarm) return '';
+  const shake = !wobbled;
+  wobbled = true;
+  return `<section class="tile wide tile-cheese" aria-label="Parmesan-Alarm">
+    <span class="cheese-holes" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <div class="cheese-head">
+      <span class="cheese-bang${shake ? ' is-shaking' : ''}" aria-hidden="true">!</span>
+      <div><h3>Parmesan-Alarm</h3><span class="tile-big">Kein Parmesan auf der Liste!</span></div>
+    </div>
+    ${alarm.days ? `<span class="tile-note">Zuletzt gekauft vor ${alarm.days} Tagen</span>` : ''}
+    <div class="tile-acts">
+      <button type="button" class="tile-btn cheese-btn" data-action="parmesanAdd">${icon('plus', 'icon-sm')} Auf die Einkaufsliste</button>
+      <button type="button" class="tile-btn cheese-btn-soft" data-action="parmesanLater">Später</button>
+    </div>
+  </section>`;
+}
+
 export default {
   id: 'heute',
   title: 'Heute',
@@ -382,6 +420,7 @@ export default {
       <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
       <div class="bento">
         ${f.html}
+        ${parmesanTile()}
         ${f.kind === 'meal' ? '' : mealTile(false)}
         ${f.kind === 'closed' ? '' : closedTile()}
         ${sportStrip()}
@@ -395,6 +434,14 @@ export default {
   actions: {
     go(el) { location.hash = el.dataset.hash; },
     waste() { openWaste(); },
+    parmesanAdd() {
+      addToShopping(['Parmesan']);
+      toast('Parmesan steht auf der Einkaufsliste');
+    },
+    parmesanLater() {
+      try { localStorage.setItem(PARMESAN_LATER, todayKey()); } catch { /* privates Fenster */ }
+      refresh();
+    },
     wasteOut(el) {
       update((s) => { s.settings.wasteOut = el.dataset.day; });
       toast('Danke! Für alle als erledigt markiert');

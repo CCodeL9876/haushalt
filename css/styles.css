@@ -764,6 +764,27 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .tile-acts .tile-btn { margin-top: 0; }
 .tile-btn-soft { background: color-mix(in srgb, var(--on-hero) 14%, transparent); color: var(--on-hero); }
 .tile-meal-plain .tile-recipe { background: color-mix(in srgb, var(--tile-text) 12%, transparent); color: var(--tile-text); }
+/* Parmesan-Alarm: Käse-Gelb mit Rinde und Löchern, in allen Farbdesigns gleich */
+.tile-cheese { background: #F6D365; color: #2A2005; border-bottom: 8px solid #B9802A; }
+.cheese-holes i { position: absolute; border-radius: 50%; background: rgba(224, 168, 46, 0.55); pointer-events: none; }
+.cheese-holes i:nth-child(1) { width: 34px; height: 34px; right: 22px; top: 14px; }
+.cheese-holes i:nth-child(2) { width: 16px; height: 16px; right: 70px; top: 48px; }
+.cheese-holes i:nth-child(3) { width: 22px; height: 22px; right: 34px; bottom: 18px; }
+.cheese-holes i:nth-child(4) { width: 10px; height: 10px; right: 104px; top: 18px; }
+.cheese-head { position: relative; display: flex; align-items: center; gap: 12px; }
+.cheese-head .tile-big { display: block; margin-bottom: 0; }
+.tile-cheese .tile-note, .tile-cheese .tile-acts { position: relative; }
+.tile-cheese .tile-note { margin-top: 6px; }
+.tile-cheese .tile-acts { margin-top: 10px; }
+.cheese-bang {
+  display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%;
+  background: #E5484D; color: #FFFFFF; font-size: 26px; font-weight: 900; line-height: 1;
+}
+@keyframes cheese-wobble { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-14deg); } 40% { transform: rotate(12deg); } 60% { transform: rotate(-8deg); } 80% { transform: rotate(4deg); } }
+.cheese-bang.is-shaking { animation: cheese-wobble 0.9s ease-in-out 0.3s 2; }
+@media (prefers-reduced-motion: reduce) { .cheese-bang.is-shaking { animation: none; } }
+.cheese-btn { background: #2A2005; color: #F6D365; }
+.cheese-btn-soft { background: rgba(42, 32, 5, 0.12); color: #2A2005; }
 .tile-todos { list-style: none; margin: 4px 0 0; padding: 0; }
 .tile-todos li { display: flex; align-items: center; gap: 10px; min-height: 42px; }
 .tile-todo { flex: 1; min-width: 0; padding: 6px 0; border: 0; background: none; text-align: left; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
