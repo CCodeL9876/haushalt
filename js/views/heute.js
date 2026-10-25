@@ -52,28 +52,31 @@ function missingFor(meal) {
   });
 }
 
+// Kompakt in einer Zeile: links „Heute Abend“ und das Menü, rechts Rezept-Link und Knopf für fehlende Zutaten.
 // hero: zuoberst als dunkle Kachel; sonst (wenn „Jetzt wichtig“ etwas anderes zeigt) hell darunter
 function mealTile(hero = true) {
   const t = todaysMeal();
   const cls = hero ? 'tile-hero' : 'tile-1 tile-meal-plain';
   if (!t) {
-    return `<button type="button" class="tile ${cls} wide" data-action="go" data-hash="#woche">
-      <h3>Heute</h3><div class="tile-big">Noch kein Menü geplant</div>
-      <span class="tile-btn">${icon('calendar', 'icon-sm')} Wochenplan öffnen</span></button>`;
+    return `<button type="button" class="tile ${cls} wide tile-meal" data-action="go" data-hash="#woche">
+      <span class="tile-meal-text"><h3>Heute</h3><strong>Noch kein Menü geplant</strong></span>
+      <span class="tile-btn tile-meal-btn">${icon('calendar', 'icon-sm')} Planen</span></button>`;
   }
   const missing = missingFor(t.meal);
+  const known = state.ideas.some((i) => i.id === t.meal.ideaId);
   // Rezept-Link der Idee (falls hinterlegt): direkt aus der Kachel öffnen, ohne die Idee zu suchen
   const url = safeLink(state.ideas.find((i) => i.id === t.meal.ideaId)?.url);
-  return `<div class="tile ${cls} wide">
+  return `<div class="tile ${cls} wide tile-meal">
     <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
-    <h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3>
-    <div class="tile-meal">
-      <div class="tile-big">${esc(mealTitle(t.meal))}</div>
-      ${url ? `<a class="tile-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
-    </div>
+    <span class="tile-meal-text">
+      <h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3>
+      <strong>${esc(mealTitle(t.meal))}</strong>
+      ${!missing.length && known ? '<small>Alle Zutaten da ✓</small>' : ''}
+    </span>
+    ${url ? `<a class="tile-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
     ${missing.length
-      ? `<button type="button" class="tile-btn" data-action="shopMeal">${icon('cart', 'icon-sm')} ${missing.length} ${missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'}</button>`
-      : `<span class="tile-note">${state.ideas.some((i) => i.id === t.meal.ideaId) ? 'Alle Zutaten da oder auf der Liste ✓' : ''}</span>`}
+      ? `<button type="button" class="tile-btn tile-meal-btn" data-action="shopMeal" aria-label="${missing.length} ${missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'} – auf die Einkaufsliste">${icon('cart', 'icon-sm')} ${missing.length} fehl${missing.length === 1 ? 't' : 'en'}</button>`
+      : ''}
   </div>`;
 }
 
