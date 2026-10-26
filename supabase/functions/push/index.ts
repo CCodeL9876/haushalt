@@ -7,14 +7,11 @@
 //    · Vortag: ab 18 Uhr an alle Geräte des Haushalts, wenn ein geteiltes ToDo mit „am Vortag erinnern“ (remind)
 //      morgen fällig ist – z. B. Altpapier oder Grüngut aus dem Abfuhrplan.
 //    · Erinnerung vor einem ToDo (Datum, Uhrzeit, „Erinnern“): kurz vor dem gewählten Zeitpunkt (Tabelle push_alarms).
-//    · Tagesübersicht am Morgen: pro Gerät zur gewählten Uhrzeit und an den gewählten Wochentagen, was heute wichtig ist
-//      – Menü, fällige geteilte ToDos (für alle oder dieser Person zugewiesen), Abfuhr heute/morgen, Kühlschrank.
-//      Persönliche ToDos, private Kalender und die Planung liegen nur auf dem Gerät und kommen darum nicht vor.
 //    · Abfuhrkalender: ab 18 Uhr an alle Geräte des Haushalts, wenn morgen eine Abfuhr mit Glocke ansteht
 //      (Haushalt → Abfuhrkalender, gespeichert in settings.waste).
 //    Jede Erinnerung nur einmal (Tabelle push_sent). Ohne Fälliges passiert nichts – darum ohne Anmeldung.
 //  - POST { test: true, endpoint, kind? } – von der App (mit Haushalt-Schlüssel und Zugangscode): Probe an dieses
-//    Gerät; kind 'todo' schickt die Morgen-Erinnerung so, wie sie jetzt aussähe, kind 'brief' die Tagesübersicht.
+//    Gerät; kind 'todo' schickt die Morgen-Erinnerung so, wie sie jetzt aussähe.
 //  - POST { assigned: todoId, by: memberId } – von der App, nachdem jemand ein ToDo einer Person zugewiesen hat:
 //    Mitteilung an die Geräte dieser Person. Titel, Liste und Person liest die Funktion selbst aus der Datenbank.
 //
@@ -278,87 +275,6 @@ async function todoReminders() {
   return { sent };
 }
 
-// ---------- Tagesübersicht am Morgen (js/brief.js) ----------
-
-// Haushaltsdaten für heute, einmal pro Haushalt gelesen
-async function briefData(household, cache) {
-  if (!cache.has(household)) {
-    const hh = encodeURIComponent(household);
-    const now = local();
-    const [plan, todos, settings, fridge, members] = await Promise.all([
-      db(`items?household_key=eq.${hh}&collection=eq.plan&id=eq.${now.day}&select=data`),
-      db(`items?household_key=eq.${hh}&collection=eq.todos&select=data`),
-      db(`items?household_key=eq.${hh}&collection=eq.settings&id=eq.main&select=data`),
-      db(`items?household_key=eq.${hh}&collection=eq.fridge&select=data`),
-      db(`items?household_key=eq.${hh}&collection=eq.members&select=data`),
-    ]);
-    cache.set(household, {
-      meals: plan?.[0]?.data || {},
-      todos: (todos || []).map((t) => t.data).filter(Boolean),
-      waste: settings?.[0]?.data?.waste?.kinds || [],
-      fridge: (fridge || []).map((f) => f.data).filter(Boolean),
-      members: (members || []).map((m) => m.data).filter(Boolean),
-    });
-  }
-  return cache.get(household);
-}
-
-// Inhalt der Tagesübersicht für ein Gerät (member: wem das Gerät gehört)
-function briefPayload(data, member, today) {
-  const tomorrow = nextDay(today);
-  const lines = [];
-  // Menü: Mittag und Abend (Platzhalter wie „Auswärts essen“ so, wie sie heissen)
-  const meals = [['mittag', 'Mittag'], ['abend', 'Abend']].map(([k, label]) => data.meals?.[k] && clip(data.meals[k].title, 50) && `${label}: ${clip(data.meals[k].title, 50)}`).filter(Boolean);
-  if (meals.length) lines.push(`🍽️ ${meals.join(' · ')}`);
-  // Geteilte ToDos, die heute dran sind: für alle oder diesem Gerät zugewiesen (wie auf der Startseite)
-  const known = new Set(data.members.map((m) => m.id));
-  const mine = (t) => !t.assignee || !known.has(t.assignee) || (member && t.assignee === member);
-  const todos = dueToday(data.todos.filter((t) => t.due && mine(t)), today);
-  if (todos.length) {
-    const overdue = todos.filter((t) => t.due < today).length;
-    const names = todos.slice(0, 3).map((t) => `${clip(t.title, 40)}${t.due === today && t.time ? ` (${t.time})` : ''}`);
-    lines.push(`✅ ${todos.length} ToDo${todos.length === 1 ? '' : 's'}${overdue ? `, ${overdue} überfällig` : ''}: ${names.join(', ')}${todos.length > 3 ? ' …' : ''}`);
-  }
-  // Abfuhr heute (früh) oder morgen
-  const waste = (when) => data.waste.filter((k) => Array.isArray(k?.dates) && k.dates.includes(when)).map((k) => clip(k.short || k.name, 30));
-  const wasteToday = waste(today);
-  const wasteTomorrow = waste(tomorrow);
-  if (wasteToday.length) lines.push(`🗑️ Heute Abfuhr: ${list(wasteToday)}`);
-  if (wasteTomorrow.length) lines.push(`🗑️ Morgen Abfuhr: ${list(wasteTomorrow)} – heute Abend rausstellen`);
-  // Kühlschrank: heute aufbrauchen (oder schon drüber)
-  const fridge = data.fridge.filter((f) => f.useBy && f.useBy <= today && clip(f.name, 40)).map((f) => clip(f.name, 40));
-  if (fridge.length) lines.push(`🧊 Aufbrauchen: ${list(fridge.slice(0, 4))}${fridge.length > 4 ? ' …' : ''}`);
-  const name = clip(data.members.find((m) => m.id === member)?.name, 30);
-  return {
-    title: `Guten Morgen${name ? `, ${name}` : ''} · ${fmtDay(today)}`,
-    body: lines.length ? lines.join('\n') : 'Heute steht nichts Besonderes an – schönen Tag! ☀️',
-    url: '#heute',
-    tag: `brief-${today}`,
-  };
-}
-
-async function briefReminders() {
-  const now = local();
-  const subs = await db('push_subscriptions?brief_time=not.is.null&select=endpoint,p256dh,auth,household_key,member_id,brief_time,brief_days');
-  const cache = new Map();
-  let sent = 0;
-  for (const sub of subs || []) {
-    const days = String(sub.brief_days || '').split(',').map(Number);
-    const [h, m] = String(sub.brief_time || '').split(':').map(Number);
-    const at = h * 60 + m;
-    // Zur gewählten Zeit (der Zeitplan läuft alle 5 Minuten; eine Stunde Spielraum, falls ein Lauf ausfällt)
-    if (!days.includes(now.weekday) || !(now.minutes >= at && now.minutes < at + 60)) continue;
-    const ref = `brief:${await sha(sub.endpoint)}:${now.day}`;
-    const done = await db(`push_sent?household_key=eq.${encodeURIComponent(sub.household_key)}&ref=eq.${encodeURIComponent(ref)}&select=ref`);
-    if (done?.length) continue;
-    const payload = briefPayload(await briefData(sub.household_key, cache), sub.member_id, now.day);
-    if (!(await send(sub, payload))) continue; // nicht angenommen: beim nächsten Lauf nochmals
-    sent += 1;
-    await db('push_sent', { method: 'POST', body: [{ household_key: sub.household_key, ref }], prefer: 'resolution=ignore-duplicates,return=minimal' });
-  }
-  return { sent };
-}
-
 // ---------- Vortag: geteilte ToDos mit remind, die morgen fällig sind ----------
 
 async function eveReminders() {
@@ -454,18 +370,13 @@ async function alarmReminders() {
 }
 
 async function reminders() {
-  return { alarm: await alarmReminders(), brief: await briefReminders(), todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), fridge: await fridgeReminders() };
+  return { alarm: await alarmReminders(), todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), fridge: await fridgeReminders() };
 }
 
 async function test(household, body) {
   const endpoint = String(body?.endpoint || '');
-  const subs = await db(`push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}&household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth,household_key,member_id,todo_scope,todo_list,todo_name,todo_items`);
+  const subs = await db(`push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}&household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth,household_key,todo_scope,todo_list,todo_name,todo_items`);
   if (!subs?.length) return json({ error: 'Dieses Gerät ist für Mitteilungen nicht angemeldet.' }, 404);
-  if (body?.kind === 'brief') {
-    // Tagesübersicht jetzt, so wie sie heute aussähe
-    const payload = briefPayload(await briefData(household, new Map()), subs[0].member_id, local().day);
-    return (await send(subs[0], payload)) ? json({ ok: true }) : json({ error: 'Der Push-Dienst hat die Mitteilung nicht angenommen.' }, 502);
-  }
   if (body?.kind === 'todo') {
     // Morgen-Erinnerung jetzt, so wie sie heute aussähe
     const sub = subs[0];

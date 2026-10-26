@@ -163,38 +163,3 @@ export async function testTodoReminder() {
 // at: Zeitpunkt der Mitteilung (Date), member: wer sie bekommt ('' = alle im Haushalt)
 export const setAlarm = (a) => rpc('push_alarm_set', { p_id: a.id, p_member: a.member || '', p_at: a.at, p_title: a.title, p_body: a.body, p_url: a.url });
 export const clearAlarm = (id) => rpc('push_alarm_clear', { p_id: id });
-
-// ---------- Tagesübersicht am Morgen (js/brief.js) ----------
-// Pro Gerät: { time: 'HH:MM', days: [1…7] }. In Supabase (push_brief, schema.sql) und als Kopie auf dem Gerät.
-
-const briefKey = () => `haushalt.brief.${session.key}`;
-export function briefSetting() {
-  try {
-    const b = JSON.parse(localStorage.getItem(briefKey()) || 'null');
-    return b && b.time ? b : null;
-  } catch {
-    return null;
-  }
-}
-
-// brief = null schaltet aus
-export async function saveBrief(brief) {
-  const sub = await currentSubscription();
-  if (!sub) throw new Error('Zuerst Mitteilungen auf diesem Gerät einschalten.');
-  await rpc('push_brief', { p_endpoint: sub.endpoint, p_time: brief?.time || '', p_days: brief ? brief.days.join(',') : '' });
-  try {
-    if (brief) localStorage.setItem(briefKey(), JSON.stringify(brief));
-    else localStorage.removeItem(briefKey());
-  } catch { /* privates Fenster */ }
-}
-
-// Probe: die Tagesübersicht jetzt, so wie sie heute aussähe
-export async function testBrief() {
-  const sub = await currentSubscription();
-  if (!sub) throw new Error('Mitteilungen sind auf diesem Gerät nicht eingeschaltet.');
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/push`, { method: 'POST', headers: headers(), body: JSON.stringify({ test: true, kind: 'brief', endpoint: sub.endpoint }), signal: AbortSignal.timeout(20000) })
-    .catch(() => { throw new Error('Keine Verbindung – später nochmals versuchen.'); });
-  const data = await res.json().catch(() => null);
-  if (res.status === 404 && !data?.error) throw new Error('Die Funktion „push“ ist in Supabase noch nicht eingerichtet (ANLEITUNG.md).');
-  if (!res.ok) throw new Error(data?.error || `Fehler ${res.status}`);
-}

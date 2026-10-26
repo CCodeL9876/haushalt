@@ -140,17 +140,12 @@ einfügen → **Run**. Das ist gefahrlos: Bestehende Daten bleiben. Bis dahin me
 
 ## 10. Push-Mitteilungen (einmalig einrichten)
 
-Die App verschickt diese Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten
+Die App verschickt fünf Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten
 aufruft:
 
 - **Morgen-Erinnerung (ToDo):** pro Gerät einstellbar unter **ToDo → Morgen-Erinnerung** – eine Liste, Uhrzeit
   (Standard 7:45) und Wochentage. Die Mitteilung nennt die ToDos, die heute dran sind (fällig bis heute oder ohne
   Datum, Überfälliges zuerst). Ist nichts offen, kommt keine. Antippen öffnet direkt die Liste.
-- **Tagesübersicht am Morgen:** pro Gerät einstellbar unter **App-Einstellungen → Heute → Tagesübersicht am
-  Morgen** – Uhrzeit (Standard 7:00) und Wochentage. Nennt, was heute wichtig ist: Menü, geteilte ToDos, die heute
-  dran sind (für alle oder dir zugewiesen), Abfuhr heute oder morgen und was im Kühlschrank weg muss. Persönliche
-  ToDos, private Kalender und die Planung liegen nur auf dem Gerät und kommen darum nicht vor. Antippen öffnet die
-  Startseite.
 - **Kühlschrank:** Reste **am Vortag** („bis morgen aufbrauchen“) und **am letzten Tag** („heute aufbrauchen“),
   jeweils ab 17 Uhr, an alle Geräte im Haushalt, die Mitteilungen eingeschaltet haben.
 - **Vortag (ToDo):** ab 18 Uhr für ToDos in geteilten Listen mit „Am Vortag erinnern“, die morgen fällig sind –
@@ -182,8 +177,7 @@ aufruft:
    iOS 16.4) → oben rechts **App-Einstellungen** → **Mitteilungen einschalten** → erlauben → **Probe senden**.
 
 **Datenschutz:** In Supabase liegt pro Gerät die Adresse beim Push-Dienst (Apple, Google oder Mozilla) mit
-Schlüssel, dazu die Einstellungen der Morgen-Erinnerung (Liste, Uhrzeit, Tage) und der Tagesübersicht (Uhrzeit,
-Tage). Der Inhalt jeder Mitteilung wird für
+Schlüssel, dazu die Einstellung der Morgen-Erinnerung (Liste, Uhrzeit, Tage). Der Inhalt jeder Mitteilung wird für
 das Gerät verschlüsselt; der Push-Dienst kann ihn nicht lesen. **Ausnahme persönliche Listen:** Wählt man für die
 Morgen-Erinnerung eine persönliche Liste, hinterlegt die App deren offene ToDos (Titel, Datum, Zeit) lesbar in
 Supabase – sonst könnte die Funktion sie nicht nennen. Das gilt nur für diese eine Liste und endet mit
