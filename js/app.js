@@ -17,6 +17,7 @@ import { boot, currentMember, ensureMe } from './login.js';
 import { refreshPush } from './push.js';
 import { refreshCalendars } from './calendars.js';
 import { refreshReminder } from './reminder.js';
+import { refreshBrief } from './brief.js';
 import { cleanup } from './cleanup.js';
 import { setupSwipe } from './swipe.js';
 import { quickAdd } from './quickadd.js';
@@ -147,7 +148,7 @@ boot(() => {
   if (session.mode !== 'shared') return;
   // Push-Abo dieses Geräts in Supabase auffrischen (js/push.js), danach die Morgen-Erinnerung (js/reminder.js) –
   // nach einem neuen Zugangscode sind beide in Supabase gelöscht und werden so wieder hinterlegt
-  refreshPush(currentMember()?.id).then(refreshReminder);
+  refreshPush(currentMember()?.id).then(() => { refreshReminder(); refreshBrief(); });
   scheduleAlarmSync(); // Erinnerungen vor ToDos in Supabase nachführen (js/alarms.js)
   // Änderungen der anderen holen: regelmässig und sobald die App wieder in den Vordergrund kommt. Kalender
   // (js/calendars.js) dabei auch – sie laden selbst nur, wenn ihr Stand älter als 15 Minuten ist

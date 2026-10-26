@@ -304,14 +304,14 @@ function fridgeTile() {
 
 // ---------- „Jetzt wichtig“ ----------
 // Zuoberst eine Sache: die erste Regel, die zutrifft.
-//  1. Abfuhr: morgen (am Vorabend ab 18:45) oder heute (bis 9 Uhr) – bis jemand „Ist draussen“ tippt (für alle)
+//  1. Abfuhr: morgen (am Vorabend ab 17 Uhr) oder heute (bis 7:30) – bis jemand „Ist draussen“ tippt (für alle)
 //  2. Für das Menü von heute fehlen Zutaten (Menü-Kachel mit Knopf)
 //  3. Morgen Sonntag/Feiertag: Läden zu, Zutaten fehlen
 //  4. Reste im Kühlschrank laufen heute ab (oder sind abgelaufen)
 //  5. Überfällige ToDos
 //  6. Sonst das Menü von heute
-const WASTE_EVENING = '18:45';
-const WASTE_MORNING_UNTIL = '09:00';
+const WASTE_EVENING = '17:00';
+const WASTE_MORNING_UNTIL = '07:30';
 
 function wasteFocus() {
   const now = new Date();

@@ -19,6 +19,7 @@ import { saveSession, shareLink } from '../session.js';
 import { validCodeChars } from '../remote.js';
 import { aisleLabel, aisleOrder } from '../aisles.js';
 import { PALETTES } from '../palettes.js';
+import { briefSummary, openBrief } from '../brief.js';
 import {
   CELEBRATE_CHOICES, SOUNDS, STYLES, celebrate, celebrateMode, celebrateSound, celebrateStyle, playSound, setCelebrateMode, setCelebrateSound,
   setCelebrateStyle,
@@ -125,6 +126,7 @@ export function openSettings() {
         <p class="settings-sub">Startseite <small class="muted">· nur auf diesem Gerät</small></p>
       <label class="check-field"><input type="checkbox" data-home="day" ${homeHidden('day') ? '' : 'checked'}> <span>„Dein Tag“ zeigen<small class="muted" style="display:block;font-weight:500">Kalendertermine und ToDos mit Uhrzeit (sonst unter „Heute zu tun“)</small></span></label>
       ${allCalendars().some((c) => c.small) || homeHidden('sport') ? `<label class="check-field"><input type="checkbox" data-home="sport" ${homeHidden('sport') ? '' : 'checked'}> <span>„Sport diese Woche“ zeigen</span></label>` : ''}
+      ${pushConfigured() ? `<button type="button" class="btn btn-block" data-sheet-action="brief" style="margin-bottom:10px">☀️ Tagesübersicht am Morgen${briefSummary() ? ` (${esc(briefSummary())})` : ''}</button>` : ''}
       ${calendarsAvailable() ? `<button type="button" class="btn btn-block" data-sheet-action="calendars" style="margin-bottom:10px">${icon('calendar', 'icon-sm')} Kalender auf der Startseite${allCalendars().length ? ` (${allCalendars().length})` : ''}</button>` : ''}
       `),
       box('Entsorgung', `
@@ -250,6 +252,7 @@ export function openSettings() {
         document.querySelector('#sheet .sound-pick').hidden = btn.dataset.id !== 'all';
         celebrate(btn); // gleich vorführen (bei „Aus“ passiert nichts)
       },
+      brief() { openBrief(); },
       // Ton wählen und gleich vorspielen
       celebrateSound(btn) {
         setCelebrateSound(btn.dataset.id);
