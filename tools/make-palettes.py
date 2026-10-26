@@ -4,7 +4,7 @@ hellen und den dunklen Modus berechnen – mit Kontrastprüfung, damit Schrift �
 
 Aufruf (im Ordner haushalt):   python3 tools/make-palettes.py
 Schreibt:  css/palettes.css  (Farbwerte je Design, aktiv über <html data-palette="…">)
-           js/palettes.js    (Namen und Farbtupfer für die Auswahl unter Haushalt → Farbdesign)
+           js/palettes.js    (Namen und Farbtupfer für die Auswahl unter App-Einstellungen → Farbdesign)
 
 Neues Design: unten in PALETTES eintragen und das Skript ausführen.
   dark_tiles  (freiwillig) Kachelflächen für den dunklen Modus von Hand, z. B. {'tile-1-bg': '#5F2039'}
@@ -332,7 +332,7 @@ def main():
     (root / 'css/palettes.css').write_text(''.join(css), encoding='utf-8')
 
     entries = [STANDARD] + [{'id': p['id'], 'name': p['name'], 'swatches': p['show']} for p in PALETTES]
-    js = ('// Farbdesigns für die Auswahl unter Haushalt → Farbdesign – erzeugt von tools/make-palettes.py.\n'
+    js = ('// Farbdesigns für die Auswahl unter App-Einstellungen → Farbdesign – erzeugt von tools/make-palettes.py.\n'
           'export const PALETTES = [\n'
           + ''.join(f"  {{ id: '{e['id']}', name: '{e['name']}', swatches: [{', '.join(repr(s) for s in e['swatches'])}] }},\n" for e in entries)
           + '];\n')

@@ -1,5 +1,5 @@
 // Was dieses Gerät sich merkt: welcher Haushalt (Schlüssel + Zugangscode) und wer das Gerät benutzt.
-// Liegt im localStorage, bis man sich unter „Haushalt → Abmelden“ abmeldet.
+// Liegt im localStorage, bis man sich unter „App-Einstellungen → Abmelden“ abmeldet.
 
 const SESSION_KEY = 'haushalt.session';
 const ME_PREFIX = 'haushalt.me.';

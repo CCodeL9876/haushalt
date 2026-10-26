@@ -11,7 +11,8 @@
 //
 //   costs    [{ id, name, amount, kind: 'fix' | 'repeat', rhythm?: 'q' | 'h' | 'y' }]   Beträge in Rappen
 //   abos     [{ id, name, amount, rhythm: 'm' | 'y' }]
-//   bills    [{ id, name, amount, rate?, payments: [{ id, date, amount }], doneAt?, addedAt }]
+//   bills    [{ id, name, amount, rate?, months?, payments: [{ id, date, amount }], doneAt?, addedAt }]
+//            months { 'JJJJ-MM': Rappen }: Rechnung (oder Teile davon) bestimmten Monaten zugewiesen – statt Ratenplan
 //   incomes  [{ id, name, amount, kind: 'm' | 'once', month? ('JJJJ-MM', bei einmaligen) }]
 //   active   { 'JJJJ-MM': [ids] }   nicht monatliche Kosten/Abos, die in diesem Monat ganz zählen
 //   parts    { 'JJJJ-MM': { id: Rappen } }   … oder nur mit einem Teilbetrag (z. B. Jahreskosten auf Monate verteilt)
@@ -127,7 +128,7 @@ export function updatePlan(fn) {
   refresh();
 }
 
-// Alles weg (Haushalt → „Alles zurücksetzen“)
+// Alles weg (App-Einstellungen → „Alles zurücksetzen“)
 export function wipePlan() {
   load();
   data = empty();
@@ -220,15 +221,44 @@ export function monthSums(month) {
   };
 }
 
+const paidInMonth = (b, month) => arr(b.payments).filter((p) => p.date.startsWith(month)).reduce((s, p) => s + p.amount, 0);
+export const hasMonths = (b) => Boolean(b.months && Object.keys(b.months).length);
+
+// Monate zugewiesen (b.months): wie sich der offene Betrag ab jetzt auf die Monate verteilt → { 'JJJJ-MM': Rappen }.
+// Der offene Betrag wird den Monaten der Reihe nach zugeteilt (früh Bezahltes kürzt also die späteren Monate);
+// im laufenden Monat zählt, was ihm zugewiesen ist, abzüglich des schon diesen Monat Bezahlten. Was keinem Monat ab
+// jetzt zugewiesen ist – nie zugewiesen oder in einem vergangenen Monat nicht bezahlt – zählt im laufenden Monat.
+export function billSchedule(b) {
+  const now = curMonth();
+  let left = openOf(b);
+  const nowPart = Math.min(left, Math.max(0, (b.months?.[now] || 0) - paidInMonth(b, now)));
+  left -= nowPart;
+  const out = {};
+  for (const month of Object.keys(b.months || {}).filter((k) => k > now).sort()) {
+    const x = Math.min(left, b.months[month]);
+    if (x > 0) out[month] = x;
+    left -= x;
+  }
+  out[now] = nowPart + left;
+  return out;
+}
+// Davon nicht zugewiesen (zählt im laufenden Monat)
+export function unassignedOf(b) {
+  const now = curMonth();
+  return billSchedule(b)[now] - Math.min(openOf(b), Math.max(0, (b.months?.[now] || 0) - paidInMonth(b, now)));
+}
+
 // Was von einer Rechnung im Monat anfällt:
 //  - vergangene Monate: was tatsächlich bezahlt wurde
+//  - Monate zugewiesen: dieser Monat das schon Bezahlte plus der Anteil aus billSchedule, spätere Monate ihr Anteil
 //  - dieser Monat: schon Bezahltes plus was noch ansteht (mit Ratenplan bis zur Rate, sonst der ganze offene Betrag)
 //  - spätere Monate: mit Ratenplan die Rate, solange noch etwas offen ist (angenommen, die Raten davor sind bezahlt);
 //    ohne Plan nichts mehr (der offene Betrag zählt im laufenden Monat)
 export function billInMonth(b, month) {
   const now = curMonth();
-  const paidIn = arr(b.payments).filter((p) => p.date.startsWith(month)).reduce((s, p) => s + p.amount, 0);
+  const paidIn = paidInMonth(b, month);
   if (month < now) return paidIn;
+  if (hasMonths(b)) return (month === now ? paidIn : 0) + (billSchedule(b)[month] || 0);
   const open = openOf(b);
   if (month === now) return paidIn + (b.rate ? Math.min(open, Math.max(0, b.rate - paidIn)) : open);
   if (!b.rate || !open) return 0;
@@ -237,7 +267,7 @@ export function billInMonth(b, month) {
 }
 
 // Zusatz „Bis …“: vom laufenden Monat bis und mit `end` – Monatliches × Monate, Aktiviertes in diesen Monaten,
-// Rechnungen: ganzer offener Betrag, mit Ratenplan höchstens die Raten bis dahin
+// Rechnungen: ganzer offener Betrag, mit Ratenplan höchstens die Raten bis dahin, mit Monaten was bis dahin zugewiesen ist
 export function untilSums(end) {
   const d = plan();
   const start = curMonth();
@@ -246,6 +276,7 @@ export function untilSums(end) {
   const sum = (list) => list.reduce((s, x) => s + x.amount, 0);
   const monthly = (list) => sum(list) * n;
   const bills = d.bills.filter((b) => openOf(b) > 0).reduce((s, b) => {
+    if (hasMonths(b)) return s + Object.entries(billSchedule(b)).filter(([k]) => k <= end).reduce((t, [, v]) => t + v, 0);
     if (!b.rate) return s + openOf(b);
     const rates = Math.max(0, monthsBetween(rateStart(b), end) + 1);
     return s + Math.min(openOf(b), rates * b.rate);

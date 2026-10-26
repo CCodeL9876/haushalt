@@ -7,7 +7,7 @@
 //   Vorlagen: mitgelieferte (unten) und eigene in state.settings.packTemplates [{ id, name, days, items }]
 //   Zusatz-Pakete (ADDONS): kleine Ergänzungen zur Vorlage (Baby, Hund, Velo …), beim Anlegen frei kombinierbar,
 //             eigene und angepasste in state.settings.packAddons
-//   Verwalten (Haushalt → Packlisten-Vorlagen): Inhalte entfernen/ergänzen, Name, Symbol, Tage. Mitgelieferte werden
+//   Verwalten (App-Einstellungen → Packlisten-Vorlagen): Inhalte entfernen/ergänzen, Name, Symbol, Tage. Mitgelieferte werden
 //             beim ersten Ändern als eigene Kopie mit gleicher id gespeichert (ersetzt die mitgelieferte, „Auf Original
 //             zurücksetzen“ löscht die Kopie); ausblenden über state.settings.packHidden [ids].
 

@@ -5,7 +5,7 @@
 //   persönliche:         nur auf diesem Gerät (localStorage, pro Haushalt) – z. B. „Arbeit“
 // „Klein“ (small, z. B. abonnierte Sportkalender) erscheint nicht in „Dein Tag“, sondern als schmale Leiste
 // „Sport diese Woche“ mit Symbol (symbol: Name aus SYMBOLS). Spiele der Lieblingsmannschaften (nur auf diesem Gerät,
-// Haushalt → Kalender → Mannschaften hervorheben) erscheinen dort in der Akzentfarbe des Designs.
+// App-Einstellungen → Kalender → Mannschaften hervorheben) erscheinen dort in der Akzentfarbe des Designs.
 // Die Termine holt die Supabase-Funktion „calendar-feed“ (der Browser darf fremde Seiten nicht abrufen) für heute
 // und die nächsten Tage. Sie liegen auf dem Gerät zwischengespeichert und werden alle 15 Minuten erneuert.
 
@@ -21,6 +21,22 @@ export const CAL_COLORS = ['#3B82F6', '#22A06B', '#F59E0B', '#E5484D', '#8E4EC6'
 export const SYMBOLS = [['football', 'Fussball'], ['hockey', 'Eishockey'], ['flag', 'Motorsport'], ['tennis', 'Tennis'], ['mountain', 'Wintersport'], ['trophy', 'Anderes']];
 const DAYS_AHEAD = 7;
 const FRESH_MS = 15 * 60 * 1000;
+
+// Startseite: „Dein Tag“ und „Sport diese Woche“ lassen sich ausblenden (App-Einstellungen → Startseite) – nur auf
+// diesem Gerät. Gespeichert: Liste der ausgeblendeten Teile ('day', 'sport').
+const HOME_KEY = 'haushalt.home.hidden';
+export function homeHidden(part) {
+  try { return (JSON.parse(localStorage.getItem(HOME_KEY)) || []).includes(part); } catch { return false; }
+}
+export function setHomeHidden(part, hidden) {
+  try {
+    const list = new Set(JSON.parse(localStorage.getItem(HOME_KEY)) || []);
+    if (hidden) list.add(part);
+    else list.delete(part);
+    if (list.size) localStorage.setItem(HOME_KEY, JSON.stringify([...list]));
+    else localStorage.removeItem(HOME_KEY);
+  } catch { /* privates Fenster: gilt bis zum Neuladen */ }
+}
 
 export const calendarsAvailable = () => Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && session.mode === 'shared');
 
@@ -113,7 +129,7 @@ export function refreshCalendars({ force = false } = {}) {
         const data = await fetchEvents(c.url, from, to);
         writeJson(cacheKey(c.id), { url: c.url, from, to, at: Date.now(), events: data.events });
       } catch (err) {
-        // Alte Termine behalten, Fehler merken (unter Haushalt → Kalender sichtbar)
+        // Alte Termine behalten, Fehler merken (unter App-Einstellungen → Kalender sichtbar)
         writeJson(cacheKey(c.id), { ...(cache || { events: [] }), url: c.url, error: err.message, at: cache?.at || 0 });
       }
       changed = true;
@@ -203,7 +219,7 @@ const status = (c) => {
   return `geladen ${min < 1 ? 'eben' : min < 60 ? `vor ${min} Min.` : `vor ${Math.round(min / 60)} Std.`}`;
 };
 
-// ---------- Haushalt → Kalender ----------
+// ---------- App-Einstellungen → Kalender ----------
 
 export function openCalendars() {
   const cals = allCalendars();

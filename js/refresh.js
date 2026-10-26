@@ -1,4 +1,4 @@
-// Aktualisieren bei geöffneter App: ganz oben nach unten ziehen (wie in iPhone-Apps) oder unter Haushalt
+// Aktualisieren bei geöffneter App: ganz oben nach unten ziehen (wie in iPhone-Apps) oder unter App-Einstellungen
 // „App aktualisieren“. Lädt die App neu – damit kommen die neueste Version (der Service Worker holt Dateien
 // zuerst aus dem Netz, sw.js) und die neuesten Daten. Eigene, noch nicht hochgeladene Änderungen gehen vorher hoch.
 // Gebraucht vor allem in der App vom Home-Bildschirm: Dort gibt es keinen Neu-laden-Knopf.

@@ -16,8 +16,9 @@ import { saveFile } from '../backup.js';
 import { celebrate } from '../celebrate.js';
 import {
   BACKUP_DAYS, addMonths, addPayment, backupDue, backupText, curMonth, hasBackupPassword, isPlanFile, markBackedUp,
-  amountIn, monthSums, monthsBetween, notMonthly, openOf, paidOf, partOf, periodMonths, periodOf, plan, plannedInPeriod,
-  rateInfo, readBackup, rememberPayee, removePayment, restorePlan, setBackupPassword, setPartFrom, toggleActive, untilSums,
+  amountIn, billInMonth, billSchedule, hasMonths, monthSums, monthsBetween, notMonthly, openOf, paidOf, partOf, periodMonths,
+  periodOf, plan, plannedInPeriod, rateInfo, readBackup, rememberPayee, removePayment, restorePlan, setBackupPassword,
+  setPartFrom, toggleActive, unassignedOf, untilSums,
   updatePlan,
 } from '../planung.js';
 
@@ -70,6 +71,7 @@ function monthPart() {
       ${items.length ? line('Aktiviert in diesem Monat', s.active, -1) : ''}
       ${line('Rechnungen in diesem Monat', s.bills, -1)}
     </ul>
+    ${monthBills()}
     ${items.length ? `
       <h2 class="section-title">Nicht monatlich – für ${esc(monthLabel(month).split(' ')[0])} aktivieren</h2>
       <ul class="list plan-nm">${items.map((x) => {
@@ -91,6 +93,20 @@ function monthPart() {
       <button type="button" class="btn" data-action="plYear">${icon('chart', 'icon-sm')} Jahresübersicht</button>
       <button type="button" class="btn" data-action="plUntil">${icon('calendar', 'icon-sm')} Bis Ende Jahr …</button>
     </div>`;
+}
+
+// Welche Rechnungen im gewählten Monat zählen (und warum): bezahlt, Rate, zugewiesen oder offen
+function monthBills() {
+  const now = curMonth();
+  const list = plan().bills.map((b) => ({ b, v: billInMonth(b, month) })).filter((x) => x.v > 0);
+  if (!list.length) return '';
+  const why = (b) => (month < now ? 'bezahlt' : hasMonths(b) ? (month === now && unassignedOf(b) ? 'zugewiesen bzw. noch ohne Monat' : 'diesem Monat zugewiesen') : b.rate ? 'Rate' : 'offen – ganz in diesem Monat');
+  return `
+    <details class="plan-month-bills">
+      <summary>${list.length} ${list.length === 1 ? 'Rechnung' : 'Rechnungen'} im ${esc(monthLabel(month).split(' ')[0])}</summary>
+      <ul class="list">${list.map(({ b, v }) => row('plBill', b, why(b), m(v))).join('')}</ul>
+      ${month >= now ? '<p class="muted small" style="margin:6px 2px 0">Rechnung antippen → „Monate“, um sie (oder Teile) einem anderen Monat zuzuweisen.</p>' : ''}
+    </details>`;
 }
 
 const row = (action, x, sub, value = m(x.amount)) => `
@@ -142,6 +158,9 @@ function billCard(b, until) {
   const paid = paidOf(b, until || undefined);
   const open = Math.max(0, b.amount - paid);
   const info = !until && rateInfo(b);
+  // Monate zugewiesen: wann der offene Betrag zählt („Nov CHF 300 · Dez CHF 300“)
+  const sched = !until && open && hasMonths(b) ? Object.entries(billSchedule(b)).filter(([, v]) => v > 0).sort(([x], [y]) => x.localeCompare(y)) : [];
+  const short = (k) => `${monthLabel(k).slice(0, 3)}${k.slice(0, 4) === curMonth().slice(0, 4) ? '' : ` ${k.slice(2, 4)}`}`;
   const pct = Math.min(100, Math.round((paid / b.amount) * 100));
   return `
     <li class="plan-bill ${open ? '' : 'is-paid'}">
@@ -150,6 +169,7 @@ function billCard(b, until) {
       </button>
       <div class="mode-bar plan-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
       <small class="plan-bill-info">${open ? `${m(paid)} bezahlt · <b>${m(open)} offen</b>` : 'ganz bezahlt'}${info ? ` · Rate ${m(b.rate)} · ${info.left ? `noch ${info.left} ${info.left === 1 ? 'Rate' : 'Raten'}, fertig ${esc(monthLabel(info.end))}` : ''}` : ''}</small>
+      ${sched.length ? `<small class="plan-bill-info plan-bill-months">${icon('calendar', 'icon-xs')} ${sched.map(([k, v]) => `${esc(short(k))} ${m(v)}`).join(' · ')}${unassignedOf(b) && sched.length > 1 ? ' · Rest jetzt' : ''}</small>` : ''}
       ${(b.payments || []).length ? `<details class="plan-payments"><summary>${b.payments.length} ${b.payments.length === 1 ? 'Zahlung' : 'Zahlungen'}</summary>
         <ul>${b.payments.map((p) => `<li><span>${esc(fmtShort(p.date))}</span><span>${m(p.amount)}</span>
           <button type="button" class="icon-btn" data-action="plUnpay" data-bill="${esc(b.id)}" data-id="${esc(p.id)}" aria-label="Zahlung vom ${esc(fmtShort(p.date))} entfernen">${icon('x', 'icon-sm')}</button></li>`).join('')}</ul>
@@ -255,41 +275,105 @@ const editIncome = (x) => editItem('incomes', x, {
   read: (data) => (data.get('kind') === 'once' ? { month: String(data.get('month') || month) } : {}),
 });
 
+// Monate für die Zuweisung: ab jetzt 24 Monate (dazu ein schon gewählter, der davor liegt)
+const allocMonths = (selected) => {
+  const list = Array.from({ length: 24 }, (_, i) => addMonths(curMonth(), i));
+  if (selected && !list.includes(selected)) list.unshift(selected);
+  return list.map((k) => `<option value="${k}" ${k === selected ? 'selected' : ''}>${esc(`${monthLabel(k).slice(0, 3)} ${k.slice(0, 4)}`)}</option>`).join('');
+};
+const allocRow = (month, cents) => `
+  <li class="plan-alloc-row">
+    <select class="select" data-alloc="month" aria-label="Monat">${allocMonths(month)}</select>
+    <input class="input" data-alloc="amount" inputmode="decimal" value="${amountValue(cents)}" placeholder="0.00" autocomplete="off" aria-label="Betrag">
+    <button type="button" class="icon-btn" data-sheet-action="allocDel" aria-label="Monat entfernen">${icon('x', 'icon-sm')}</button>
+  </li>`;
+
+// Wann zählt die Rechnung? 'now' ganz im laufenden Monat, 'rate' Ratenplan, 'months' bestimmten Monaten zugewiesen
 function editBill(b) {
   const payees = plan().payees;
-  openSheet({
+  const when = b && hasMonths(b) ? 'months' : b?.rate ? 'rate' : 'now';
+  const paid = b ? paidOf(b) : 0;
+  const rows = (f) => [...f.querySelectorAll('.plan-alloc-row')].map((li) => ({
+    month: li.querySelector('[data-alloc="month"]').value,
+    cents: parseMoney(li.querySelector('[data-alloc="amount"]').value) || 0,
+  }));
+  const openNow = (f) => Math.max(0, (parseMoney(f.elements.amount.value) || 0) - paid);
+  const showSum = (f) => {
+    const total = rows(f).reduce((t, r) => t + r.cents, 0);
+    const open = openNow(f);
+    f.querySelector('.plan-alloc-sum').innerHTML = `Zugewiesen <b>${money(total)}</b> von ${money(open)} offen${
+      total < open ? ` · <span class="amount-minus">Rest ${money(open - total)} zählt im laufenden Monat</span>`
+        : total > open ? ` · <span class="amount-minus">${money(total - open)} mehr als offen</span>` : ' ✓'}`;
+  };
+  const showWhen = (f) => {
+    const v = f.querySelector('[name="when"]:checked').value;
+    f.querySelector('.plan-rate').hidden = v !== 'rate';
+    f.querySelector('.plan-when-months').hidden = v !== 'months';
+    if (v === 'months' && !rows(f).length) {
+      f.querySelector('.plan-alloc').insertAdjacentHTML('beforeend', allocRow(addMonths(curMonth(), 1), openNow(f)));
+    }
+    if (v === 'months') showSum(f);
+  };
+  const form = openSheet({
     title: b ? 'Rechnung bearbeiten' : 'Rechnung erfassen',
     body: `
       ${nameField(b, 'z. B. Steuern 2025, Zahnarzt', 'list="plan-payees"')}
       <datalist id="plan-payees">${payees.map((p) => `<option value="${esc(p.name)}">`).join('')}</datalist>
       ${amountField('Betrag', b)}
-      <label class="check-field"><input type="checkbox" name="hasRate" ${b?.rate ? 'checked' : ''}> Ratenplan (monatlich einen Teil zahlen)</label>
-      <div class="plan-rate" ${b?.rate ? '' : 'hidden'}>${amountField('Rate pro Monat', b, 'rate')}
+      <div class="field"><span>Wann zählt sie?</span>
+        <div class="seg seg-wide" role="radiogroup" aria-label="Wann zählt sie?">
+          <label class="seg-btn"><input type="radio" name="when" value="now" ${when === 'now' ? 'checked' : ''}>Diesen Monat</label>
+          <label class="seg-btn"><input type="radio" name="when" value="months" ${when === 'months' ? 'checked' : ''}>Monate</label>
+          <label class="seg-btn"><input type="radio" name="when" value="rate" ${when === 'rate' ? 'checked' : ''}>Ratenplan</label>
+        </div>
+      </div>
+      <div class="plan-rate" ${when === 'rate' ? '' : 'hidden'}>${amountField('Rate pro Monat', b, 'rate')}
         <p class="muted small" style="margin:-6px 0 12px">Im Monat zählt dann nur die Rate, nicht der ganze offene Betrag.</p></div>
-      ${b?.payments?.length ? `<p class="muted small">${b.payments.length} ${b.payments.length === 1 ? 'Zahlung' : 'Zahlungen'} erfasst · ${m(paidOf(b))} bezahlt</p>` : ''}`,
+      <div class="plan-when-months" ${when === 'months' ? '' : 'hidden'}>
+        <p class="muted small" style="margin:-4px 0 10px">Ganz oder in Teilen bestimmten Monaten zuweisen – z. B. ganz im Dezember oder je die Hälfte im März und April.</p>
+        <ul class="list plan-alloc">${when === 'months' ? Object.entries(b.months).sort(([x], [y]) => x.localeCompare(y)).map(([k, v]) => allocRow(k, v)).join('') : ''}</ul>
+        <div class="row plan-alloc-tools">
+          <button type="button" class="btn btn-sm" data-sheet-action="allocAdd">${icon('plus', 'icon-sm')} Monat</button>
+          <span class="plan-spread"><button type="button" class="btn btn-sm" data-sheet-action="allocSpread">Verteilen auf</button>
+            <input class="input" type="number" data-spread min="1" max="24" value="${when === 'months' ? Math.max(2, Object.keys(b.months).length) : 2}" aria-label="Anzahl Monate"> Mt.</span>
+        </div>
+        <p class="small plan-alloc-sum" style="margin:10px 2px 12px"></p>
+      </div>
+      ${b?.payments?.length ? `<p class="muted small">${b.payments.length} ${b.payments.length === 1 ? 'Zahlung' : 'Zahlungen'} erfasst · ${m(paid)} bezahlt</p>` : ''}`,
     submitLabel: 'Speichern',
     footer: removeBtn(b, 'Rechnung'),
-    onSubmit(data) {
+    onSubmit(data, f) {
       const name = String(data.get('name')).trim().slice(0, 60);
       const amount = parseMoney(data.get('amount'));
-      const rate = data.get('hasRate') ? parseMoney(data.get('rate')) : null;
+      const mode = data.get('when');
+      const rate = mode === 'rate' ? parseMoney(data.get('rate')) : null;
       if (!name || !amount) {
         toast(!name ? 'Bitte eine Bezeichnung eingeben' : 'Bitte einen Betrag eingeben');
         return false;
       }
-      if (data.get('hasRate') && !rate) {
+      if (mode === 'rate' && !rate) {
         toast('Bitte die Rate pro Monat eingeben');
         return false;
       }
+      const months = {};
+      if (mode === 'months') for (const r of rows(f)) if (r.cents > 0) months[r.month] = (months[r.month] || 0) + r.cents;
+      if (mode === 'months' && !Object.keys(months).length) {
+        toast('Bitte mindestens einen Monat mit Betrag angeben');
+        return false;
+      }
       updatePlan((d) => {
-        const bill = d.bills.find((x) => x.id === b?.id);
-        if (bill) {
-          Object.assign(bill, { name, amount });
-          if (rate) bill.rate = rate;
-          else delete bill.rate;
-          if (paidOf(bill) >= bill.amount) bill.doneAt ||= Date.now();
-          else delete bill.doneAt;
-        } else d.bills.push({ id: uid(), name, amount, ...(rate ? { rate } : {}), payments: [], addedAt: Date.now() });
+        let bill = d.bills.find((x) => x.id === b?.id);
+        if (!bill) {
+          bill = { id: uid(), payments: [], addedAt: Date.now() };
+          d.bills.push(bill);
+        }
+        Object.assign(bill, { name, amount });
+        if (rate) bill.rate = rate;
+        else delete bill.rate;
+        if (mode === 'months') bill.months = months;
+        else delete bill.months;
+        if (paidOf(bill) >= bill.amount) bill.doneAt ||= Date.now();
+        else delete bill.doneAt;
         rememberPayee(d, name, amount);
       });
     },
@@ -299,8 +383,29 @@ function editBill(b) {
         updatePlan((d) => { d.bills = d.bills.filter((x) => x.id !== b.id); });
         closeSheet();
       },
+      allocAdd(_, f) {
+        const last = rows(f).at(-1)?.month;
+        const left = openNow(f) - rows(f).reduce((t, r) => t + r.cents, 0);
+        f.querySelector('.plan-alloc').insertAdjacentHTML('beforeend', allocRow(last ? addMonths(last, 1) : addMonths(curMonth(), 1), Math.max(0, left)));
+        showSum(f);
+      },
+      allocDel(btn, f) {
+        btn.closest('.plan-alloc-row').remove();
+        showSum(f);
+      },
+      // Offenen Betrag gleichmässig auf n Monate ab dem ersten gewählten (sonst nächsten) Monat verteilen
+      allocSpread(_, f) {
+        const n = Number(f.querySelector('[data-spread]').value);
+        if (!Number.isInteger(n) || n < 1 || n > 24) return toast('Anzahl Monate: 1 bis 24');
+        const from = rows(f)[0]?.month || addMonths(curMonth(), 1);
+        const open = openNow(f);
+        const each = Math.floor(open / n);
+        f.querySelector('.plan-alloc').innerHTML = Array.from({ length: n }, (_, i) => allocRow(addMonths(from, i), each + (i === 0 ? open - each * n : 0))).join('');
+        showSum(f);
+      },
       change(el, f) {
-        if (el.name === 'hasRate') f.querySelector('.plan-rate').hidden = !el.checked;
+        if (el.name === 'when') showWhen(f);
+        if (el.dataset.alloc || el.name === 'amount') showSum(f);
         // Gemerkter Rechnungssteller: letzten Betrag übernehmen, solange noch keiner eingetippt ist
         if (el.name === 'name' && !f.elements.amount.value) {
           const p = payees.find((x) => x.name.toLowerCase() === el.value.trim().toLowerCase());
@@ -309,6 +414,9 @@ function editBill(b) {
       },
     },
   });
+  // Summe schon beim Tippen nachführen (change kommt erst beim Verlassen des Felds)
+  form.addEventListener('input', (e) => { if (e.target.dataset.alloc || e.target.name === 'amount') showSum(form); });
+  if (when === 'months') showSum(form);
 }
 
 function payBill(b) {

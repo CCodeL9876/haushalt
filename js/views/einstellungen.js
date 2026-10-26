@@ -1,6 +1,6 @@
-// Fenster „Haushalt“ (Knopf oben rechts): Personen, Zugang (Link, Code), Mitteilungen, Farbdesign, Kalender, Währung, Kategorien, Sicherung.
+// Fenster „App-Einstellungen“ (Knopf oben rechts): Personen, Zugang (Link, Code), Mitteilungen, Farbdesign, Kalender, Währung, Kategorien, Sicherung.
 
-import { changeCode, replaceAll, resetAll, session, state, update } from '../store.js';
+import { changeCode, refresh, replaceAll, resetAll, session, state, update } from '../store.js';
 import { personal, updatePersonal } from '../personal.js';
 import { decryptBackup, encryptBackup, isEncrypted, saveFile } from '../backup.js';
 import { DONE_DAYS, LEDGER_MONTHS } from '../cleanup.js';
@@ -8,7 +8,7 @@ import { reloadApp } from '../refresh.js';
 import { openTerms } from '../terms.js';
 import { cards, showCards } from '../cards.js';
 import { openWaste, wasteKinds } from '../waste.js';
-import { allCalendars, calendarsAvailable, openCalendars } from '../calendars.js';
+import { allCalendars, calendarsAvailable, homeHidden, openCalendars, setHomeHidden } from '../calendars.js';
 import { addons, openTemplates, templates } from '../packliste.js';
 import { wipePlan } from '../planung.js';
 import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
@@ -104,7 +104,7 @@ async function fillPush(box) {
 
 export function openSettings() {
   openSheet({
-    title: 'Haushalt',
+    title: 'App-Einstellungen',
     body: `
       <div class="field"><span>Personen</span>
         ${state.members.length ? `<ul class="list" style="margin-bottom:10px">${state.members.map((m) => `
@@ -141,6 +141,9 @@ export function openSettings() {
           <button type="button" class="seg-btn" data-sheet-action="celebrateStyle" data-id="${id}" aria-pressed="${id === celebrateStyle()}">${label}</button>`).join('')}</div>
         <p class="muted small" style="margin:-6px 0 0">Effekt mit Ton beim Erledigen eines ToDos – Tupfer, grosses Häkchen, „Good job!“ oder jedes Mal ein anderer. Am iPhone ist der Ton stumm, solange der Stummschalter an ist.</p>
       </div>
+      <h3 class="settings-group">Startseite <small class="muted" style="font-weight:500;text-transform:none;letter-spacing:0">· nur auf diesem Gerät</small></h3>
+      <label class="check-field"><input type="checkbox" data-home="day" ${homeHidden('day') ? '' : 'checked'}> <span>„Dein Tag“ zeigen<small class="muted" style="display:block;font-weight:500">Kalendertermine und ToDos mit Uhrzeit (sonst unter „Heute zu tun“)</small></span></label>
+      ${allCalendars().some((c) => c.small) || homeHidden('sport') ? `<label class="check-field"><input type="checkbox" data-home="sport" ${homeHidden('sport') ? '' : 'checked'}> <span>„Sport diese Woche“ zeigen</span></label>` : ''}
       <h3 class="settings-group">Einkauf</h3>
       <button type="button" class="btn btn-block" data-sheet-action="terms" style="margin-bottom:10px">${icon('cart', 'icon-sm')} Einkaufsbegriffe verwalten (${state.terms.length})</button>
       <button type="button" class="btn btn-block" data-sheet-action="cards" style="margin-bottom:10px">${icon('card', 'icon-sm')} Kundenkarten (${cards().length}) <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></button>
@@ -291,6 +294,10 @@ export function openSettings() {
         toast('Alles zurückgesetzt');
       },
       async change(el) {
+        if (el.dataset.home) {
+          setHomeHidden(el.dataset.home, !el.checked);
+          refresh();
+        }
         if (el.name === 'currency') update((s) => { s.settings.currency = el.value; });
         if (el.name === 'methods') {
           const list = [...new Set(el.value.split(',').map((x) => x.trim().slice(0, 30)).filter(Boolean))];

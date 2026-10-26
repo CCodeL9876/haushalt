@@ -1,7 +1,7 @@
 // Einkaufsbegriffe verwalten: die Wörter, die beim Einkauf vorgeschlagen werden (state.terms), nach Abteilung im
 // Laden geordnet. Hier lassen sich Begriffe neu erfassen, umbenennen, einer anderen Abteilung zuordnen oder löschen.
 // Die Abteilung gilt für den ganzen Haushalt und bestimmt die Sortierung „Nach Laden“ (js/aisles.js).
-// Erreichbar im Einkauf („Begriffe“) und unter Haushalt.
+// Erreichbar im Einkauf („Begriffe“) und unter App-Einstellungen.
 
 import { state, termKey, update } from './store.js';
 import { esc, icon, openSheet, toast } from './ui.js';

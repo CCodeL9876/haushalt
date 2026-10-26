@@ -22,7 +22,7 @@ import { addToShopping, openOnList, recentlyBought, shopIngredients } from './ei
 import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
-import { eventsOn, isFavourite, upcomingSmall } from '../calendars.js';
+import { eventsOn, homeHidden, isFavourite, upcomingSmall } from '../calendars.js';
 
 const MAX_TODOS = 5;
 
@@ -141,10 +141,12 @@ function dueTodos() {
 }
 
 // ToDos mit Uhrzeit für heute: stehen in „Dein Tag“
-const timedToday = ({ t }) => t.due === todayKey() && Boolean(t.time);
+// (ist „Dein Tag“ ausgeblendet – App-Einstellungen → Startseite –, stehen sie wieder unter „Heute zu tun“)
+const timedToday = ({ t }) => !homeHidden('day') && t.due === todayKey() && Boolean(t.time);
 
 // „Dein Tag“: Kalendertermine und ToDos mit Uhrzeit in zeitlicher Reihenfolge, „jetzt“ als Strich dazwischen
 function dayTile() {
+  if (homeHidden('day')) return '';
   const today = todayKey();
   const events = eventsOn(today);
   const allDay = events.filter((e) => e.allDay);
@@ -190,6 +192,7 @@ function dayTile() {
 // heute hervorgehoben, Lieblingsmannschaften in der Akzentfarbe, ohne Spiele gar nicht. Alle Spiele der nächsten 7 Tage; die Leiste reicht bis an den
 // Bildschirmrand, damit man sieht, dass es seitwärts weitergeht.
 function sportStrip() {
+  if (homeHidden('sport')) return '';
   const events = upcomingSmall();
   if (!events.length) return '';
   const today = todayKey();

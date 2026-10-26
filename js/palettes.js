@@ -1,4 +1,4 @@
-// Farbdesigns für die Auswahl unter Haushalt → Farbdesign – erzeugt von tools/make-palettes.py.
+// Farbdesigns für die Auswahl unter App-Einstellungen → Farbdesign – erzeugt von tools/make-palettes.py.
 export const PALETTES = [
   { id: 'creme', name: 'Creme', swatches: ['#FDFBD4', '#BDB96A', '#C1BFFF', '#CF6DFC'] },
   { id: 'neon', name: 'Neon', swatches: ['#CCFF00', '#FF6B00', '#F900FF', '#5200FF'] },

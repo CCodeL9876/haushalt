@@ -2,7 +2,7 @@
 // Browser erzeugt – keine Datei) und am Android ein kurzes Vibrieren.
 // Bildeffekte (STYLES): Farbtupfer aus dem Kästchen, grosses Häkchen, Schriftzug „Good job!“ oder jedes Mal ein anderer.
 // Ist die ganze Liste erledigt, gibt es mehr davon („Alles erledigt!“, viele Tupfer) und einen dritten Ton.
-// Pro Gerät einstellbar (Haushalt → Beim Abhaken): 'all' Ton und Effekt, 'visual' nur Effekt, 'off' aus; dazu der
+// Pro Gerät einstellbar (App-Einstellungen → Beim Abhaken): 'all' Ton und Effekt, 'visual' nur Effekt, 'off' aus; dazu der
 // Bildeffekt. Am iPhone bleibt der Ton stumm, wenn der Stummschalter an ist. „Bewegung reduzieren“ schaltet den
 // Bildeffekt ab.
 

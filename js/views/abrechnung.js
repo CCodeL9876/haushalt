@@ -312,7 +312,7 @@ export default {
 
   render() {
     if (state.members.length < 2) {
-      return `<div class="empty"><strong>Mindestens zwei Personen nötig</strong>Personen oben rechts unter „Haushalt“ erfassen.</div>`;
+      return `<div class="empty"><strong>Mindestens zwei Personen nötig</strong>Personen oben rechts unter „App-Einstellungen“ erfassen.</div>`;
     }
     const two = state.members.length === 2;
     const p = two ? pair() : null;

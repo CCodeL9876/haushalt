@@ -35,7 +35,7 @@ export function dayLabel(day, today = todayKey()) {
   return fmtShort(day);
 }
 
-// Haushalt → Abfuhrkalender: Übersicht, Erinnerung pro Art, neue Datei, entfernen
+// App-Einstellungen → Abfuhrkalender: Übersicht, Erinnerung pro Art, neue Datei, entfernen
 export function openWaste() {
   const kinds = wasteKinds();
   const today = todayKey();

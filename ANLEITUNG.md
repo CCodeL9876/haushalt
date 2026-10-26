@@ -154,7 +154,7 @@ aufruft:
   zugewiesene Person, sonst an alle; bei persönlichen Listen nur an dich (Titel und Zeit liegen dafür bis zur
   Mitteilung in der Tabelle push_alarms). Kommt höchstens ein paar Minuten früher, weil der Zeitplan alle 5 Minuten läuft.
 - **Abfuhrkalender:** ab 18 Uhr am Vortag einer Abfuhr (Kehricht, Papier, Grüngut …), für jede Art mit Glocke
-  unter **Haushalt → Abfuhrkalender**. An alle Geräte im Haushalt mit Mitteilungen.
+  unter **App-Einstellungen → Abfuhrkalender**. An alle Geräte im Haushalt mit Mitteilungen.
 - **ToDo zugewiesen:** Weist jemand in einer geteilten Liste eine Aufgabe einer anderen Person zu, bekommt diese
   Person eine Mitteilung – auf den Geräten, auf denen sie unter „Wer bist du?“ gewählt ist.
 
@@ -186,7 +186,7 @@ möchte, stellt am iPhone unter Einstellungen → Mitteilungen → Haushalt die 
 
 ## 11. Kalender auf der Startseite (einmalig einrichten)
 
-Unter **Haushalt → Kalender auf der Startseite** lassen sich Kalender aus der Apple-Kalender-App eintragen; ihre
+Unter **App-Einstellungen → Kalender auf der Startseite** lassen sich Kalender aus der Apple-Kalender-App eintragen; ihre
 Termine von heute stehen dann auf der Startseite unter **„Dein Tag“** – zusammen mit den ToDos mit Uhrzeit.
 Eine Web-App darf nicht direkt in den Kalender des iPhones schauen, darum liest sie den Link
 „Öffentlicher Kalender“ – über eine kleine Funktion in Supabase:
@@ -197,7 +197,7 @@ Eine Web-App darf nicht direkt in den Kalender des iPhones schauen, darum liest 
 3. Wie bei `recipe-import` die **JWT-Prüfung ausschalten**. Geschützt ist sie trotzdem: Sie antwortet nur mit dem
    Haushalt-Schlüssel und dem richtigen Zugangscode.
 
-Danach in der App: **Haushalt → Kalender auf der Startseite → Kalender hinzufügen**. Den Link gibt es am iPhone in
+Danach in der App: **App-Einstellungen → Kalender auf der Startseite → Kalender hinzufügen**. Den Link gibt es am iPhone in
 der Kalender-App unter **Kalender → ⓘ beim Kalender → Öffentlicher Kalender → Link teilen … → Kopieren** (nur bei
 iCloud-Kalendern; bei Google die „geheime Adresse im iCal-Format“). **Für alle im Haushalt** speichert den Kalender
 für alle, **Nur dieses Gerät** nur auf dem eigenen iPhone (z. B. „Arbeit“).
@@ -205,7 +205,7 @@ für alle, **Nur dieses Gerät** nur auf dem eigenen iPhone (z. B. „Arbeit“)
 **Abonnierte Kalender, z. B. Sport:** den Link nehmen, mit dem der Kalender abonniert wurde (beginnt meist mit
 `webcal://`), und als Darstellung **Klein (Sport)** mit einem Symbol wählen. Solche Termine stehen nicht in
 „Dein Tag“, sondern als schmale Leiste **„Sport diese Woche“** (die nächsten 7 Tage, heute hervorgehoben;
-antippen zeigt den ganzen Titel). Schon eingetragene Kalender lassen sich unter Haushalt → Kalender antippen und
+antippen zeigt den ganzen Titel). Schon eingetragene Kalender lassen sich unter App-Einstellungen → Kalender antippen und
 umstellen.
 
 **Datenschutz:** Wer den Link kennt, kann den Kalender lesen – nicht weitergeben. Die Funktion holt die Termine der
@@ -215,11 +215,11 @@ Kalender nicht sofort).
 
 ## Gut zu wissen
 
-- **Code ändern:** In der App unter Haushalt → Zugang → *Code ändern*. Alle anderen Geräte werden beim nächsten
+- **Code ändern:** In der App unter App-Einstellungen → Zugang → *Code ändern*. Alle anderen Geräte werden beim nächsten
   Abgleich nach dem neuen Code gefragt. Zugleich werden in Supabase alle anderen Geräte von den Mitteilungen
   abgemeldet; eure eigenen melden sich nach Eingabe des neuen Codes von selbst wieder an (dafür einmal
   schema.sql nochmals ausführen).
-- **Sicherung:** Haushalt → Daten → *Sicherung*: eine Datei mit allen Daten, verschlüsselt mit einem Passwort
+- **Sicherung:** App-Einstellungen → Daten → *Sicherung*: eine Datei mit allen Daten, verschlüsselt mit einem Passwort
   (auf Wunsch mit den eigenen persönlichen Listen). Ohne Passwort lässt sie sich nicht öffnen.
 - **Aufräumen:** Erledigte ToDos und Einkäufe werden 30 Tage nach dem Abhaken gelöscht, Einträge der Abrechnung
   nach 12 Monaten – aber nur bis zum letzten Zeitpunkt, an dem ihr quitt wart. Der Stand bleibt so gleich.
