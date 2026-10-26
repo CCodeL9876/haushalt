@@ -37,7 +37,10 @@ function applyPalette(id) {
   // Statusleiste des iPhones in der neuen Hintergrundfarbe
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = bg;
+  window.haushaltStatusBar?.(); // „Glas“ ist immer dunkel – Statusleiste entsprechend (ab dem nächsten Start)
 }
+// Ganze Stile (nicht nur Farben), von Hand gepflegt – css/glas.css; immer dunkel
+const STYLE_PALETTES = [{ id: 'glas', name: 'Glas', note: 'Stil · immer dunkel', swatches: ['#FF6CAB', '#7366FF', '#43E7FF', '#B6FF8A'] }];
 // Hell/Dunkel pro Gerät: 'auto' folgt der Einstellung des iPhones, 'light'/'dark' gilt immer (data-theme auf <html>,
 // die Farben dafür stehen schon in css/styles.css und css/palettes.css)
 const THEME_KEY = 'haushalt.theme';
@@ -63,10 +66,10 @@ const themeHtml = () => {
 
 const paletteHtml = () => {
   const cur = currentPalette();
-  return PALETTES.map((p) => `
+  return [...PALETTES, ...STYLE_PALETTES].map((p) => `
     <button type="button" class="palette-btn" data-sheet-action="palette" data-id="${esc(p.id)}" aria-pressed="${p.id === cur}">
       <span class="palette-dots" aria-hidden="true">${p.swatches.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
-      <span class="palette-name">${esc(p.name)}</span>
+      <span class="palette-name">${esc(p.name)}${p.note ? `<small class="palette-note">${esc(p.note)}</small>` : ''}</span>
     </button>`).join('');
 };
 

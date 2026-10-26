@@ -1166,3 +1166,4 @@ button.plan-sum.total-toggle { float: right; }
 .sound-pick > span { font-weight: 650; margin-right: 2px; }
 .sound-chip { border: 0; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .sound-chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.palette-note { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); }

@@ -14,7 +14,9 @@ try {
 // Auch von js/views/einstellungen.js aufgerufen.
 function haushaltStatusBar() {
   var forced = document.documentElement.getAttribute('data-theme');
-  var dark = forced ? forced === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  // Design „Glas“ ist immer dunkel (css/glas.css)
+  var dark = document.documentElement.getAttribute('data-palette') === 'glas'
+    || (forced ? forced === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches);
   var meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
   if (meta) meta.content = dark ? 'black-translucent' : 'default';
 }

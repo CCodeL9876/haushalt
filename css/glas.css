@@ -1,0 +1,125 @@
+/* Design „Glas“ (Glassmorphism): dunkler Grund mit leuchtenden Farbflecken, darauf Flächen aus Milchglas –
+   durchscheinend, heller Rand, weisse Schrift. Immer dunkel (unabhängig von Hell/Dunkel).
+   Aktiv über <html data-palette="glas"> wie die Farbdesigns (js/palette-boot.js, App-Einstellungen → Farbdesign).
+   Die Farbflecken liegen fest hinter allem (body::before). Echte Unschärfe (backdrop-filter) nur dort, wo Inhalt
+   darunter durchläuft – Kopfzeile, Tab-Leiste, Fenster –, das schont ältere iPhones; die übrigen Flächen sind
+   halbdurchsichtig über den ohnehin weichen Flecken. Schrift: die des iPhones (keine Schrift aus dem Netz). */
+
+:root[data-palette="glas"] {
+  --bg: #0E0B2B;
+  --card: rgba(255, 255, 255, 0.09);
+  --chip: rgba(255, 255, 255, 0.13);
+  --line: rgba(255, 255, 255, 0.16);
+  --text: #FFFFFF;
+  --text-soft: rgba(255, 255, 255, 0.86);
+  --muted: rgba(255, 255, 255, 0.62);
+  --accent: #FF6CAB;
+  --accent-hover: #FF85BA;
+  --accent-tint: rgba(255, 108, 171, 0.18);
+  --accent-text: #FF9CC7;
+  --on-accent: #1B1150;
+  --plus: #B6FF8A;
+  --minus: #FF8FA3;
+  --bar: #43E7FF;
+  --bar-track: rgba(255, 255, 255, 0.12);
+  --tab-active: #FFFFFF;
+  --check-border: rgba(255, 255, 255, 0.55);
+  --suggest-bg: rgba(115, 102, 255, 0.3);
+  --suggest-text: #FFFFFF;
+  --suggest-icon: #43E7FF;
+  --seg-bg: rgba(255, 255, 255, 0.1);
+  --seg-active-bg: rgba(255, 255, 255, 0.92);
+  --seg-active-text: #1B1150;
+  --section-text: #43E7FF;
+  --section-dot: #43E7FF;
+  --today-ring: #43E7FF;
+  --today-pill-bg: #43E7FF;
+  --today-pill-text: #0E0B2B;
+  --mittag-bg: rgba(255, 108, 171, 0.14);
+  --mittag-label-bg: #FF6CAB;
+  --mittag-label-text: #1B1150;
+  --abend-bg: rgba(67, 231, 255, 0.12);
+  --abend-label-bg: #43E7FF;
+  --abend-label-text: #0E0B2B;
+  --week-btn-bg: rgba(255, 255, 255, 0.16);
+  --week-btn-text: #FFFFFF;
+  --idea-1: #FF6CAB;
+  --idea-2: #43E7FF;
+  --idea-3: #B6FF8A;
+  --idea-4: #FFC75F;
+  --tag-1-bg: rgba(255, 108, 171, 0.3);
+  --tag-2-bg: rgba(67, 231, 255, 0.28);
+  --tag-3-bg: rgba(182, 255, 138, 0.26);
+  --tag-4-bg: rgba(255, 199, 95, 0.26);
+  --tag-text: #FFFFFF;
+  --tag-4-text: #FFFFFF;
+  /* Kacheln: getöntes Glas in den Farben der Flecken */
+  --tile-1-bg: rgba(255, 108, 171, 0.17);
+  --tile-1-badge: #FF6CAB;
+  --tile-2-bg: rgba(67, 231, 255, 0.14);
+  --tile-2-badge: #43E7FF;
+  --tile-3-bg: rgba(182, 255, 138, 0.13);
+  --tile-3-badge: #B6FF8A;
+  --tile-text: #FFFFFF;
+  --tile-badge-text: #0E0B2B;
+  --stat-bar: #43E7FF;
+  --shadow: 0 14px 34px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --shadow-lg: 0 -10px 50px rgba(0, 0, 0, 0.55);
+  --hero: rgba(115, 102, 255, 0.34);
+  --on-hero: #FFFFFF;
+  --tab-on-bg: rgba(255, 255, 255, 0.2);
+  --tab-on-text: #FFFFFF;
+  --glass-edge: rgba(255, 255, 255, 0.3);
+  --glass-grad: linear-gradient(135deg, #FF6CAB, #7366FF);
+  --glass-grad-2: linear-gradient(135deg, #43E7FF, #7366FF);
+  color-scheme: dark;
+  background: #0E0B2B;
+}
+
+/* Farbflecken hinter allem */
+:root[data-palette="glas"] body { background: transparent; }
+:root[data-palette="glas"] body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(42vmax 42vmax at -8% 12%, rgba(255, 108, 171, 0.75), rgba(115, 102, 255, 0.35) 45%, transparent 70%),
+    radial-gradient(34vmax 34vmax at 108% 42%, rgba(67, 231, 255, 0.6), rgba(43, 107, 255, 0.28) 45%, transparent 70%),
+    radial-gradient(38vmax 38vmax at 20% 104%, rgba(255, 199, 95, 0.55), rgba(255, 94, 98, 0.3) 45%, transparent 70%),
+    radial-gradient(18vmax 18vmax at 88% 6%, rgba(182, 255, 138, 0.55), transparent 70%),
+    linear-gradient(160deg, #1B1150 0%, #0E0B2B 55%, #071A3A 100%);
+}
+
+/* Glasflächen: heller Rand oben links, weicher Schatten */
+:root[data-palette="glas"] :is(.card, .list, .tile, .list-tile > button, .settings-box, .sport-game, .waste-next, .palette-btn, .qa-type, .who-btn) {
+  border: 1px solid var(--glass-edge);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
+}
+:root[data-palette="glas"] .list, :root[data-palette="glas"] .card { box-shadow: var(--shadow); }
+:root[data-palette="glas"] .tile-plain { background-color: var(--card); }
+:root[data-palette="glas"] .tile-hero { background-color: rgba(115, 102, 255, 0.3); }
+:root[data-palette="glas"] .waste-next.is-soon { background-color: rgba(255, 108, 171, 0.32); }
+
+/* Mit echter Unschärfe: Kopfzeile, Tab-Leiste, Fenster */
+:root[data-palette="glas"] .topbar { background: rgba(14, 11, 43, 0.35); }
+:root[data-palette="glas"] .tabbar {
+  background: rgba(255, 255, 255, 0.12); border: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+:root[data-palette="glas"] .tab[aria-current="page"] { border: 1px solid var(--glass-edge); }
+:root[data-palette="glas"] .sheet {
+  background: rgba(27, 17, 80, 0.62); border-top: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: blur(30px) saturate(150%); backdrop-filter: blur(30px) saturate(150%);
+}
+:root[data-palette="glas"] .sheet::backdrop { background: rgba(5, 3, 20, 0.45); }
+
+/* Leuchtende Verläufe für die wichtigsten Knöpfe */
+:root[data-palette="glas"] :is(.btn-primary, .fab, .tile-btn) {
+  background: var(--glass-grad); color: #fff; box-shadow: 0 8px 22px rgba(255, 108, 171, 0.4);
+}
+:root[data-palette="glas"] .tab-plus { background: var(--glass-grad-2); color: #fff; box-shadow: 0 6px 20px rgba(67, 231, 255, 0.45); }
+:root[data-palette="glas"] .is-done .check { background: var(--glass-grad-2); border-color: transparent; color: #fff; }
+
+/* Eingabefelder: dunkles Glas */
+:root[data-palette="glas"] :is(.input, .select, .textarea) { background: rgba(255, 255, 255, 0.08); border-color: var(--line); color: #fff; }
+:root[data-palette="glas"] :is(.input, .textarea)::placeholder { color: rgba(255, 255, 255, 0.45); }
+:root[data-palette="glas"] .select option { background: #1B1150; }
