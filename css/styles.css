@@ -573,6 +573,10 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .total-toggle { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: inherit; cursor: pointer; }
 .total-hero { display: grid; justify-items: center; gap: 2px; width: 100%; }
 .total-hero small { font-size: 13px; opacity: 0.75; }
+.plan-hero .total-hero { gap: 2px; }
+.plan-tap-hint { margin-top: 2px; font-size: 12px !important; opacity: 0.6 !important; }
+button.list-value.total-toggle { text-align: right; flex: none; }
+button.plan-sum.total-toggle { float: right; }
 .balance-actions { margin: 0 0 4px; }
 .balance-actions .btn { flex: 1; padding: 0 10px; }
 .ledger > li { align-items: center; }

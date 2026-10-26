@@ -6,7 +6,8 @@
 //    schon eingeplant ist.
 //  - Jahresübersicht (Fenster): „bleibt“ für jeden Monat eines Jahres, knappe Monate rot; antippen öffnet den Monat.
 //  - Kosten (fix / wiederkehrend), Rechnungen (Teilzahlungen, Ratenplan, Stand an einem Datum), Abos, Einnahmen.
-// Beträge sind verdeckt, bis man sie zeigt – wieder verdeckt beim Verlassen und wenn die App in den Hintergrund geht.
+// Beträge sind verdeckt, bis man sie zeigt (Antippen eines Betrags, wie bei der Abrechnung) – wieder verdeckt beim
+// Verlassen und wenn die App in den Hintergrund geht.
 
 import { refresh, state, uid } from '../store.js';
 import { closeSheet, esc, icon, money, openSheet, parseMoney, toast } from '../ui.js';
@@ -38,6 +39,9 @@ document.addEventListener('visibilitychange', () => {
 
 const cur = () => state.settings.currency || 'CHF';
 const m = (cents, opts) => (shown ? money(cents, opts) : `${cur()} *****`);
+// Betrag zum Antippen: zeigt bzw. verbirgt alle Beträge (action: plShow in der Ansicht, im Fenster data-sheet-action)
+const tap = (inner, cls = '', attr = 'data-action="plShow"') => `<button type="button" class="total-toggle ${cls}" ${attr} aria-pressed="${shown}" aria-label="${shown ? 'Beträge verbergen' : 'Beträge anzeigen'}">${inner}</button>`;
+const hint = () => `<small class="plan-tap-hint">${shown ? 'Antippen zum Verbergen' : 'Antippen zum Anzeigen'}</small>`;
 const monthLabel = (key) => fmtMonthYear(parseKey(`${key}-01`));
 const sum = (list) => list.reduce((s, x) => s + x.amount, 0);
 const amountValue = (cents) => (cents ? (cents / 100).toFixed(2) : '');
@@ -48,7 +52,7 @@ function monthPart() {
   const s = monthSums(month);
   const rest = s.income - s.fix - s.abos - s.active - s.bills;
   const items = notMonthly();
-  const line = (label, v, sign) => `<li><span class="list-main">${label}</span><span class="list-value ${sign > 0 ? 'amount-plus' : ''}">${v ? `${sign > 0 ? '+' : '−'} ${m(v)}` : '–'}</span></li>`;
+  const line = (label, v, sign) => `<li><span class="list-main">${label}</span>${v ? tap(`${sign > 0 ? '+' : '−'} ${m(v)}`, `list-value ${sign > 0 ? 'amount-plus' : ''}`) : '<span class="list-value">–</span>'}</li>`;
   return `
     <div class="plan-month">
       <button type="button" class="icon-btn" data-action="plMonth" data-step="-1" aria-label="Monat zurück">${icon('left')}</button>
@@ -57,7 +61,7 @@ function monthPart() {
     </div>
     <section class="card plan-hero">
       <small>Bleibt im ${esc(monthLabel(month).split(' ')[0])}</small>
-      <div class="hero-number ${shown && rest < 0 ? 'amount-minus' : ''}">${m(rest, { sign: true })}</div>
+      ${tap(`<span class="hero-number ${shown && rest < 0 ? 'amount-minus' : ''}">${m(rest, { sign: true })}</span>${hint()}`, 'total-hero')}
     </section>
     <ul class="list plan-lines">
       ${line('Einnahmen', s.income, 1)}
@@ -78,7 +82,7 @@ function monthPart() {
         <li class="${here ? '' : 'is-off'}">
           <button type="button" class="check ${here ? 'is-on' : ''}" data-action="plActive" data-id="${esc(x.id)}" aria-pressed="${Boolean(here)}" aria-label="${esc(x.name)} ${here ? 'nicht mehr' : 'ganz'} in diesem Monat zählen">${icon('check', 'icon-sm')}</button>
           <span class="list-main">${esc(x.name)}<small>${x.src === 'abo' ? 'Abo · ' : ''}${esc(RHYTHM[x.rhythm] || '')} · ${esc(period)}: <span class="${shown && planned > x.amount ? 'amount-minus' : ''}">${m(planned)}</span> von ${m(x.amount)}${shown && planned > x.amount ? ' – mehr als nötig' : ''}</small></span>
-          <span class="list-value">${part ? `<small class="plan-part">Teil</small>${m(part)}` : m(x.amount)}</span>
+          ${tap(part ? `<small class="plan-part">Teil</small>${m(part)}` : m(x.amount), 'list-value')}
           <button type="button" class="btn btn-sm plan-part-btn" data-action="plPart" data-id="${esc(x.id)}" aria-label="Teilbetrag für ${esc(x.name)}">Teil</button>
         </li>`;
       }).join('')}</ul>
@@ -91,7 +95,7 @@ function monthPart() {
 
 const row = (action, x, sub, value = m(x.amount)) => `
   <li><button type="button" class="list-main plan-row" data-action="${action}" data-id="${esc(x.id)}">${esc(x.name)}${sub ? `<small>${esc(sub)}</small>` : ''}</button>
-    <span class="list-value">${value}</span></li>`;
+    ${tap(value, 'list-value')}</li>`;
 
 function costsPart() {
   const fix = plan().costs.filter((c) => c.kind === 'fix');
@@ -99,7 +103,7 @@ function costsPart() {
   return `
     <button type="button" class="btn btn-primary btn-block" data-action="plCost">${icon('plus', 'icon-sm')} Kosten erfassen</button>
     ${fix.length || rep.length ? '' : '<div class="empty"><strong>Noch keine Kosten</strong>Fixkosten (z. B. Miete) und wiederkehrende Kosten (z. B. Krankenkasse alle 3 Monate) einmal erfassen.</div>'}
-    ${fix.length ? `<h2 class="section-title">Fixkosten <span class="plan-sum">${m(sum(fix))} / Monat</span></h2>
+    ${fix.length ? `<h2 class="section-title">Fixkosten ${tap(`${m(sum(fix))} / Monat`, 'plan-sum')}</h2>
       <ul class="list">${fix.map((c) => row('plCost', c, '')).join('')}</ul>` : ''}
     ${rep.length ? `<h2 class="section-title">Wiederkehrend <span class="plan-sum">im Monat aktivieren</span></h2>
       <ul class="list">${rep.map((c) => row('plCost', c, RHYTHM[c.rhythm])).join('')}</ul>` : ''}`;
@@ -114,8 +118,7 @@ function abosPart() {
     ${abos.length ? `
       <section class="card plan-hero">
         <small>${abos.length} ${abos.length === 1 ? 'Abo' : 'Abos'} · aufs Jahr gerechnet</small>
-        <div class="hero-number">${m(monthly * 12 + yearly)}</div>
-        <small>${m(monthly)} pro Monat${yearly ? ` · ${m(yearly)} jährliche` : ''}</small>
+        ${tap(`<span class="hero-number">${m(monthly * 12 + yearly)}</span><small>${m(monthly)} pro Monat${yearly ? ` · ${m(yearly)} jährliche` : ''}</small>${hint()}`, 'total-hero')}
       </section>
       <ul class="list">${[...abos].sort((a, b) => b.amount - a.amount).map((a) => row('plAbo', a, a.rhythm === 'y' ? 'jährlich – im Monat aktivieren' : 'monatlich')).join('')}</ul>`
       : '<div class="empty"><strong>Noch keine Abos</strong>Streaming, Zeitung, Handy, Fitness … – für den Überblick, was alles läuft.</div>'}`;
@@ -128,7 +131,7 @@ function incomesPart() {
   return `
     <button type="button" class="btn btn-primary btn-block" data-action="plIncome">${icon('plus', 'icon-sm')} Einnahme erfassen</button>
     ${list.length ? '' : '<div class="empty"><strong>Noch keine Einnahmen</strong>Lohn monatlich, dazu Einmaliges wie 13. Monatslohn, Bonus oder Rückerstattungen.</div>'}
-    ${monthly.length ? `<h2 class="section-title">Monatlich <span class="plan-sum">${m(sum(monthly))} / Monat</span></h2>
+    ${monthly.length ? `<h2 class="section-title">Monatlich ${tap(`${m(sum(monthly))} / Monat`, 'plan-sum')}</h2>
       <ul class="list">${monthly.map((i) => row('plIncome', i, '')).join('')}</ul>` : ''}
     ${once.length ? `<h2 class="section-title">Einmalig</h2>
       <ul class="list">${once.map((i) => row('plIncome', i, i.month ? monthLabel(i.month) : '')).join('')}</ul>` : ''}`;
@@ -169,8 +172,7 @@ function billsPart() {
       <section class="card plan-hero">
         <label class="plan-asof"><small>Offen am</small>
           <input class="input" type="date" data-change="plAsOf" value="${esc(asOf || todayKey())}" aria-label="Stand an diesem Datum"></label>
-        <div class="hero-number">${m(open.reduce((s, b) => s + openOf(b, until || undefined), 0))}</div>
-        <small>${open.length} ${open.length === 1 ? 'Rechnung' : 'Rechnungen'} offen${until ? ' – Stand an diesem Tag' : ''}</small>
+        ${tap(`<span class="hero-number">${m(open.reduce((s, b) => s + openOf(b, until || undefined), 0))}</span><small>${open.length} ${open.length === 1 ? 'Rechnung' : 'Rechnungen'} offen${until ? ' – Stand an diesem Tag' : ''}</small>${hint()}`, 'total-hero')}
       </section>
       <ul class="list plan-bills">${open.map((b) => billCard(b, until)).join('')}</ul>
       ${paid.length ? `<details class="plan-paid"><summary>Bezahlt (${paid.length})${until ? '' : ' – nach 30 Tagen weg'}</summary>
@@ -404,10 +406,11 @@ function untilSheet() {
     const on = (k) => f.elements[`p_${k}`]?.checked;
     const total = parts.reduce((t, [k, , sign]) => t + (on(k) ? sign * s[k] : 0), 0);
     const out = parts.filter(([k]) => on(k)).reduce((t, [k, , sign]) => t + (sign < 0 ? s[k] : 0), 0);
-    f.querySelector('.plan-until-result').innerHTML = `
+    f.querySelector('.plan-until-result').innerHTML = tap(`
       <small>${s.months} ${s.months === 1 ? 'Monat' : 'Monate'} (${esc(monthLabel(curMonth()))} bis ${esc(monthLabel(f.elements.end.value))})</small>
-      <div class="plan-until-out">Noch zu zahlen <b>${m(out)}</b></div>
-      ${on('income') ? `<div class="hero-number ${shown && total < 0 ? 'amount-minus' : ''}">${m(total, { sign: true })}</div><small>bleibt</small>` : ''}`;
+      <span class="plan-until-out">Noch zu zahlen <b>${m(out)}</b></span>
+      ${on('income') ? `<span class="hero-number ${shown && total < 0 ? 'amount-minus' : ''}">${m(total, { sign: true })}</span><small>bleibt</small>` : ''}
+      ${hint()}`, 'total-hero', 'data-sheet-action="show"');
     for (const [k] of parts) f.querySelector(`[data-part="${k}"]`).textContent = m(s[k]);
   };
   const form = openSheet({
@@ -419,7 +422,14 @@ function untilSheet() {
       <ul class="list plan-until">${parts.map(([k, label]) => `
         <li><label class="check-field" style="margin:0;flex:1"><input type="checkbox" name="p_${k}" checked> ${label}</label><span class="list-value" data-part="${k}"></span></li>`).join('')}</ul>
       <section class="card plan-hero plan-until-result"></section>`,
-    actions: { change(el, f) { result(f); } },
+    actions: {
+      change(el, f) { result(f); },
+      show(el, f) {
+        shown = !shown;
+        refresh();
+        result(f);
+      },
+    },
   });
   result(form);
 }
@@ -446,8 +456,7 @@ function yearSheet(year = month.slice(0, 4)) {
     body: `
       <section class="card plan-hero">
         <small>Bleibt im ganzen Jahr</small>
-        <div class="hero-number ${shown && total.rest < 0 ? 'amount-minus' : ''}">${m(total.rest, { sign: true })}</div>
-        <small>Einnahmen ${m(total.income)} · Ausgaben ${m(total.out)}</small>
+        ${tap(`<span class="hero-number ${shown && total.rest < 0 ? 'amount-minus' : ''}">${m(total.rest, { sign: true })}</span><small>Einnahmen ${m(total.income)} · Ausgaben ${m(total.out)}</small>${hint()}`, 'total-hero', 'data-sheet-action="show"')}
       </section>
       ${shown && low.rest < 0 ? `<p class="plan-year-warn">${icon('warning', 'icon-sm')} Knappster Monat: ${esc(short(low.key))} (${m(low.rest, { sign: true })})</p>` : ''}
       <ul class="list plan-year">${rows.map((r) => `
@@ -461,6 +470,11 @@ function yearSheet(year = month.slice(0, 4)) {
       <p class="muted small" style="margin:8px 2px 0">Pro Monat: bleibt · darunter Einnahmen / Ausgaben. Fixkosten und Abos mit den heutigen Beträgen, Rechnungen wie in der Monatsansicht (später nur Raten). Antippen öffnet den Monat.</p>`,
     actions: {
       year(el) { yearSheet(String(Number(year) + Number(el.dataset.step))); },
+      show() {
+        shown = !shown;
+        refresh();
+        yearSheet(year);
+      },
       open(el) {
         month = el.dataset.month;
         tab = 'monat';
@@ -553,7 +567,6 @@ const PARTS = { monat: monthPart, kosten: costsPart, rechnungen: billsPart, abos
 export default {
   id: 'planung',
   title: 'Planung',
-  short: 'Planung 🔒',
 
   render() {
     const due = backupDue();
@@ -563,7 +576,6 @@ export default {
         <span class="muted small">${icon('lock', 'icon-xs')} Nur auf diesem Gerät</span>
         <span class="plan-top-actions">
           <button type="button" class="btn btn-ghost btn-sm" data-action="plBackup">Sicherung</button>
-          <button type="button" class="btn btn-sm" data-action="plShow" aria-pressed="${shown}" aria-label="${shown ? 'Beträge verbergen' : 'Beträge zeigen'}">${shown ? 'Verbergen' : 'Zeigen'}</button>
         </span>
       </div>
       ${due ? `<button type="button" class="plan-backup-due" data-action="plBackupNow">${icon('warning', 'icon-sm')}
