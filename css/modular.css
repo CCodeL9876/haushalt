@@ -1,0 +1,142 @@
+/* Design „Modular“ (Modular Typography): Schweizer Grafik – strenges Raster aus flachen Farbmodulen ohne Rundungen,
+   sehr fette Schrift für Titel und Zahlen, Schreibmaschinenschrift für Beschriftungen. Signalrot, Kobaltblau, Gelb
+   und Schwarz auf Hellgrau; dunkel mit denselben Modulfarben auf Schwarz.
+   Aktiv über <html data-palette="modular"> (js/palette-boot.js, App-Einstellungen → Farbdesign). Schriften: die des
+   iPhones (SF Pro in schwer, SF Mono) – nichts aus dem Netz. */
+
+:root[data-palette="modular"] {
+  --bg: #F2F0EB;
+  --card: #FFFFFF;
+  --chip: #E6E3DC;
+  --line: #D8D5CE;
+  --text: #111111;
+  --text-soft: #2B2B2B;
+  --muted: #6B6862;
+  --accent: #2747FF;
+  --accent-hover: #1A36E0;
+  --accent-tint: #DDE2FF;
+  --accent-text: #2747FF;
+  --on-accent: #FFFFFF;
+  --plus: #1F7A3A;
+  --minus: #E0301A;
+  --bar: #2747FF;
+  --bar-track: #E6E3DC;
+  --tab-active: #111111;
+  --check-border: #111111;
+  --suggest-bg: #FFD400;
+  --suggest-text: #111111;
+  --suggest-icon: #111111;
+  --seg-bg: #E6E3DC;
+  --seg-active-bg: #111111;
+  --seg-active-text: #FFD400;
+  --section-text: #111111;
+  --section-dot: #FF3B1F;
+  --today-ring: #FF3B1F;
+  --today-pill-bg: #FF3B1F;
+  --today-pill-text: #FFFFFF;
+  --mittag-bg: #FFF4B8;
+  --mittag-label-bg: #FFD400;
+  --mittag-label-text: #111111;
+  --abend-bg: #E3E8FF;
+  --abend-label-bg: #2747FF;
+  --abend-label-text: #FFFFFF;
+  --week-btn-bg: #111111;
+  --week-btn-text: #FFD400;
+  --idea-1: #FF3B1F;
+  --idea-2: #2747FF;
+  --idea-3: #FFD400;
+  --idea-4: #111111;
+  --tag-1-bg: #FFD400;
+  --tag-2-bg: #D8D5CE;
+  --tag-3-bg: #FFC2B8;
+  --tag-4-bg: #DDE2FF;
+  --tag-text: #111111;
+  --tag-4-text: #111111;
+  /* Module reihum: Gelb, Rot, Grau – Schrift schwarz (auf allen dreien gut lesbar) */
+  --tile-1-bg: #FFD400;
+  --tile-1-badge: #111111;
+  --tile-2-bg: #FF5A3D;
+  --tile-2-badge: #111111;
+  --tile-3-bg: #D8D5CE;
+  --tile-3-badge: #111111;
+  --tile-text: #111111;
+  --tile-badge-text: #FFD400;
+  --stat-bar: #2747FF;
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-lg: 0;
+  --shadow: none;
+  --shadow-lg: 0 -6px 0 #111111;
+  --hero: #111111;
+  --on-hero: #FFFFFF;
+  --tab-on-bg: #111111;
+  --tab-on-text: #FFD400;
+  --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="modular"]:not([data-theme="light"]) {
+    --bg: #0E0E0E; --card: #1B1B1B; --chip: #2A2A2A; --line: #333333;
+    --text: #F2F0EB; --text-soft: #DAD7D0; --muted: #9B978F;
+    --accent: #4D66FF; --accent-hover: #6A80FF; --accent-tint: #1A2050; --accent-text: #8A9BFF; --on-accent: #FFFFFF;
+    --plus: #7BD88F; --minus: #FF7A63; --bar-track: #2A2A2A; --tab-active: #FFD400; --check-border: #F2F0EB;
+    --seg-bg: #2A2A2A; --seg-active-bg: #FFD400; --seg-active-text: #111111; --section-text: #F2F0EB;
+    --mittag-bg: #2E2A10; --abend-bg: #161B3A; --week-btn-bg: #FFD400; --week-btn-text: #111111;
+    --tag-2-bg: #3A3A3A; --tag-3-bg: #5A2A22; --tag-4-bg: #1A2050; --tag-text: #F2F0EB; --tag-4-text: #F2F0EB; --tag-1-bg: #FFD400;
+    --tile-3-bg: #BDB9B0; --hero: #2747FF; --on-hero: #FFFFFF; --tab-on-bg: #FFD400; --tab-on-text: #111111;
+    --shadow-lg: 0 -6px 0 #FFD400;
+    color-scheme: dark;
+  }
+}
+:root[data-palette="modular"][data-theme="dark"] {
+  --bg: #0E0E0E; --card: #1B1B1B; --chip: #2A2A2A; --line: #333333;
+  --text: #F2F0EB; --text-soft: #DAD7D0; --muted: #9B978F;
+  --accent: #4D66FF; --accent-hover: #6A80FF; --accent-tint: #1A2050; --accent-text: #8A9BFF; --on-accent: #FFFFFF;
+  --plus: #7BD88F; --minus: #FF7A63; --bar-track: #2A2A2A; --tab-active: #FFD400; --check-border: #F2F0EB;
+  --seg-bg: #2A2A2A; --seg-active-bg: #FFD400; --seg-active-text: #111111; --section-text: #F2F0EB;
+  --mittag-bg: #2E2A10; --abend-bg: #161B3A; --week-btn-bg: #FFD400; --week-btn-text: #111111;
+  --tag-2-bg: #3A3A3A; --tag-3-bg: #5A2A22; --tag-4-bg: #1A2050; --tag-text: #F2F0EB; --tag-4-text: #F2F0EB; --tag-1-bg: #FFD400;
+  --tile-3-bg: #BDB9B0; --hero: #2747FF; --on-hero: #FFFFFF; --tab-on-bg: #FFD400; --tab-on-text: #111111;
+  --shadow-lg: 0 -6px 0 #FFD400;
+  color-scheme: dark;
+}
+
+/* Keine Rundungen – nirgends */
+:root[data-palette="modular"] *, :root[data-palette="modular"] *::before, :root[data-palette="modular"] *::after { border-radius: 0 !important; }
+
+/* Typografie: Titel und grosse Zahlen sehr fett und eng, Beschriftungen in Schreibmaschinenschrift */
+:root[data-palette="modular"] .topbar-title { font-weight: 900; letter-spacing: -0.05em; text-transform: uppercase; }
+:root[data-palette="modular"] :is(.tile-big, .hero-number, .sheet-head h2) { font-weight: 900; letter-spacing: -0.04em; }
+:root[data-palette="modular"] .tile-big { text-transform: uppercase; line-height: 1; }
+:root[data-palette="modular"] :is(.section-title, .settings-group, .tile h3, .heute-hello span, .slot-label, .tab span, .sport-strip h3, .field > span) {
+  font-family: var(--mono); letter-spacing: 0.04em;
+}
+:root[data-palette="modular"] :is(.section-title, .settings-group, .tile h3, .sport-strip h3, .tab span) { text-transform: uppercase; font-weight: 700; }
+:root[data-palette="modular"] .tile h3 { opacity: 1; font-size: 11.5px; }
+:root[data-palette="modular"] .section-title::before { width: 10px; height: 10px; }
+:root[data-palette="modular"] .heute-hello { font-weight: 900; letter-spacing: -0.03em; }
+
+/* Module: flach, ohne Schatten, nur Fläche – weisse Module mit schwarzer Oberkante zur Gliederung */
+:root[data-palette="modular"] :is(.card, .list) { border-top: 3px solid var(--text); }
+:root[data-palette="modular"] .list > li { border-top-width: 1px; }
+:root[data-palette="modular"] .bento { gap: 6px; }
+:root[data-palette="modular"] .tile-plain { border-top: 3px solid var(--text); }
+:root[data-palette="modular"] .check { border-width: 2.5px; }
+
+/* Knöpfe: Blöcke */
+:root[data-palette="modular"] .btn { font-weight: 800; }
+:root[data-palette="modular"] .btn-primary { text-transform: uppercase; letter-spacing: 0.02em; }
+:root[data-palette="modular"] .fab { background: #FF3B1F; color: #FFFFFF; box-shadow: 4px 4px 0 var(--text); }
+
+/* Tab-Leiste aus einzelnen Blöcken */
+:root[data-palette="modular"] .tabbar { background: transparent; box-shadow: none; padding: 0; gap: 4px; }
+:root[data-palette="modular"] .tab { background: var(--card); color: var(--text); border: 2px solid var(--text); }
+:root[data-palette="modular"] .tab[aria-current="page"] { background: var(--tab-on-bg); color: var(--tab-on-text); border-color: var(--tab-on-bg); }
+:root[data-palette="modular"] .tab-plus { margin: 0; background: #FF3B1F; color: #FFFFFF; border: 2px solid var(--text); }
+:root[data-palette="modular"] .sheet { border-top: 6px solid var(--text); box-shadow: none; }
+
+/* Auf den farbigen Modulen: Hinweise schwarz statt farbig (Rot auf Rot wäre unsichtbar), Überfälliges als
+   schwarzes Etikett; der Knopf auf dem dunklen Menü-Modul gelb */
+:root[data-palette="modular"] :is(.tile-1, .tile-2, .tile-3) .tile-todos small { color: var(--tile-text); font-family: var(--mono); }
+:root[data-palette="modular"] :is(.tile-1, .tile-2, .tile-3) .tile-todos small.amount-minus { background: #111111; color: #FFD400; padding: 2px 5px; }
+:root[data-palette="modular"] .tile-hero .tile-btn { background: #FFD400; color: #111111; }

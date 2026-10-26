@@ -39,8 +39,11 @@ function applyPalette(id) {
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = bg;
   window.haushaltStatusBar?.(); // „Glas“ ist immer dunkel – Statusleiste entsprechend (ab dem nächsten Start)
 }
-// Ganze Stile (nicht nur Farben), von Hand gepflegt – css/glas.css; immer dunkel
-const STYLE_PALETTES = [{ id: 'glas', name: 'Glas', note: 'Stil · immer dunkel', swatches: ['#FF6CAB', '#7366FF', '#43E7FF', '#B6FF8A'] }];
+// Ganze Stile (nicht nur Farben), von Hand gepflegt – css/glas.css (immer dunkel), css/modular.css (hell und dunkel)
+const STYLE_PALETTES = [
+  { id: 'glas', name: 'Glas', note: 'Stil · immer dunkel', swatches: ['#FF6CAB', '#7366FF', '#43E7FF', '#B6FF8A'] },
+  { id: 'modular', name: 'Modular', note: 'Stil · hell und dunkel', swatches: ['#111111', '#FF3B1F', '#2747FF', '#FFD400'] },
+];
 // Hell/Dunkel pro Gerät: 'auto' folgt der Einstellung des iPhones, 'light'/'dark' gilt immer (data-theme auf <html>,
 // die Farben dafür stehen schon in css/styles.css und css/palettes.css)
 const THEME_KEY = 'haushalt.theme';

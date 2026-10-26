@@ -52,7 +52,7 @@ Beim ersten Start sind Beispieldaten drin (Anna, Ben, drei Menüideen). „App-E
 ## Farbdesigns
 
 Standard ist „Creme“ (Farben in `css/styles.css`, `:root`). Weitere Designs wählt jedes Gerät selbst unter
-**App-Einstellungen → Farbdesign** (dazu der Stil „Glas“, Glassmorphism, immer dunkel: `css/glas.css`); `js/palette-boot.js` setzt die Wahl beim Start, bevor die Seite gezeichnet wird.
+**App-Einstellungen → Farbdesign** (dazu die Stile „Glas“, Glassmorphism, immer dunkel: `css/glas.css`, und „Modular“, Modular Typography, hell und dunkel: `css/modular.css`); `js/palette-boot.js` setzt die Wahl beim Start, bevor die Seite gezeichnet wird.
 Die Farbwerte der weiteren Designs erzeugt `tools/make-palettes.py` aus je vier Grundfarben (hell und dunkel,
 mit Kontrastprüfung) nach `css/palettes.css` und `js/palettes.js`. Neues Design: dort in `PALETTES` eintragen
 und `python3 tools/make-palettes.py` ausführen.
