@@ -100,7 +100,13 @@ function monthBills() {
   const now = curMonth();
   const list = plan().bills.map((b) => ({ b, v: billInMonth(b, month) })).filter((x) => x.v > 0);
   if (!list.length) return '';
-  const why = (b) => (month < now ? 'bezahlt' : hasMonths(b) ? (month === now && unassignedOf(b) ? 'zugewiesen bzw. noch ohne Monat' : 'diesem Monat zugewiesen') : b.rate ? 'Rate' : 'offen – ganz in diesem Monat');
+  const why = (b) => {
+    if (hasMonths(b)) {
+      const parts = [b.months[month] ? 'diesem Monat zugewiesen' : '', billSchedule(b)[month] > (b.months[month] || 0) ? 'Rest ohne Monat' : ''].filter(Boolean).join(' + ');
+      return `${parts}${openOf(b) ? '' : ' · bezahlt'}`;
+    }
+    return month < now ? 'bezahlt' : b.rate ? 'Rate' : 'offen – ganz in diesem Monat';
+  };
   return `
     <details class="plan-month-bills">
       <summary>${list.length} ${list.length === 1 ? 'Rechnung' : 'Rechnungen'} im ${esc(monthLabel(month).split(' ')[0])}</summary>
@@ -158,8 +164,8 @@ function billCard(b, until) {
   const paid = paidOf(b, until || undefined);
   const open = Math.max(0, b.amount - paid);
   const info = !until && rateInfo(b);
-  // Monate zugewiesen: wann der offene Betrag zählt („Nov CHF 300 · Dez CHF 300“)
-  const sched = !until && open && hasMonths(b) ? Object.entries(billSchedule(b)).filter(([, v]) => v > 0).sort(([x], [y]) => x.localeCompare(y)) : [];
+  // Monate zugewiesen: wann der Betrag zählt („Nov CHF 300 · Dez CHF 300“) – auch wenn schon bezahlt
+  const sched = !until && hasMonths(b) ? Object.entries(billSchedule(b)).filter(([, v]) => v > 0).sort(([x], [y]) => x.localeCompare(y)) : [];
   const short = (k) => `${monthLabel(k).slice(0, 3)}${k.slice(0, 4) === curMonth().slice(0, 4) ? '' : ` ${k.slice(2, 4)}`}`;
   const pct = Math.min(100, Math.round((paid / b.amount) * 100));
   return `
@@ -297,20 +303,21 @@ function editBill(b) {
     month: li.querySelector('[data-alloc="month"]').value,
     cents: parseMoney(li.querySelector('[data-alloc="amount"]').value) || 0,
   }));
-  const openNow = (f) => Math.max(0, (parseMoney(f.elements.amount.value) || 0) - paid);
+  // Zugewiesen wird der ganze Betrag – bezahlt oder nicht, er zählt in den gewählten Monaten
+  const amountOf = (f) => parseMoney(f.elements.amount.value) || 0;
   const showSum = (f) => {
     const total = rows(f).reduce((t, r) => t + r.cents, 0);
-    const open = openNow(f);
-    f.querySelector('.plan-alloc-sum').innerHTML = `Zugewiesen <b>${money(total)}</b> von ${money(open)} offen${
-      total < open ? ` · <span class="amount-minus">Rest ${money(open - total)} zählt im laufenden Monat</span>`
-        : total > open ? ` · <span class="amount-minus">${money(total - open)} mehr als offen</span>` : ' ✓'}`;
+    const all = amountOf(f);
+    f.querySelector('.plan-alloc-sum').innerHTML = `Zugewiesen <b>${money(total)}</b> von ${money(all)}${
+      total < all ? ` · <span class="amount-minus">Rest ${money(all - total)} ohne Monat – zählt im laufenden Monat</span>`
+        : total > all ? ` · <span class="amount-minus">${money(total - all)} mehr als der Betrag</span>` : ' ✓'}`;
   };
   const showWhen = (f) => {
     const v = f.querySelector('[name="when"]:checked').value;
     f.querySelector('.plan-rate').hidden = v !== 'rate';
     f.querySelector('.plan-when-months').hidden = v !== 'months';
     if (v === 'months' && !rows(f).length) {
-      f.querySelector('.plan-alloc').insertAdjacentHTML('beforeend', allocRow(addMonths(curMonth(), 1), openNow(f)));
+      f.querySelector('.plan-alloc').insertAdjacentHTML('beforeend', allocRow(addMonths(curMonth(), 1), amountOf(f)));
     }
     if (v === 'months') showSum(f);
   };
@@ -385,7 +392,7 @@ function editBill(b) {
       },
       allocAdd(_, f) {
         const last = rows(f).at(-1)?.month;
-        const left = openNow(f) - rows(f).reduce((t, r) => t + r.cents, 0);
+        const left = amountOf(f) - rows(f).reduce((t, r) => t + r.cents, 0);
         f.querySelector('.plan-alloc').insertAdjacentHTML('beforeend', allocRow(last ? addMonths(last, 1) : addMonths(curMonth(), 1), Math.max(0, left)));
         showSum(f);
       },
@@ -393,12 +400,12 @@ function editBill(b) {
         btn.closest('.plan-alloc-row').remove();
         showSum(f);
       },
-      // Offenen Betrag gleichmässig auf n Monate ab dem ersten gewählten (sonst nächsten) Monat verteilen
+      // Betrag gleichmässig auf n Monate ab dem ersten gewählten (sonst nächsten) Monat verteilen
       allocSpread(_, f) {
         const n = Number(f.querySelector('[data-spread]').value);
         if (!Number.isInteger(n) || n < 1 || n > 24) return toast('Anzahl Monate: 1 bis 24');
         const from = rows(f)[0]?.month || addMonths(curMonth(), 1);
-        const open = openNow(f);
+        const open = amountOf(f);
         const each = Math.floor(open / n);
         f.querySelector('.plan-alloc').innerHTML = Array.from({ length: n }, (_, i) => allocRow(addMonths(from, i), each + (i === 0 ? open - each * n : 0))).join('');
         showSum(f);

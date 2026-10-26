@@ -136,10 +136,11 @@ export function wipePlan() {
   try { localStorage.removeItem(KEY_PREFIX + owner()); } catch { /* egal */ }
 }
 
-// Ganz bezahlte Rechnungen nach 30 Tagen weg, Aktivierungen älter als zwei Jahre weg
+// Ganz bezahlte Rechnungen nach 30 Tagen weg (mit Monaten: erst wenn der letzte vorbei ist), Aktivierungen älter als zwei Jahre weg
 function sweep() {
   const limit = Date.now() - PAID_KEEP_DAYS * 86400000;
-  const bills = data.bills.filter((b) => !b.doneAt || b.doneAt >= limit);
+  // … ausser einem Monat zugewiesen, der noch kommt (oder dieser ist): dort zählt sie ja noch
+  const bills = data.bills.filter((b) => !b.doneAt || b.doneAt >= limit || Object.keys(b.months || {}).some((m) => m >= curMonth()));
   const old = monthKey(new Date(new Date().getFullYear() - 2, new Date().getMonth(), 1));
   const months = [...Object.keys(data.active), ...Object.keys(data.parts)].filter((m) => m < old);
   if (bills.length === data.bills.length && !months.length) return;
@@ -224,41 +225,37 @@ export function monthSums(month) {
 const paidInMonth = (b, month) => arr(b.payments).filter((p) => p.date.startsWith(month)).reduce((s, p) => s + p.amount, 0);
 export const hasMonths = (b) => Boolean(b.months && Object.keys(b.months).length);
 
-// Monate zugewiesen (b.months): wie sich der offene Betrag ab jetzt auf die Monate verteilt → { 'JJJJ-MM': Rappen }.
-// Der offene Betrag wird den Monaten der Reihe nach zugeteilt (früh Bezahltes kürzt also die späteren Monate);
-// im laufenden Monat zählt, was ihm zugewiesen ist, abzüglich des schon diesen Monat Bezahlten. Was keinem Monat ab
-// jetzt zugewiesen ist – nie zugewiesen oder in einem vergangenen Monat nicht bezahlt – zählt im laufenden Monat.
+// Monate zugewiesen (b.months): der Betrag zählt fest in diesen Monaten – auch wenn die Rechnung schon (früher)
+// bezahlt ist; das Bezahlen ändert die Planung nicht. Was keinem Monat zugewiesen ist (Rest), zählt im laufenden
+// Monat, solange noch etwas offen ist, sonst im Monat der letzten Zahlung. → { 'JJJJ-MM': Rappen }
+const assignedSum = (b) => Object.values(b.months || {}).reduce((s, v) => s + v, 0);
 export function billSchedule(b) {
-  const now = curMonth();
-  let left = openOf(b);
-  const nowPart = Math.min(left, Math.max(0, (b.months?.[now] || 0) - paidInMonth(b, now)));
-  left -= nowPart;
-  const out = {};
-  for (const month of Object.keys(b.months || {}).filter((k) => k > now).sort()) {
-    const x = Math.min(left, b.months[month]);
-    if (x > 0) out[month] = x;
-    left -= x;
+  const out = { ...(b.months || {}) };
+  const rest = unassignedOf(b, true);
+  if (rest > 0) {
+    const last = arr(b.payments).at(-1)?.date?.slice(0, 7);
+    const at = openOf(b) > 0 || !last ? curMonth() : last;
+    out[at] = (out[at] || 0) + rest;
   }
-  out[now] = nowPart + left;
   return out;
 }
-// Davon nicht zugewiesen (zählt im laufenden Monat)
-export function unassignedOf(b) {
-  const now = curMonth();
-  return billSchedule(b)[now] - Math.min(openOf(b), Math.max(0, (b.months?.[now] || 0) - paidInMonth(b, now)));
+// Nicht zugewiesener Rest (all: auch wenn schon bezahlt; sonst nur solange noch etwas offen ist)
+export function unassignedOf(b, all = false) {
+  const rest = Math.max(0, b.amount - assignedSum(b));
+  return all || openOf(b) > 0 ? rest : 0;
 }
 
 // Was von einer Rechnung im Monat anfällt:
 //  - vergangene Monate: was tatsächlich bezahlt wurde
-//  - Monate zugewiesen: dieser Monat das schon Bezahlte plus der Anteil aus billSchedule, spätere Monate ihr Anteil
+//  - Monate zugewiesen: fest, was dem Monat zugewiesen ist (billSchedule) – bezahlt oder nicht, auch rückwirkend
 //  - dieser Monat: schon Bezahltes plus was noch ansteht (mit Ratenplan bis zur Rate, sonst der ganze offene Betrag)
 //  - spätere Monate: mit Ratenplan die Rate, solange noch etwas offen ist (angenommen, die Raten davor sind bezahlt);
 //    ohne Plan nichts mehr (der offene Betrag zählt im laufenden Monat)
 export function billInMonth(b, month) {
   const now = curMonth();
   const paidIn = paidInMonth(b, month);
+  if (hasMonths(b)) return billSchedule(b)[month] || 0;
   if (month < now) return paidIn;
-  if (hasMonths(b)) return (month === now ? paidIn : 0) + (billSchedule(b)[month] || 0);
   const open = openOf(b);
   if (month === now) return paidIn + (b.rate ? Math.min(open, Math.max(0, b.rate - paidIn)) : open);
   if (!b.rate || !open) return 0;
@@ -275,8 +272,8 @@ export function untilSums(end) {
   const months = Array.from({ length: n }, (_, i) => addMonths(start, i));
   const sum = (list) => list.reduce((s, x) => s + x.amount, 0);
   const monthly = (list) => sum(list) * n;
-  const bills = d.bills.filter((b) => openOf(b) > 0).reduce((s, b) => {
-    if (hasMonths(b)) return s + Object.entries(billSchedule(b)).filter(([k]) => k <= end).reduce((t, [, v]) => t + v, 0);
+  const bills = d.bills.filter((b) => openOf(b) > 0 || hasMonths(b)).reduce((s, b) => {
+    if (hasMonths(b)) return s + Object.entries(billSchedule(b)).filter(([k]) => k >= start && k <= end).reduce((t, [, v]) => t + v, 0);
     if (!b.rate) return s + openOf(b);
     const rates = Math.max(0, monthsBetween(rateStart(b), end) + 1);
     return s + Math.min(openOf(b), rates * b.rate);
