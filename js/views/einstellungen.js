@@ -19,7 +19,10 @@ import { saveSession, shareLink } from '../session.js';
 import { validCodeChars } from '../remote.js';
 import { aisleLabel, aisleOrder } from '../aisles.js';
 import { PALETTES } from '../palettes.js';
-import { CELEBRATE_CHOICES, STYLES, celebrate, celebrateMode, celebrateStyle, setCelebrateMode, setCelebrateStyle } from '../celebrate.js';
+import {
+  CELEBRATE_CHOICES, SOUNDS, STYLES, celebrate, celebrateMode, celebrateSound, celebrateStyle, playSound, setCelebrateMode, setCelebrateSound,
+  setCelebrateStyle,
+} from '../celebrate.js';
 
 // Farbdesign: jedes Gerät wählt sein eigenes (localStorage). js/palette-boot.js setzt es beim Start, bevor die
 // Seite gezeichnet wird; die Farben selbst stehen in css/palettes.css (erzeugt von tools/make-palettes.py).
@@ -127,7 +130,9 @@ export function openSettings() {
           <button type="button" class="seg-btn" data-sheet-action="celebrate" data-id="${id}" aria-pressed="${id === celebrateMode()}">${label}</button>`).join('')}</div>
         <div class="seg seg-wide style-seg" role="group" aria-label="Bildeffekt">${STYLES.map(([id, label]) => `
           <button type="button" class="seg-btn" data-sheet-action="celebrateStyle" data-id="${id}" aria-pressed="${id === celebrateStyle()}">${label}</button>`).join('')}</div>
-        <p class="muted small" style="margin:-6px 0 0">Effekt mit Ton beim Erledigen eines ToDos – Tupfer, grosses Häkchen, „Good job!“ oder jedes Mal ein anderer. Am iPhone ist der Ton stumm, solange der Stummschalter an ist.</p>
+        <div class="sound-pick" role="group" aria-label="Ton" ${celebrateMode() === 'all' ? '' : 'hidden'}><span class="small">Ton:</span>${SOUNDS.map(([id, label]) => `
+          <button type="button" class="chip sound-chip" data-sheet-action="celebrateSound" data-id="${id}" aria-pressed="${id === celebrateSound()}">${label}</button>`).join('')}</div>
+        <p class="muted small" style="margin:-6px 0 0">Effekt mit Ton beim Erledigen eines ToDos – Tupfer, grosses Häkchen, „Good job!“ oder jedes Mal ein anderer. Ton antippen spielt ihn vor. Am iPhone ist der Ton stumm, solange der Stummschalter an ist.</p>
       </div>
       <button type="button" class="btn btn-block" data-sheet-action="packTemplates" style="margin-bottom:10px">🧳 Packlisten-Vorlagen (${templates().length + addons().length})</button>
       `),
@@ -236,7 +241,14 @@ export function openSettings() {
       celebrate(btn) {
         setCelebrateMode(btn.dataset.id);
         for (const b of document.querySelectorAll('#sheet .celebrate-seg .seg-btn')) b.setAttribute('aria-pressed', String(b === btn));
+        document.querySelector('#sheet .sound-pick').hidden = btn.dataset.id !== 'all';
         celebrate(btn); // gleich vorführen (bei „Aus“ passiert nichts)
+      },
+      // Ton wählen und gleich vorspielen
+      celebrateSound(btn) {
+        setCelebrateSound(btn.dataset.id);
+        for (const b of document.querySelectorAll('#sheet .sound-chip')) b.setAttribute('aria-pressed', String(b === btn));
+        playSound(btn.dataset.id);
       },
       celebrateStyle(btn) {
         setCelebrateStyle(btn.dataset.id);

@@ -1,5 +1,6 @@
-// Kleine Belohnung beim Abhaken eines ToDos (auch Gepacktes): ein Bildeffekt, dazu ein kurzer Ton (zwei Töne, im
-// Browser erzeugt – keine Datei) und am Android ein kurzes Vibrieren.
+// Kleine Belohnung beim Abhaken eines ToDos (auch Gepacktes): ein Bildeffekt, dazu ein kurzer Ton (im Browser
+// erzeugt – keine Datei; Glocke, Plopp, Münze, Marimba oder Klick, pro Gerät wählbar) und am Android ein kurzes
+// Vibrieren.
 // Bildeffekte (STYLES): Farbtupfer aus dem Kästchen, grosses Häkchen, Schriftzug „Good job!“ oder jedes Mal ein anderer.
 // Ist die ganze Liste erledigt, gibt es mehr davon („Alles erledigt!“, viele Tupfer) und einen dritten Ton.
 // Pro Gerät einstellbar (App-Einstellungen → Beim Abhaken): 'all' Ton und Effekt, 'visual' nur Effekt, 'off' aus; dazu der
@@ -8,8 +9,20 @@
 
 const KEY = 'haushalt.celebrate';
 const STYLE_KEY = 'haushalt.celebrate.style';
+const SOUND_KEY = 'haushalt.celebrate.sound';
 export const CELEBRATE_CHOICES = [['all', 'Ton + Effekt'], ['visual', 'Nur Effekt'], ['off', 'Aus']];
 export const STYLES = [['dots', 'Tupfer'], ['check', 'Häkchen'], ['text', 'Good job!'], ['mix', 'Zufall']];
+export const SOUNDS = [['chime', '🔔 Glocke'], ['pop', '🫧 Plopp'], ['coin', '🪙 Münze'], ['marimba', '🎵 Marimba'], ['click', '✔️ Klick']];
+
+export function celebrateSound() {
+  try { return SOUNDS.some(([id]) => id === localStorage.getItem(SOUND_KEY)) ? localStorage.getItem(SOUND_KEY) : 'chime'; } catch { return 'chime'; }
+}
+export function setCelebrateSound(sound) {
+  try {
+    if (sound === 'chime') localStorage.removeItem(SOUND_KEY);
+    else localStorage.setItem(SOUND_KEY, sound);
+  } catch { /* privates Fenster: gilt bis zum Neuladen */ }
+}
 
 export function celebrateStyle() {
   try { return localStorage.getItem(STYLE_KEY) || 'dots'; } catch { return 'dots'; }
@@ -32,25 +45,69 @@ export function setCelebrateMode(mode) {
 }
 
 let audio = null;
-function chime(big) {
+// Ein Ton: Frequenz (optional gleitend bis `to`), Wellenform, Lautstärke, Länge in Sekunden ab `at`
+function tone(at, freq, { type = 'sine', vol = 0.18, len = 0.35, to } = {}) {
+  const osc = audio.createOscillator();
+  const gain = audio.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, at);
+  if (to) osc.frequency.exponentialRampToValueAtTime(to, at + len * 0.8);
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(vol, at + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + len);
+  osc.connect(gain).connect(audio.destination);
+  osc.start(at);
+  osc.stop(at + len + 0.05);
+}
+
+// Klick: ein ganz kurzes Rauschen, hell gefiltert
+function noise(at, len = 0.03, vol = 0.25) {
+  const buf = audio.createBuffer(1, Math.ceil(audio.sampleRate * len), audio.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length) ** 3;
+  const src = audio.createBufferSource();
+  const filter = audio.createBiquadFilter();
+  const gain = audio.createGain();
+  src.buffer = buf;
+  filter.type = 'highpass';
+  filter.frequency.value = 2200;
+  gain.gain.value = vol;
+  src.connect(filter).connect(gain).connect(audio.destination);
+  src.start(at);
+}
+
+// Die Töne – `big` (ganze Liste erledigt): je eine Stufe mehr. Leise genug fürs Wohnzimmer.
+const PLAY = {
+  // Dur-Dreiklang aufwärts: kurz und hell
+  chime: (t, big) => (big ? [784, 988, 1319] : [880, 1319]).forEach((f, n) => tone(t + n * 0.08, f)),
+  // Plopp wie eine Blase: kurzer Ton, der nach oben springt
+  pop: (t, big) => (big ? [0, 0.1, 0.2] : [0]).forEach((d, n) => tone(t + d, 380 + n * 120, { to: 900 + n * 200, len: 0.12, vol: 0.22 })),
+  // Münze aus dem Videospiel: zwei schnelle Rechteck-Töne
+  coin: (t, big) => {
+    tone(t, 988, { type: 'square', vol: 0.06, len: 0.08 });
+    tone(t + 0.07, 1319, { type: 'square', vol: 0.06, len: big ? 0.25 : 0.35 });
+    if (big) [1568, 2093].forEach((f, n) => tone(t + 0.2 + n * 0.08, f, { type: 'square', vol: 0.05, len: 0.3 }));
+  },
+  // Marimba: warm und hölzern, kurz ausklingend, mit leisem Oberton
+  marimba: (t, big) => (big ? [523, 659, 784, 1047] : [523, 784]).forEach((f, n) => {
+    tone(t + n * 0.09, f, { type: 'triangle', vol: 0.22, len: 0.28 });
+    tone(t + n * 0.09, f * 4, { vol: 0.03, len: 0.06 });
+  }),
+  // Klick wie ein Schalter – bei der ganzen Liste ein Doppelklick mit kleinem Ton
+  click: (t, big) => {
+    noise(t);
+    if (big) {
+      noise(t + 0.09);
+      tone(t + 0.16, 1047, { vol: 0.1, len: 0.25 });
+    }
+  },
+};
+
+export function playSound(sound = celebrateSound(), big = false) {
   try {
     audio ||= new (window.AudioContext || window.webkitAudioContext)();
     if (audio.state === 'suspended') audio.resume();
-    const t0 = audio.currentTime + 0.01;
-    // Dur-Dreiklang aufwärts: kurz und hell, leise genug fürs Wohnzimmer
-    (big ? [784, 988, 1319] : [880, 1319]).forEach((freq, n) => {
-      const osc = audio.createOscillator();
-      const gain = audio.createGain();
-      const start = t0 + n * 0.08;
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.18, start + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
-      osc.connect(gain).connect(audio.destination);
-      osc.start(start);
-      osc.stop(start + 0.4);
-    });
+    (PLAY[sound] || PLAY.chime)(audio.currentTime + 0.01, big);
   } catch { /* ohne Ton */ }
 }
 
@@ -135,6 +192,6 @@ export function celebrate(at, { big = false, style } = {}) {
   if (mode === 'off' || !at) return;
   const rect = at instanceof Element ? at.getBoundingClientRect() : at;
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches) show(rect, big, style);
-  if (mode === 'all') chime(big);
+  if (mode === 'all') playSound(celebrateSound(), big);
   navigator.vibrate?.(big ? [15, 60, 25] : 15);
 }
