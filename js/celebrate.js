@@ -8,7 +8,7 @@
 
 const KEY = 'haushalt.celebrate';
 const STYLE_KEY = 'haushalt.celebrate.style';
-export const CELEBRATE_CHOICES = [['all', 'Ton und Effekt'], ['visual', 'Nur Effekt'], ['off', 'Aus']];
+export const CELEBRATE_CHOICES = [['all', 'Ton + Effekt'], ['visual', 'Nur Effekt'], ['off', 'Aus']];
 export const STYLES = [['dots', 'Tupfer'], ['check', 'Häkchen'], ['text', 'Good job!'], ['mix', 'Zufall']];
 
 export function celebrateStyle() {

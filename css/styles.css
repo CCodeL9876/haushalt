@@ -664,6 +664,14 @@ button.plan-sum.total-toggle { float: right; }
   font-size: 13px; font-weight: 650; color: var(--section-text); text-transform: uppercase; letter-spacing: 0.04em;
 }
 .settings-group:first-child { border-top: 0; padding-top: 0; }
+/* Bereiche als farbige Boxen (Kachelfarben reihum, js/views/einstellungen.js) */
+.settings-box { margin: 0 0 12px; padding: 14px 14px 4px; border-radius: var(--radius); }
+.settings-box .settings-group { margin: 0 0 12px; padding: 0; border: 0; color: var(--tile-text); font-size: 14px; font-weight: 800; }
+.settings-box > :last-child { margin-bottom: 10px; }
+.settings-sub { margin: 0 0 6px; font-size: 14px; font-weight: 650; }
+.settings-sub small { font-weight: 500; }
+.settings-box .field > span { color: var(--tile-text); }
+.settings-box .seg-btn { font-size: 14.5px; padding: 0 6px; white-space: nowrap; }
 
 /* ---------- Farbdesign (Haushalt → Farbdesign) ---------- */
 .palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }

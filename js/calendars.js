@@ -22,7 +22,7 @@ export const SYMBOLS = [['football', 'Fussball'], ['hockey', 'Eishockey'], ['fla
 const DAYS_AHEAD = 7;
 const FRESH_MS = 15 * 60 * 1000;
 
-// Startseite: „Dein Tag“ und „Sport diese Woche“ lassen sich ausblenden (App-Einstellungen → Startseite) – nur auf
+// Startseite: „Dein Tag“ und „Sport diese Woche“ lassen sich ausblenden (App-Einstellungen → Heute) – nur auf
 // diesem Gerät. Gespeichert: Liste der ausgeblendeten Teile ('day', 'sport').
 const HOME_KEY = 'haushalt.home.hidden';
 export function homeHidden(part) {

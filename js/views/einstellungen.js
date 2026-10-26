@@ -102,10 +102,56 @@ async function fillPush(box) {
   box.innerHTML = html;
 }
 
+let boxNo = 0;
+const box = (title, inner) => `<section class="settings-box tile-${(boxNo++ % 3) + 1}"><h3 class="settings-group">${title}</h3>${inner}</section>`;
+
 export function openSettings() {
+  boxNo = 0;
   openSheet({
     title: 'App-Einstellungen',
-    body: `
+    // Bereiche in der Reihenfolge der App (Heute, ToDo, Einkauf, Essen, Geld), Allgemeines zuunterst; jeder Bereich
+    // als eigene farbige Box (Kachelfarben reihum), damit die Abgrenzung klar ist
+    body: [
+      box('Heute', `
+        <p class="settings-sub">Startseite <small class="muted">· nur auf diesem Gerät</small></p>
+      <label class="check-field"><input type="checkbox" data-home="day" ${homeHidden('day') ? '' : 'checked'}> <span>„Dein Tag“ zeigen<small class="muted" style="display:block;font-weight:500">Kalendertermine und ToDos mit Uhrzeit (sonst unter „Heute zu tun“)</small></span></label>
+      ${allCalendars().some((c) => c.small) || homeHidden('sport') ? `<label class="check-field"><input type="checkbox" data-home="sport" ${homeHidden('sport') ? '' : 'checked'}> <span>„Sport diese Woche“ zeigen</span></label>` : ''}
+      ${calendarsAvailable() ? `<button type="button" class="btn btn-block" data-sheet-action="calendars" style="margin-bottom:10px">${icon('calendar', 'icon-sm')} Kalender auf der Startseite${allCalendars().length ? ` (${allCalendars().length})` : ''}</button>` : ''}
+      `),
+      box('Entsorgung', `
+      <button type="button" class="btn btn-block" data-sheet-action="waste" style="margin-bottom:10px">${icon('calendar', 'icon-sm')} Abfuhrkalender${wasteKinds().length ? ` (${wasteKinds().map((k) => k.short).join(', ')})` : ' einlesen'}</button>
+      `),
+      box('ToDo', `
+      <div class="field"><span>Beim Abhaken <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
+        <div class="seg seg-wide celebrate-seg" role="group" aria-label="Beim Abhaken">${CELEBRATE_CHOICES.map(([id, label]) => `
+          <button type="button" class="seg-btn" data-sheet-action="celebrate" data-id="${id}" aria-pressed="${id === celebrateMode()}">${label}</button>`).join('')}</div>
+        <div class="seg seg-wide style-seg" role="group" aria-label="Bildeffekt">${STYLES.map(([id, label]) => `
+          <button type="button" class="seg-btn" data-sheet-action="celebrateStyle" data-id="${id}" aria-pressed="${id === celebrateStyle()}">${label}</button>`).join('')}</div>
+        <p class="muted small" style="margin:-6px 0 0">Effekt mit Ton beim Erledigen eines ToDos – Tupfer, grosses Häkchen, „Good job!“ oder jedes Mal ein anderer. Am iPhone ist der Ton stumm, solange der Stummschalter an ist.</p>
+      </div>
+      <button type="button" class="btn btn-block" data-sheet-action="packTemplates" style="margin-bottom:10px">🧳 Packlisten-Vorlagen (${templates().length + addons().length})</button>
+      `),
+      box('Einkauf', `
+      <button type="button" class="btn btn-block" data-sheet-action="terms" style="margin-bottom:10px">${icon('cart', 'icon-sm')} Einkaufsbegriffe verwalten (${state.terms.length})</button>
+      <button type="button" class="btn btn-block" data-sheet-action="cards" style="margin-bottom:10px">${icon('card', 'icon-sm')} Kundenkarten (${cards().length}) ${icon('lock', 'icon-xs')}</button>
+      <details class="field aisles-field">
+        <summary>Reihenfolge im Laden</summary>
+        <p class="muted small" style="margin:6px 0 8px">So ist die Einkaufsliste bei „Nach Laden“ sortiert. An euren Laden anpassen: Abteilungen nach oben oder unten schieben.</p>
+        <ul class="list aisle-order">${aisleListHtml()}</ul>
+        <button type="button" class="btn btn-ghost btn-sm" data-sheet-action="resetAisles" style="margin-top:6px">Standard-Reihenfolge</button>
+      </details>
+      `),
+      box('Geld', `
+        <p class="settings-sub">Abrechnung</p>
+      <label class="field"><span>Währung</span>
+        <select class="select" name="currency">${CURRENCIES.map((c) => `<option ${c === state.settings.currency ? 'selected' : ''}>${c}</option>`).join('')}</select>
+      </label>
+      <label class="field"><span>Zahlungsarten (mit Komma getrennt)</span>
+        <input class="input" name="methods" value="${esc((state.settings.methods || []).join(', '))}" autocomplete="off">
+      </label>
+        <p class="muted small" style="margin:0">Die Planung hat ihre eigene Sicherung unter Geld → Planung (nur auf diesem Gerät).</p>
+      `),
+      box('Allgemein', `
       <div class="field"><span>Personen</span>
         ${state.members.length ? `<ul class="list" style="margin-bottom:10px">${state.members.map((m) => `
           <li>${avatar(m)}<span class="list-main">${esc(m.name)}</span>
@@ -134,38 +180,8 @@ export function openSettings() {
         <p class="muted small theme-hint" style="margin:-6px 0 10px">${currentTheme() === 'auto' ? 'Folgt der Einstellung des iPhones (hell am Tag, dunkel am Abend, falls so eingestellt).' : 'Gilt immer, unabhängig von der Einstellung des iPhones.'}</p>
         <div class="palette-grid">${paletteHtml()}</div>
       </div>
-      <div class="field"><span>Beim Abhaken <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
-        <div class="seg seg-wide celebrate-seg" role="group" aria-label="Beim Abhaken">${CELEBRATE_CHOICES.map(([id, label]) => `
-          <button type="button" class="seg-btn" data-sheet-action="celebrate" data-id="${id}" aria-pressed="${id === celebrateMode()}">${label}</button>`).join('')}</div>
-        <div class="seg seg-wide style-seg" role="group" aria-label="Bildeffekt">${STYLES.map(([id, label]) => `
-          <button type="button" class="seg-btn" data-sheet-action="celebrateStyle" data-id="${id}" aria-pressed="${id === celebrateStyle()}">${label}</button>`).join('')}</div>
-        <p class="muted small" style="margin:-6px 0 0">Effekt mit Ton beim Erledigen eines ToDos – Tupfer, grosses Häkchen, „Good job!“ oder jedes Mal ein anderer. Am iPhone ist der Ton stumm, solange der Stummschalter an ist.</p>
-      </div>
-      <h3 class="settings-group">Startseite <small class="muted" style="font-weight:500;text-transform:none;letter-spacing:0">· nur auf diesem Gerät</small></h3>
-      <label class="check-field"><input type="checkbox" data-home="day" ${homeHidden('day') ? '' : 'checked'}> <span>„Dein Tag“ zeigen<small class="muted" style="display:block;font-weight:500">Kalendertermine und ToDos mit Uhrzeit (sonst unter „Heute zu tun“)</small></span></label>
-      ${allCalendars().some((c) => c.small) || homeHidden('sport') ? `<label class="check-field"><input type="checkbox" data-home="sport" ${homeHidden('sport') ? '' : 'checked'}> <span>„Sport diese Woche“ zeigen</span></label>` : ''}
-      <h3 class="settings-group">Einkauf</h3>
-      <button type="button" class="btn btn-block" data-sheet-action="terms" style="margin-bottom:10px">${icon('cart', 'icon-sm')} Einkaufsbegriffe verwalten (${state.terms.length})</button>
-      <button type="button" class="btn btn-block" data-sheet-action="cards" style="margin-bottom:10px">${icon('card', 'icon-sm')} Kundenkarten (${cards().length}) <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></button>
-      <details class="field aisles-field">
-        <summary>Reihenfolge im Laden</summary>
-        <p class="muted small" style="margin:6px 0 8px">So ist die Einkaufsliste bei „Nach Laden“ sortiert. An euren Laden anpassen: Abteilungen nach oben oder unten schieben.</p>
-        <ul class="list aisle-order">${aisleListHtml()}</ul>
-        <button type="button" class="btn btn-ghost btn-sm" data-sheet-action="resetAisles" style="margin-top:6px">Standard-Reihenfolge</button>
-      </details>
-      <h3 class="settings-group">ToDo</h3>
-      ${calendarsAvailable() ? `<button type="button" class="btn btn-block" data-sheet-action="calendars" style="margin-bottom:10px">${icon('calendar', 'icon-sm')} Kalender auf der Startseite${allCalendars().length ? ` (${allCalendars().length})` : ''}</button>` : ''}
-      <button type="button" class="btn btn-block" data-sheet-action="packTemplates" style="margin-bottom:10px">🧳 Packlisten-Vorlagen (${templates().length + addons().length})</button>
-      <h3 class="settings-group">Entsorgung</h3>
-      <button type="button" class="btn btn-block" data-sheet-action="waste" style="margin-bottom:10px">${icon('calendar', 'icon-sm')} Abfuhrkalender${wasteKinds().length ? ` (${wasteKinds().map((k) => k.short).join(', ')})` : ' einlesen'}</button>
-      <h3 class="settings-group">Abrechnung</h3>
-      <label class="field"><span>Währung</span>
-        <select class="select" name="currency">${CURRENCIES.map((c) => `<option ${c === state.settings.currency ? 'selected' : ''}>${c}</option>`).join('')}</select>
-      </label>
-      <label class="field"><span>Zahlungsarten (mit Komma getrennt)</span>
-        <input class="input" name="methods" value="${esc((state.settings.methods || []).join(', '))}" autocomplete="off">
-      </label>
-      <h3 class="settings-group">Daten</h3>
+      `),
+      box('Daten', `
       <div class="field">
         <p class="muted small" style="margin:0 0 8px">${session.mode === 'shared'
           ? 'Gemeinsam gespeichert für alle im Haushalt. Die Sicherung ist eine Datei mit Passwort – unabhängig von Supabase. Einspielen ersetzt die Daten für alle.'
@@ -176,7 +192,9 @@ export function openSettings() {
         </div>
         <p class="muted small" style="margin:10px 0 0">Wird automatisch gelöscht: erledigte ToDos und Einkäufe ${DONE_DAYS} Tage nach dem Abhaken,
           Einträge der Abrechnung nach ${LEDGER_MONTHS} Monaten – aber nur, wenn ihr danach quitt wart (der Stand bleibt gleich).</p>
-      </div>`,
+      </div>
+      `),
+    ].join(''),
     footer: `<button type="button" class="btn btn-block" data-sheet-action="reloadApp">${icon('refresh', 'icon-sm')} App aktualisieren</button>
       ${session.mode === 'local' ? '<button type="button" class="btn btn-danger btn-block" data-sheet-action="reset">Alles zurücksetzen</button>' : ''}`,
     actions: {
