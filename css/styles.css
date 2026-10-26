@@ -747,6 +747,15 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 .tile-1 { background: var(--tile-1-bg); }
 .tile-2 { background: var(--tile-2-bg); }
 .tile-3 { background: var(--tile-3-bg); }
+/* Inhalte auf farbigen Kacheln: Grautöne, Chips, Linien und Kästchen aus der Kachelschrift abgeleitet */
+.tile-1, .tile-2, .tile-3 {
+  color: var(--tile-text);
+  --text: var(--tile-text);
+  --muted: color-mix(in srgb, var(--tile-text) 64%, transparent);
+  --chip: color-mix(in srgb, var(--tile-text) 9%, transparent);
+  --line: color-mix(in srgb, var(--tile-text) 12%, transparent);
+  --check-border: color-mix(in srgb, var(--tile-text) 42%, transparent);
+}
 .tile-plain { background: var(--card); color: var(--text); }
 .tile-hero { background: var(--hero); color: var(--on-hero); }
 .tile-link { position: absolute; inset: 0; border: 0; background: transparent; border-radius: inherit; }
@@ -958,10 +967,7 @@ label.seg-btn:has(input:focus-visible), .tpl-tile:has(input:focus-visible) { out
 
 /* Startseite: Streifen für die nächste Abfuhr, übrige als Chips (js/views/heute.js) */
 .waste-b { grid-column: 1 / -1; display: grid; gap: 8px; min-width: 0; }
-.waste-next {
-  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px;
-  background: var(--card); color: var(--text);
-}
+.waste-next { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; }
 .waste-next.is-soon { background: var(--hero); color: var(--on-hero); }
 .waste-text { flex: 1; min-width: 0; }
 .waste-text strong { display: block; font-size: 16.5px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; }

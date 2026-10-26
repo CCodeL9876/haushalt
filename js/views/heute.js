@@ -56,7 +56,7 @@ function missingFor(meal) {
 // hero: zuoberst als dunkle Kachel; sonst (wenn „Jetzt wichtig“ etwas anderes zeigt) hell darunter
 function mealTile(hero = true) {
   const t = todaysMeal();
-  const cls = hero ? 'tile-hero' : 'tile-1 tile-meal-plain';
+  const cls = hero ? 'tile-hero' : 'tile-auto tile-meal-plain';
   if (!t) {
     return `<button type="button" class="tile ${cls} wide tile-meal" data-action="go" data-hash="#woche">
       <span class="tile-meal-text"><h3>Heute</h3><strong>Noch kein Menü geplant</strong></span>
@@ -110,7 +110,7 @@ function closedTile(hero = false) {
   const t = closedMeals();
   if (!t) return '';
   const label = (x) => (t.several ? `${x.name}: ${mealTitle(x.meal)}` : mealTitle(x.meal));
-  return `<div class="tile ${hero ? 'tile-hero' : 'tile-2'} wide">
+  return `<div class="tile ${hero ? 'tile-hero' : 'tile-auto'} wide">
     <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
     <h3>Morgen ${esc(t.names)} · Läden zu</h3>
     <div class="tile-big${t.several ? ' tile-big-list' : ''}">${esc(t.meals.map(label).join(' · '))}</div>
@@ -179,7 +179,7 @@ function dayTile() {
   const nowAt = timed.findIndex((x) => x.at > now);
   const rows = timed.map(row);
   if (timed.length && nowAt !== 0) rows.splice(nowAt < 0 ? rows.length : nowAt, 0, `<li class="day-now" aria-label="jetzt ${hm(now)}"><span class="day-time">${hm(now)}</span><span class="day-pin"></span><span class="day-line"></span></li>`);
-  return `<div class="tile tile-plain wide tile-day">
+  return `<div class="tile tile-auto wide tile-day">
     <h3>Dein Tag</h3>
     ${allDay.length ? `<div class="day-allday">${allDay.map((e) => `<span class="day-chip"><i style="background:${esc(e.cal.color)}"></i>${esc(e.title)}</span>`).join('')}</div>` : ''}
     ${timed.length ? `<ul class="day-list">${rows.join('')}</ul>` : ''}
@@ -215,7 +215,7 @@ function todoTile() {
   const list = all.filter((x) => !timedToday(x));
   const today = todayKey();
   const shown = list.slice(0, MAX_TODOS);
-  return `<div class="tile tile-plain wide">
+  return `<div class="tile tile-auto wide">
     <h3>Heute zu tun${list.length ? ` · ${list.length}` : ''}</h3>
     ${list.length ? `<ul class="tile-todos">${shown.map(({ scope, t }) => `
       <li>
@@ -240,7 +240,7 @@ function wasteTile(focused = false) {
   const renew = !next.length || (last && last <= dateKey(addDays(new Date(), 31)));
   const note = renew ? `<span class="waste-note">${next.length ? 'Kalender endet bald – ' : 'Keine Termine mehr – '}neue Datei der Gemeinde einlesen</span>` : '';
   if (!next.length) {
-    return `<button type="button" class="tile tile-plain wide" data-action="waste"><h3>Abfuhr</h3>${note}</button>`;
+    return `<button type="button" class="tile tile-auto wide" data-action="waste"><h3>Abfuhr</h3>${note}</button>`;
   }
   // Farbe pro Art fest (Reihenfolge im Kalender), damit Kehricht immer gleich aussieht
   const color = (k) => (kinds.findIndex((x) => x.id === k.id) % 3) + 1;
@@ -263,7 +263,7 @@ function wasteTile(focused = false) {
   };
   if (focused) return rest.length || note ? `<div class="waste-b">${rest.length ? `<div class="waste-chips" aria-label="Weitere Abfuhren">${rest.map(chip).join('')}</div>` : ''}${note}</div>` : '';
   return `<div class="waste-b">
-    <button type="button" class="tile waste-next${soon ? ' is-soon' : ''}" data-action="waste" aria-label="${esc(title)} – Abfuhrkalender öffnen">
+    <button type="button" class="tile waste-next${soon ? ' is-soon' : ' tile-auto'}" data-action="waste" aria-label="${esc(title)} – Abfuhrkalender öffnen">
       ${dot(first[0])}
       <span class="waste-text"><strong>${esc(title)}</strong><small>${esc(sub)}</small></span>
       ${icon('right', 'icon-sm')}
@@ -292,7 +292,7 @@ function fridgeTile() {
   if (!items.length) return '';
   const first = items[0];
   const urgent = items.filter(isUrgent).length;
-  return `<button type="button" class="tile tile-3 wide" data-action="go" data-hash="#kuehlschrank">
+  return `<button type="button" class="tile tile-auto wide" data-action="go" data-hash="#kuehlschrank">
     <h3>Kühlschrank${urgent ? ` · ${urgent} bald weg` : ''}</h3>
     <div class="tile-big">${esc(first.name)} · ${esc(leftLabel(first).replace(/ · bis .*/, ''))}</div>
     ${items.length > 1 ? `<span class="tile-note">${esc(items.slice(1, 4).map((f) => f.name).join(', '))}${items.length > 4 ? ' …' : ''}</span>` : ''}
@@ -425,6 +425,9 @@ export default {
   render() {
     const day = new Intl.DateTimeFormat('de-CH', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
     const f = focus();
+    // Kachelfarben reihum (tile-auto → tile-1/2/3) in der Reihenfolge, in der die Kacheln heute erscheinen – so
+    // haben zwei Kacheln nacheinander nie dieselbe Farbe, auch wenn einzelne fehlen
+    let n = 0;
     return `
       <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
       <div class="bento">
@@ -437,7 +440,7 @@ export default {
         ${todoTile()}
         ${wasteTile(f.kind === 'waste')}
         ${fridgeTile()}
-      </div>`;
+      </div>`.replace(/\btile-auto\b/g, () => `tile-${(n++ % 3) + 1}`);
   },
 
   actions: {
