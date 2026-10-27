@@ -4,7 +4,7 @@
 import { state } from '../store.js';
 import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, parseKey } from '../dates.js';
-import { DAY_CHOICES, addToFridge, addedDay, changeFridgeItem, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
+import { DAY_CHOICES, addToFridge, addedDay, changeFridgeItem, daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
 
 const MAX_QUICK = 8;
 const MAX_IDEAS = 6;
@@ -43,7 +43,9 @@ const isIdea = (name) => state.ideas.some((i) => i.kind !== 'drink' && i.title?.
 
 const item = (f) => `
   <li class="${isUrgent(f) ? 'is-urgent' : ''}">
-    <button type="button" class="check" data-action="fridgeUsed" data-id="${esc(f.id)}" aria-label="Aufgebraucht: ${esc(f.name)}">${icon('check', 'icon-sm')}</button>
+    ${daysLeft(f) < 0
+      ? `<button type="button" class="check check-toss" data-action="fridgeUsed" data-id="${esc(f.id)}" aria-label="Weggeworfen: ${esc(f.name)}">${icon('trash', 'icon-sm')}</button>`
+      : `<button type="button" class="check" data-action="fridgeUsed" data-id="${esc(f.id)}" aria-label="Aufgebraucht: ${esc(f.name)}">${icon('check', 'icon-sm')}</button>`}
     <button type="button" class="list-main" data-action="fridgeEdit" data-id="${esc(f.id)}" aria-label="${esc(f.name)} bearbeiten">
       ${esc(f.name)}
       <small><span class="${isUrgent(f) ? 'amount-minus' : ''}">${esc(leftLabel(f))}</span>${f.from ? ` · von ${esc(f.from)}` : ''}</small>
@@ -91,7 +93,7 @@ function editItem(id) {
       },
       change(el, form) { if (el.name === 'useBy') markDays(form); },
       used() { done(f, 'aufgebraucht'); },
-      toss() { done(f, 'entfernt'); },
+      toss() { done(f, 'weggeworfen'); },
     },
   });
   // Gewählte Anzahl Tage als aktiv zeigen
@@ -133,7 +135,7 @@ export default {
   actions: {
     fridgeUsed(el) {
       const f = state.fridge.find((x) => x.id === el.dataset.id);
-      if (f) done(f, 'aufgebraucht');
+      if (f) done(f, daysLeft(f) < 0 ? 'weggeworfen' : 'aufgebraucht');
     },
     fridgeEdit(el) { editItem(el.dataset.id); },
     fridgeQuick(el) {

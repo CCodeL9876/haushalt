@@ -361,7 +361,9 @@ function focus() {
       title: `${f.name}: ${leftLabel(f)}`,
       note: fridge.length > 1 ? `Auch: ${fridge.slice(1, 4).map((x) => x.name).join(', ')}${fridge.length > 4 ? ' …' : ''}` : '',
       buttons: [
-        `<button type="button" class="tile-btn" data-action="fridgeUsed" data-id="${esc(f.id)}">${icon('check', 'icon-sm')} Aufgebraucht</button>`,
+        daysLeft(f) < 0
+          ? `<button type="button" class="tile-btn" data-action="fridgeUsed" data-id="${esc(f.id)}">${icon('trash', 'icon-sm')} Weggeworfen</button>`
+          : `<button type="button" class="tile-btn" data-action="fridgeUsed" data-id="${esc(f.id)}">${icon('check', 'icon-sm')} Aufgebraucht</button>`,
         '<button type="button" class="tile-btn tile-btn-soft" data-action="go" data-hash="#kuehlschrank">Kühlschrank</button>',
       ],
     }) };
@@ -465,7 +467,7 @@ export default {
       const f = state.fridge.find((x) => x.id === el.dataset.id);
       if (!f) return;
       removeFridgeItem(f.id);
-      toast(`${f.name} aus dem Kühlschrank entfernt`);
+      toast(`${f.name} ${daysLeft(f) < 0 ? 'weggeworfen' : 'aus dem Kühlschrank entfernt'}`);
     },
     sportInfo(el) {
       // Ganzer Titel, Ort und Kalender – in der Leiste wird der Titel abgeschnitten

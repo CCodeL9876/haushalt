@@ -210,8 +210,9 @@ async function fridgeReminders() {
 // Einträge, die als Menüidee erfasst wurden (idea), einmal pro Tag und Haushalt; nur bis 11 Uhr nachholen
 async function ideaReminders() {
   const now = local();
-  if (now.weekday > 5) return { skipped: 'Wochenende' };
   if (now.minutes < IDEA_MORNING || now.hour >= 11) return { skipped: 'nicht am Morgen' };
+  const expired = await expiredReminders(now);
+  if (now.weekday > 5) return { skipped: 'Wochenende', expired };
   const items = await db(`items?collection=eq.fridge&select=household_key,data`);
   const byHousehold = new Map();
   for (const it of items || []) {
@@ -229,6 +230,33 @@ async function ideaReminders() {
     if (!subs?.length) continue;
     const payload = { title: 'Kühlschrank', body: `Nicht vergessen – ${list(names)} im Kühlschrank`, url: '#kuehlschrank', tag: `idea-${now.day}` };
     const results = await Promise.all(subs.map((s) => send(s, payload)));
+    if (!results.some(Boolean)) continue;
+    await db('push_sent', { method: 'POST', body: [{ household_key: household, ref }], prefer: 'resolution=ignore-duplicates,return=minimal' });
+    sent += 1;
+  }
+  return { households: sent, expired };
+}
+
+// Am Morgen nach dem Ablauf (jeden Tag, 7:15): einmal „… ist abgelaufen – anschauen und entsorgen“
+async function expiredReminders(now) {
+  const yesterday = new Date(Date.parse(`${now.day}T12:00:00Z`) - 86400000).toISOString().slice(0, 10);
+  const items = await db(`items?collection=eq.fridge&select=household_key,id,data`);
+  const byHousehold = new Map();
+  for (const it of items || []) {
+    const f = it.data || {};
+    if (f.useBy !== yesterday || !f.name) continue;
+    if (!byHousehold.has(it.household_key)) byHousehold.set(it.household_key, []);
+    byHousehold.get(it.household_key).push(clip(f.name, 60));
+  }
+  let sent = 0;
+  for (const [household, names] of byHousehold) {
+    const ref = `expired:${now.day}`;
+    const done = await db(`push_sent?household_key=eq.${encodeURIComponent(household)}&ref=eq.${encodeURIComponent(ref)}&select=ref`);
+    if (done?.length) continue;
+    const subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth`);
+    if (!subs?.length) continue;
+    const body = `${list(names)} ${names.length > 1 ? 'sind' : 'ist'} abgelaufen – anschauen und entsorgen`;
+    const results = await Promise.all(subs.map((s) => send(s, { title: 'Kühlschrank', body, url: '#kuehlschrank', tag: `expired-${now.day}` })));
     if (!results.some(Boolean)) continue;
     await db('push_sent', { method: 'POST', body: [{ household_key: household, ref }], prefer: 'resolution=ignore-duplicates,return=minimal' });
     sent += 1;
