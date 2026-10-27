@@ -22,7 +22,6 @@ import { addToShopping, openOnList, recentlyBought, shopIngredients } from './ei
 import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
-import { cards, showCards } from '../cards.js';
 import { eventsOn, homeHidden, isFavourite, upcomingSmall } from '../calendars.js';
 
 const MAX_TODOS = 5;
@@ -433,10 +432,7 @@ export default {
     // haben zwei Kacheln nacheinander nie dieselbe Farbe, auch wenn einzelne fehlen
     let n = 0;
     return `
-      <div class="heute-top">
-        <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
-        ${cards().length ? `<button type="button" class="heute-card" data-action="cards" aria-label="Kundenkarte zeigen">${icon('card')}</button>` : ''}
-      </div>
+      <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
       <div class="bento">
         ${f.html}
         ${parmesanTile()}
@@ -452,7 +448,6 @@ export default {
 
   actions: {
     go(el) { location.hash = el.dataset.hash; },
-    cards() { showCards(); },
     waste() { openWaste(); },
     parmesanAdd() {
       addToShopping(['Parmesan']);

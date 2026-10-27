@@ -746,8 +746,6 @@ button.plan-sum.total-toggle { float: right; }
 /* ---------- Startseite „Heute“ (js/views/heute.js) ---------- */
 .heute-hello { margin: -2px 2px 14px; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
 .heute-hello span { display: block; font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
-.heute-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.heute-card { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border: 0; border-radius: 16px; background: var(--accent); color: var(--on-accent); }
 .bento { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .tile {
   position: relative; display: block; min-width: 0; padding: 16px; border: 0; border-radius: 26px;
