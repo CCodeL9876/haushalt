@@ -7,7 +7,6 @@ import { addDays, dateKey, fmtShort, parseKey } from '../dates.js';
 import { DAY_CHOICES, addToFridge, addedDay, changeFridgeItem, daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
 
 const MAX_QUICK = 8;
-const MAX_IDEAS = 6;
 const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Schnellwahl: Esswaren, die schon einmal im Kühlschrank waren und gerade nicht drin sind
@@ -20,22 +19,11 @@ function quickPicks() {
     .map((k) => ({ name: capital(k), days: state.settings.fridgeDays[k] }));
 }
 
-// Menüideen (Essen) als Vorschlag: passend zum Getippten, sonst die ersten; was schon drin ist, fällt weg
-function ideaPicks(text = '') {
-  const q = text.trim().toLowerCase();
-  const inside = new Set(state.fridge.map((f) => f.name.toLowerCase()));
-  return state.ideas
-    .filter((i) => i.kind !== 'drink' && i.title && !inside.has(i.title.toLowerCase()) && (!q || i.title.toLowerCase().includes(q)))
-    .sort((a, b) => a.title.localeCompare(b.title, 'de'))
-    .slice(0, MAX_IDEAS);
-}
-
 function suggestHtml(text = '') {
   const q = text.trim().toLowerCase();
-  const ideas = ideaPicks(text).map((i) => `<button type="button" class="chip suggest-chip suggest-idea" data-action="fridgeQuick" data-name="${esc(i.title)}" data-keep-focus>${icon('star', 'icon-sm')}${esc(i.title)}</button>`);
-  const quick = quickPicks().filter((x) => !q || x.name.toLowerCase().includes(q))
-    .map((x) => `<button type="button" class="chip suggest-chip" data-action="fridgeQuick" data-name="${esc(x.name)}" data-keep-focus>${icon('plus', 'icon-sm')}${esc(x.name)}</button>`);
-  return [...ideas, ...quick].join('');
+  return quickPicks().filter((x) => !q || x.name.toLowerCase().includes(q))
+    .map((x) => `<button type="button" class="chip suggest-chip" data-action="fridgeQuick" data-name="${esc(x.name)}" data-keep-focus>${icon('plus', 'icon-sm')}${esc(x.name)}</button>`)
+    .join('');
 }
 
 // Ist der Name eine Menüidee? Dann wird er markiert (für die Morgen-Mitteilung „Nicht vergessen“)
@@ -121,7 +109,7 @@ export default {
         <input class="input" id="fridge-input" name="name" placeholder="Was ist übrig? z. B. Pesto" autocomplete="off" enterkeyhint="done" required maxlength="80" data-input="fridgeSuggest">
         <button type="submit" class="btn btn-primary" aria-label="In den Kühlschrank">${icon('plus')}</button>
       </form>
-      <div class="suggest" id="fridge-suggest" aria-label="Vorschläge – Stern: Menüidee">${suggestHtml()}</div>
+      <div class="suggest" id="fridge-suggest" aria-label="Vorschläge – antippen legt den Rest in den Kühlschrank">${suggestHtml()}</div>
       ${items.length
         ? `<ul class="list fridge-list">${items.map(item).join('')}</ul>`
         : `<div class="empty"><strong>Nichts vermerkt</strong>Bleibt etwas übrig, z. B. Pesto, hier eintragen – oder im Wochenplan beim Gericht „Reste in den Kühlschrank“.</div>`}
