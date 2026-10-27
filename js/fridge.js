@@ -21,11 +21,14 @@ export const DEFAULT_DAYS = 3;
 export const DAY_CHOICES = [1, 2, 3, 4, 5, 7];
 
 // Vorgeschlagene Tage für ein Lebensmittel
+// Bei einer Menüidee zählen auch ihre Zutaten mit (Gemüsecurry mit Reis → 1 Tag)
 export function suggestDays(name) {
   const learned = state.settings.fridgeDays?.[termKey(name)];
   if (Number.isFinite(learned)) return learned;
   const n = String(name || '').toLowerCase();
-  const hits = SHELF.filter((s) => s.keys.some((k) => n.includes(k))).map((s) => s.days);
+  const idea = state.ideas?.find((i) => i.kind !== 'drink' && i.title?.toLowerCase() === n.trim());
+  const texts = [n, ...(idea?.ingredients || []).map((x) => String(x).toLowerCase())];
+  const hits = SHELF.filter((s) => s.keys.some((k) => texts.some((t) => t.includes(k)))).map((s) => s.days);
   return hits.length ? Math.min(...hits) : DEFAULT_DAYS;
 }
 
