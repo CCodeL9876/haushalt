@@ -147,7 +147,7 @@ aufruft:
   (Standard 7:45) und Wochentage. Die Mitteilung nennt die ToDos, die heute dran sind (fällig bis heute oder ohne
   Datum, Überfälliges zuerst). Ist nichts offen, kommt keine. Antippen öffnet direkt die Liste.
 - **Kühlschrank:** Reste **am Vortag** („bis morgen aufbrauchen“) und **am letzten Tag** („heute aufbrauchen“),
-  jeweils ab 17 Uhr, an alle Geräte im Haushalt, die Mitteilungen eingeschaltet haben.
+  jeweils ab 17 Uhr, an alle Geräte im Haushalt, die Mitteilungen eingeschaltet haben. Mo–Fr um 7:15 Uhr zusätzlich „Nicht vergessen – … im Kühlschrank“, wenn eine Menüidee (Stern-Vorschlag) im Kühlschrank ist.
 - **Vortag (ToDo):** ab 18 Uhr für ToDos in geteilten Listen mit „Am Vortag erinnern“, die morgen fällig sind –
   z. B. Altpapier oder Grüngut aus dem Abfuhrplan. An alle Geräte im Haushalt mit Mitteilungen.
 - **Erinnerung vor einem ToDo:** bei ToDos mit Datum, Uhrzeit und „Erinnern“ (5 Min. bis 1 Tag vorher) – an die

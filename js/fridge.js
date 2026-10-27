@@ -63,7 +63,7 @@ export function addToFridge(entries) {
       const name = String(e.name || '').trim().slice(0, 80);
       if (!name) continue;
       const days = e.days ?? suggestDays(name);
-      s.fridge.push({ id: uid(), name, useBy: useByFrom(days), addedAt: Date.now(), ...(e.from ? { from: String(e.from).slice(0, 80) } : {}) });
+      s.fridge.push({ id: uid(), name, useBy: useByFrom(days), addedAt: Date.now(), ...(e.from ? { from: String(e.from).slice(0, 80) } : {}), ...(e.idea ? { idea: true } : {}) });
       learn(s, name, days); // auch für die Schnellwahl im Kühlschrank
       added += 1;
     }

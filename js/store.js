@@ -26,7 +26,7 @@
 //             doneAt: wann abgehakt (nach 2 Tagen ausgeblendet, nach 30 Tagen gelöscht)
 //             repeat?: { every, unit } oder { dates }, remind?: am Vortag erinnern (js/repeat.js)
 //             order?: selbst gewählte Reihenfolge in der Liste (sonst nach Datum), alarm?: Minuten vorher erinnern
-//   fridge    [{ id, name, useBy, addedAt, from? }]   Reste im Kühlschrank: useBy 'JJJJ-MM-TT' = aufbrauchen bis, from = Gericht
+//   fridge    [{ id, name, useBy, addedAt, from?, idea? }]   Reste im Kühlschrank: useBy 'JJJJ-MM-TT' = aufbrauchen bis, from = Gericht, idea = Menüidee (Morgen-Mitteilung)
 // In der Datenbank ist jeder Eintrag eine Zeile (collection + id); plan je Tag, settings als eine Zeile „main“.
 
 import { todayKey } from './dates.js';

@@ -7,6 +7,7 @@ import { addDays, dateKey, fmtShort, parseKey } from '../dates.js';
 import { DAY_CHOICES, addToFridge, addedDay, changeFridgeItem, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
 
 const MAX_QUICK = 8;
+const MAX_IDEAS = 6;
 const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Schnellwahl: Esswaren, die schon einmal im Kühlschrank waren und gerade nicht drin sind
@@ -18,6 +19,27 @@ function quickPicks() {
     .reverse()
     .map((k) => ({ name: capital(k), days: state.settings.fridgeDays[k] }));
 }
+
+// Menüideen (Essen) als Vorschlag: passend zum Getippten, sonst die ersten; was schon drin ist, fällt weg
+function ideaPicks(text = '') {
+  const q = text.trim().toLowerCase();
+  const inside = new Set(state.fridge.map((f) => f.name.toLowerCase()));
+  return state.ideas
+    .filter((i) => i.kind !== 'drink' && i.title && !inside.has(i.title.toLowerCase()) && (!q || i.title.toLowerCase().includes(q)))
+    .sort((a, b) => a.title.localeCompare(b.title, 'de'))
+    .slice(0, MAX_IDEAS);
+}
+
+function suggestHtml(text = '') {
+  const q = text.trim().toLowerCase();
+  const ideas = ideaPicks(text).map((i) => `<button type="button" class="chip suggest-chip suggest-idea" data-action="fridgeQuick" data-name="${esc(i.title)}" data-keep-focus>${icon('star', 'icon-sm')}${esc(i.title)}</button>`);
+  const quick = quickPicks().filter((x) => !q || x.name.toLowerCase().includes(q))
+    .map((x) => `<button type="button" class="chip suggest-chip" data-action="fridgeQuick" data-name="${esc(x.name)}" data-keep-focus>${icon('plus', 'icon-sm')}${esc(x.name)}</button>`);
+  return [...ideas, ...quick].join('');
+}
+
+// Ist der Name eine Menüidee? Dann wird er markiert (für die Morgen-Mitteilung „Nicht vergessen“)
+const isIdea = (name) => state.ideas.some((i) => i.kind !== 'drink' && i.title?.toLowerCase() === name.trim().toLowerCase());
 
 const item = (f) => `
   <li class="${isUrgent(f) ? 'is-urgent' : ''}">
@@ -92,17 +114,20 @@ export default {
 
   render() {
     const items = fridgeSorted();
-    const quick = quickPicks();
     return `
       <form class="add-row" data-form="addFridge">
-        <input class="input" id="fridge-input" name="name" placeholder="Was ist übrig? z. B. Pesto" autocomplete="off" enterkeyhint="done" required maxlength="80">
+        <input class="input" id="fridge-input" name="name" placeholder="Was ist übrig? z. B. Pesto" autocomplete="off" enterkeyhint="done" required maxlength="80" data-input="fridgeSuggest">
         <button type="submit" class="btn btn-primary" aria-label="In den Kühlschrank">${icon('plus')}</button>
       </form>
-      ${quick.length ? `<div class="suggest">${quick.map((q) => `<button type="button" class="chip suggest-chip" data-action="fridgeQuick" data-name="${esc(q.name)}">${icon('plus', 'icon-sm')}${esc(q.name)}</button>`).join('')}</div>` : ''}
+      <div class="suggest" id="fridge-suggest" aria-label="Vorschläge – Stern: Menüidee">${suggestHtml()}</div>
       ${items.length
         ? `<ul class="list fridge-list">${items.map(item).join('')}</ul>`
         : `<div class="empty"><strong>Nichts vermerkt</strong>Bleibt etwas übrig, z. B. Pesto, hier eintragen – oder im Wochenplan beim Gericht „Reste in den Kühlschrank“.</div>`}
       <p class="muted small fridge-note">Die App schlägt vor, wie lange etwas gekühlt hält (offen oder gekocht, vorsichtig gerechnet). Im Zweifel anschauen und riechen. Abhaken, wenn es aufgebraucht ist.</p>`;
+  },
+
+  input: {
+    fridgeSuggest(el, root) { root.querySelector('#fridge-suggest').innerHTML = suggestHtml(el.value); },
   },
 
   actions: {
@@ -112,7 +137,7 @@ export default {
     },
     fridgeEdit(el) { editItem(el.dataset.id); },
     fridgeQuick(el) {
-      addToFridge([{ name: el.dataset.name }]);
+      addToFridge([{ name: el.dataset.name, idea: isIdea(el.dataset.name) }]);
       added();
     },
   },
@@ -121,7 +146,7 @@ export default {
     addFridge(form) {
       const name = form.elements.name.value.trim();
       if (!name) return;
-      addToFridge([{ name }]);
+      addToFridge([{ name, idea: isIdea(name) }]);
       added();
       document.getElementById('fridge-input')?.focus();
     },

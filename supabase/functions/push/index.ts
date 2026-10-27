@@ -26,6 +26,7 @@ const VAPID_SUBJECT = 'https://ccodel9876.github.io/haushalt/';
 const TIME_ZONE = 'Europe/Zurich';
 const REMIND_HOUR = 17;
 const EVE_HOUR = 18;
+const IDEA_MORNING = 7 * 60 + 15; // Mo–Fr 7:15: Menüidee im Kühlschrank
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -205,6 +206,36 @@ async function fridgeReminders() {
   return { households: sent };
 }
 
+// ---------- Mo–Fr am Morgen: Menüidee im Kühlschrank ----------
+// Einträge, die als Menüidee erfasst wurden (idea), einmal pro Tag und Haushalt; nur bis 11 Uhr nachholen
+async function ideaReminders() {
+  const now = local();
+  if (now.weekday > 5) return { skipped: 'Wochenende' };
+  if (now.minutes < IDEA_MORNING || now.hour >= 11) return { skipped: 'nicht am Morgen' };
+  const items = await db(`items?collection=eq.fridge&select=household_key,data`);
+  const byHousehold = new Map();
+  for (const it of items || []) {
+    const f = it.data || {};
+    if (!f.idea || !f.name || (f.useBy && f.useBy < now.day)) continue;
+    if (!byHousehold.has(it.household_key)) byHousehold.set(it.household_key, []);
+    byHousehold.get(it.household_key).push(clip(f.name, 60));
+  }
+  let sent = 0;
+  for (const [household, names] of byHousehold) {
+    const ref = `idea:${now.day}`;
+    const done = await db(`push_sent?household_key=eq.${encodeURIComponent(household)}&ref=eq.${encodeURIComponent(ref)}&select=ref`);
+    if (done?.length) continue;
+    const subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth`);
+    if (!subs?.length) continue;
+    const payload = { title: 'Kühlschrank', body: `Nicht vergessen – ${list(names)} im Kühlschrank`, url: '#kuehlschrank', tag: `idea-${now.day}` };
+    const results = await Promise.all(subs.map((s) => send(s, payload)));
+    if (!results.some(Boolean)) continue;
+    await db('push_sent', { method: 'POST', body: [{ household_key: household, ref }], prefer: 'resolution=ignore-duplicates,return=minimal' });
+    sent += 1;
+  }
+  return { households: sent };
+}
+
 // ---------- Morgen-Erinnerung an eine ToDo-Liste ----------
 
 const clip = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
@@ -370,7 +401,7 @@ async function alarmReminders() {
 }
 
 async function reminders() {
-  return { alarm: await alarmReminders(), todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), fridge: await fridgeReminders() };
+  return { alarm: await alarmReminders(), todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), fridge: await fridgeReminders(), idea: await ideaReminders() };
 }
 
 async function test(household, body) {
