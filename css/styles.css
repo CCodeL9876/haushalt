@@ -681,7 +681,7 @@ button.plan-sum.total-toggle { float: right; }
 }
 .palette-btn[aria-pressed="true"] { border-color: var(--accent-text); box-shadow: 0 0 0 2px var(--accent-tint); }
 .palette-dots { display: flex; }
-.palette-dots i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--card); margin-right: -6px; }
+.palette-dots i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--card); margin-right: -6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14); } /* Rand: auch Weiss bleibt sichtbar */
 .palette-name { font-size: 15px; font-weight: 650; }
 
 /* ---------- Ziehen zum Aktualisieren (js/refresh.js) ---------- */

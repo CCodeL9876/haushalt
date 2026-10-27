@@ -8,6 +8,8 @@ Schreibt:  css/palettes.css  (Farbwerte je Design, aktiv über <html data-palett
 
 Neues Design: unten in PALETTES eintragen und das Skript ausführen.
   dark_tiles  (freiwillig) Kachelflächen für den dunklen Modus von Hand, z. B. {'tile-1-bg': '#5F2039'}
+  light_tiles (freiwillig) dasselbe für den hellen Modus
+  light_bg, dark_bg (freiwillig) Hintergrund von Hand statt aus base berechnet
   base    Grundton für den Hintergrund (wird für hell stark aufgehellt, für dunkel stark abgedunkelt)
   c1      Farbe für Abhaken, aktiven Umschalter, Abschnittspunkte, „Abend“
   c2      Farbe für Vorschläge, „Heute“, „Mittag“
@@ -27,6 +29,13 @@ PALETTES = [
     {'id': 'pastell', 'name': 'Pastell', 'show': ['#81D8D0', '#D99E82', '#D7D982', '#AE82D9'], 'base': '#81D8D0', 'c1': '#D7D982', 'c2': '#D99E82', 'c3': '#81D8D0', 'accent': '#AE82D9'},
     {'id': 'lavendel', 'name': 'Lavendel', 'show': ['#C1BFFF', '#D8D27E', '#FFB59A', '#CF6DFC'], 'base': '#C1BFFF', 'c1': '#D8D27E', 'c2': '#C1BFFF', 'c3': '#FFB59A', 'accent': '#CF6DFC'},
     {'id': 'garten', 'name': 'Garten', 'show': ['#A8DCAB', '#519755', '#DBAAA7', '#BE91BE'], 'base': '#A8DCAB', 'c1': '#BE91BE', 'c2': '#DBAAA7', 'c3': '#A8DCAB', 'accent': '#519755'},
+    {'id': 'indigo', 'name': 'Indigo', 'show': ['#272757', '#8686AC', '#505081', '#0F0E47'], 'base': '#8686AC', 'c1': '#8686AC', 'c2': '#505081', 'c3': '#272757', 'accent': '#0F0E47',
+     # Alles Töne desselben Blauvioletts: dunkel Nachtblau statt Grauschwarz, Karten und Felder ebenso (zwischen
+     # #0F0E47 und #8686AC), auch die dunkle Hauptkachel (--hero); #8686AC als Kennzeichen mit weisser Schrift ist zu hell – dort etwas dunkler
+     'light_bg': '#D3D3E5', 'dark_bg': '#0F0E47', 'light_tiles': {'tile-2-badge': '#6E6E99'},
+     'dark_tiles': {'hero': '#3A3A70', 'card': '#1D1C53', 'chip': '#27265B', 'line': '#323164', 'seg-bg': '#27265B', 'bar-track': '#27265B',
+                    'tile-2-badge': '#6E6E99', 'tag-1-bg': '#6E6E99'}},
+    {'id': 'miami', 'name': 'Miami', 'show': ['#FF69B4', '#069494', '#FFFFFF', '#00F0FF'], 'base': '#00F0FF', 'c1': '#069494', 'c2': '#00F0FF', 'c3': '#FF69B4', 'accent': '#FF69B4'},
 ]
 # Für die Auswahl: das Standard-Design (Farben aus css/styles.css)
 STANDARD = {'id': 'creme', 'name': 'Creme', 'swatches': ['#FDFBD4', '#BDB96A', '#C1BFFF', '#CF6DFC']}
@@ -192,7 +201,7 @@ def light_bg_apart(base):
 # ---------- Farbwerte eines Designs ----------
 def light_tokens(p):
     c1, c2, c3, acc = p['c1'], p['c2'], p['c3'], p['accent']
-    bg = light_bg_apart(p['base'])
+    bg = p.get('light_bg') or light_bg_apart(p['base'])
     card = light_card(bg)
     ink = ensure(mix(c1, BLACK, 0.86), bg, 13)
     acc_text = ensure(acc, card, 4.6)
@@ -220,6 +229,7 @@ def light_tokens(p):
         t['tile-3-badge'] = c3 if delta_e(c3, t['tile-3-bg']) >= 10 else mix(c3, BLACK, 0.15)
     t['tile-badge-text'] = badge_text([t['tile-1-badge'], t['tile-2-badge'], t['tile-3-badge']], ink)
     t['stat-bar'] = ensure(acc, card, 3)  # Balken der Statistik: Fläche, braucht 3:1 auf der Karte
+    t.update(p.get('light_tiles', {}))
     r, g, b = rgb(ink)
     t['shadow'] = f'0 1px 2px rgba({r}, {g}, {b}, 0.08), 0 4px 14px rgba({r}, {g}, {b}, 0.06)'
     t['shadow-lg'] = f'0 -10px 40px rgba({r}, {g}, {b}, 0.18)'
@@ -228,7 +238,7 @@ def light_tokens(p):
 
 def dark_tokens(p):
     c1, c2, c3, acc = p['c1'], p['c2'], p['c3'], p['accent']
-    bg = dark_bg(p['base'])
+    bg = p.get('dark_bg') or dark_bg(p['base'])
     card = dark_step(p['base'], bg, 0.86, DARK_CARD_L)
     text = ensure(mix(light_bg(p['base']), WHITE, 0.3), bg, 13, WHITE)
     # Hauptfarbe: zu dunkle (z. B. Violett) durch die hellste der anderen Farben ersetzen
