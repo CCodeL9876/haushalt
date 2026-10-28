@@ -386,10 +386,9 @@ function focus() {
 }
 
 // ---------- Parmesan-Alarm ----------
-// Steht kein Parmesan offen auf der Einkaufsliste und wurde in den letzten 4 Tagen keiner gekauft (abgehakt):
+// Steht kein Parmesan offen auf der Einkaufsliste:
 // gelbe Käse-Karte mit „!“ ganz oben, noch vor „Jetzt wichtig“. „Später“ blendet sie auf diesem Gerät bis morgen aus.
 const PARMESAN = /parmesan|parmigiano/i;
-const PARMESAN_DAYS = 4;
 const PARMESAN_LATER = 'haushalt.parmesanLater';
 let wobbled = false; // das „!“ wackelt nur beim ersten Anzeigen, nicht bei jedem Neuzeichnen
 
@@ -397,7 +396,6 @@ function parmesanAlarm() {
   const items = state.shopping.filter((i) => PARMESAN.test(i.name));
   if (items.some((i) => !i.done)) return null;
   const last = Math.max(0, ...items.map((i) => i.doneAt || 0));
-  if (last > Date.now() - PARMESAN_DAYS * 86400000) return null;
   try { if (localStorage.getItem(PARMESAN_LATER) === todayKey()) return null; } catch { /* ohne Speicher: immer zeigen */ }
   const days = last ? Math.round((new Date(`${todayKey()}T12:00:00`) - new Date(`${dateKey(new Date(last))}T12:00:00`)) / 86400000) : null;
   return { days };
