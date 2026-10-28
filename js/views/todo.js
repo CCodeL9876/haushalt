@@ -510,7 +510,7 @@ function editTodo(cur, id, { isNew = false } = {}) {
     submitLabel: 'Speichern',
     footer: `<button type="button" class="btn btn-danger btn-block" data-sheet-action="delete">Löschen</button>`,
     // Kalender oben neben dem Kreuz: klein, nur ein Symbol (Haken = schon einmal eingetragen)
-    headerActions: `<button type="button" class="icon-btn todo-cal-btn" data-sheet-action="calendar"
+    headerActions: `${cur.scope === 'shared' && !isNew ? `<button type="button" class="icon-btn todo-cal-btn" data-sheet-action="share" aria-label="Link auf dieses ToDo senden" title="Link senden">${icon('link')}</button>` : ''}<button type="button" class="icon-btn todo-cal-btn" data-sheet-action="calendar"
       aria-label="${isInCalendar(t.id) ? 'Nochmals in Apple-Kalender eintragen (schon eingetragen)' : 'In Apple-Kalender eintragen'}"
       title="${isInCalendar(t.id) ? 'Schon eingetragen – Änderungen bei Bedarf neu eintragen' : 'In Apple-Kalender eintragen'}">${icon(isInCalendar(t.id) ? 'calendarCheck' : 'calendarPlus')}</button>`,
     onSubmit: (_, f) => save(f),
@@ -537,6 +537,18 @@ function editTodo(cur, id, { isNew = false } = {}) {
         if (problem) return toast(problem);
         closeSheet();
         refresh(); // Kalender-Zeichen in der Liste
+      },
+      // Link direkt auf dieses ToDo (nur geteilte Listen – persönliche sieht sonst niemand). Im Link stehen nur IDs.
+      async share() {
+        const url = `${location.origin}${location.pathname}#todo/shared/${cur.list.id}/${id}`;
+        const text = `ToDo: ${t.title}`;
+        try {
+          if (navigator.share) return await navigator.share({ title: 'ToDo', text, url });
+          await navigator.clipboard.writeText(`${text}\n${url}`);
+          toast('Link kopiert');
+        } catch (e) {
+          if (e?.name !== 'AbortError') toast('Link konnte nicht geteilt werden');
+        }
       },
       delete() {
         cur.change((d) => { d.todos = d.todos.filter((x) => x.id !== id); });
@@ -653,6 +665,16 @@ function importPlan(cur, groups) {
   });
 }
 
+// ToDo aus einem Link öffnen; sind die Daten noch nicht geladen, einmal kurz später nochmals versuchen
+function openLinked(todoId, retry = true) {
+  setTimeout(() => {
+    const cur = current();
+    if (cur?.d.todos.some((x) => x.id === todoId)) return editTodo(cur, todoId);
+    if (retry) return openLinked(todoId, false);
+    toast('Dieses ToDo gibt es nicht mehr (erledigt oder gelöscht)');
+  }, retry ? 50 : 2000);
+}
+
 // Nach dem Speichern der Morgen-Erinnerung die Übersicht auffrischen
 document.addEventListener('reminderchange', () => refresh());
 
@@ -662,8 +684,10 @@ export default {
   icon: 'listCheck',
 
   // Direkt in eine Liste, z. B. aus der Morgen-Erinnerung: #todo/shared/<id> oder #todo/personal/<id>
-  enter(_, [scope, id] = []) {
+  // Mit dritter Angabe direkt ein ToDo öffnen (Link aus „Link senden“): #todo/shared/<Liste>/<ToDo>
+  enter(_, [scope, id, todoId] = []) {
     if ((scope === 'shared' || scope === 'personal') && id) setOpen({ scope, id });
+    if (todoId) openLinked(todoId);
   },
 
   render() {
