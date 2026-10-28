@@ -387,7 +387,7 @@ function focus() {
 
 // ---------- Parmesan-Alarm ----------
 // Steht kein Parmesan offen auf der Einkaufsliste und wurde in den letzten 4 Tagen keiner gekauft (abgehakt):
-// gelbe Käse-Karte mit „!“ unter „Jetzt wichtig“. „Später“ blendet sie auf diesem Gerät bis morgen aus.
+// gelbe Käse-Karte mit „!“ ganz oben, noch vor „Jetzt wichtig“. „Später“ blendet sie auf diesem Gerät bis morgen aus.
 const PARMESAN = /parmesan|parmigiano/i;
 const PARMESAN_DAYS = 4;
 const PARMESAN_LATER = 'haushalt.parmesanLater';
@@ -436,8 +436,8 @@ export default {
     return `
       <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
       <div class="bento">
-        ${f.html}
         ${parmesanTile()}
+        ${f.html}
         ${f.kind === 'meal' ? '' : mealTile(false)}
         ${f.kind === 'closed' ? '' : closedTile()}
         ${sportStrip()}
