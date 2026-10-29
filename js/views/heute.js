@@ -23,6 +23,7 @@ import { forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
 import { eventsOn, homeHidden, isFavourite, upcomingSmall } from '../calendars.js';
+import { liveFor, liveLabel } from '../livescores.js';
 
 const MAX_TODOS = 5;
 
@@ -190,7 +191,7 @@ function dayTile() {
 
 // „Sport diese Woche“: Kalender mit Darstellung „Klein“ (js/calendars.js) als schmale, waagrecht wischbare Leiste –
 // heute hervorgehoben, Lieblingsmannschaften in der Akzentfarbe, ohne Spiele gar nicht. Alle Spiele der nächsten 7 Tage; die Leiste reicht bis an den
-// Bildschirmrand, damit man sieht, dass es seitwärts weitergeht.
+// Bildschirmrand, damit man sieht, dass es seitwärts weitergeht. Laufende EuroLeague-Spiele zeigen den Spielstand (js/livescores.js).
 function sportStrip() {
   if (homeHidden('sport')) return '';
   const events = upcomingSmall();
@@ -201,10 +202,16 @@ function sportStrip() {
   const dayName = (key) => (key <= today ? 'Heute' : key === tomorrow ? 'Morgen' : new Intl.DateTimeFormat('de-CH', { weekday: 'short' }).format(new Date(`${key}T12:00:00`)));
   const chip = (e, i) => {
     const key = e.allDay ? e.start : dateKey(e.start);
-    const when = e.allDay ? dayName(key) : `${dayName(key)} ${hm(e.start)}`;
-    return `<button type="button" class="sport-game${key <= today ? ' is-today' : ''}${isFavourite(e.title) ? ' is-fav' : ''}" data-action="sportInfo" data-i="${i}">
+    const live = liveFor(e);
+    const running = live?.status === 'live';
+    const score = live && live.status !== 'pre' ? `<b class="sport-score">${live.a}:${live.b}</b> ` : '';
+    const label = running ? liveLabel(live) : '';
+    const when = running ? `<i class="live-dot" aria-hidden="true"></i>Live${label ? ` · ${esc(label)}` : ''}`
+      : live?.status === 'final' ? 'Endstand'
+      : esc(e.allDay ? dayName(key) : `${dayName(key)} ${hm(e.start)}`);
+    return `<button type="button" class="sport-game${key <= today ? ' is-today' : ''}${isFavourite(e.title) ? ' is-fav' : ''}${running ? ' is-live' : ''}" data-action="sportInfo" data-i="${i}">
       <span class="sport-sym" style="color:${esc(e.cal.color)}">${icon(e.cal.symbol || 'trophy', 'icon-sm')}</span>
-      <span class="sport-when">${esc(when)}</span><span class="sport-what">${esc(e.title)}</span>
+      <span class="sport-when">${when}</span><span class="sport-what">${score}${esc(e.title)}</span>
     </button>`;
   };
   return `<section class="sport-strip" aria-label="Sport diese Woche">
@@ -472,7 +479,10 @@ export default {
       const e = upcomingSmall()[Number(el.dataset.i)];
       if (!e) return;
       const fmt = (d) => new Intl.DateTimeFormat('de-CH', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
-      toast([e.title, e.allDay ? '' : fmt(e.start), e.location, e.cal.name].filter(Boolean).join(' · '));
+      const live = liveFor(e);
+      const info = live?.status === 'live' ? `Live ${live.a}:${live.b}${liveLabel(live) ? ` (${liveLabel(live)})` : ''}`
+        : live?.status === 'final' ? `Endstand ${live.a}:${live.b}` : '';
+      toast([e.title, info, e.allDay ? '' : fmt(e.start), e.location, e.cal.name].filter(Boolean).join(' · '));
     },
     toggleTodo(el) { toggleTodo(el.dataset.scope, el.dataset.id, el); },
     shopClosed() {

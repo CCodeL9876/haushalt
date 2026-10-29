@@ -213,6 +213,22 @@ nächsten 7 Tage und speichert nichts; die Termine liegen nur zwischengespeicher
 15 Minuten erneuert. Neue Termine erscheinen darum mit etwas Verzögerung (auch iCloud aktualisiert den öffentlichen
 Kalender nicht sofort).
 
+## 12. Live-Resultate der EuroLeague (einmalig einrichten)
+
+Läuft ein EuroLeague-Spiel aus einem Sport-Kalender („Klein (Sport)“, siehe Abschnitt 11), zeigt **„Sport diese Woche“**
+den Spielstand mit rotem Live-Punkt, Viertel und Restzeit, danach den Endstand. Die App fragt dafür nur nach, solange
+ein Spiel laufen könnte und die App offen ist, höchstens einmal pro Minute – über eine kleine Funktion in Supabase:
+
+1. Im Supabase-Dashboard → **Edge Functions** → **Deploy a new function** → **Via Editor**.
+2. Als Namen genau `livescores` eintragen, den Inhalt von
+   [supabase/functions/livescores/index.ts](supabase/functions/livescores/index.ts) hineinkopieren → **Deploy function**.
+3. Wie bei `recipe-import` die **JWT-Prüfung ausschalten**. Geschützt ist sie trotzdem: Sie antwortet nur mit dem
+   Haushalt-Schlüssel und dem richtigen Zugangscode.
+
+Die Spielstände kommen von den öffentlichen Schnittstellen der EuroLeague. Ein Kalendertermin bekommt einen Spielstand,
+wenn seine Anfangszeit passt und eine der beiden Mannschaften im Titel steht (z. B. „Panathinaikos – Real Madrid“).
+Andere Sportarten (Fussball, Eishockey) bleiben ohne Spielstand. Die Funktion speichert nichts.
+
 ## Gut zu wissen
 
 - **Code ändern:** In der App unter App-Einstellungen → Zugang → *Code ändern*. Alle anderen Geräte werden beim nächsten
