@@ -960,13 +960,6 @@ button.plan-sum.total-toggle { float: right; }
 .sport-game.is-fav .sport-sym { color: var(--on-accent) !important; }
 .sport-game.is-fav.is-today { outline: 2px solid var(--text); outline-offset: -2px; }
 .sport-what { font-size: 13.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Laufendes EuroLeague-Spiel (js/livescores.js): roter Punkt, Viertel und Spielstand */
-.sport-game.is-live { max-width: 270px; }
-.sport-game.is-live .sport-when { opacity: 1; }
-.sport-score { font-weight: 800; font-variant-numeric: tabular-nums; }
-.live-dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: #E5484D; vertical-align: 1px; animation: live-pulse 1.4s ease-in-out infinite; }
-@keyframes live-pulse { 50% { opacity: 0.3; } }
-@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
 /* Haushalt → Kalender */
 .cal-edit { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .cal-symbol { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--chip); color: var(--text); cursor: pointer; }

@@ -16,7 +16,6 @@ import { icon, toast } from './ui.js';
 import { boot, currentMember, ensureMe } from './login.js';
 import { refreshPush } from './push.js';
 import { refreshCalendars } from './calendars.js';
-import { refreshLive } from './livescores.js';
 import { refreshReminder } from './reminder.js';
 import { cleanup } from './cleanup.js';
 import { setupSwipe } from './swipe.js';
@@ -152,11 +151,9 @@ boot(() => {
   scheduleAlarmSync(); // Erinnerungen vor ToDos in Supabase nachführen (js/alarms.js)
   // Änderungen der anderen holen: regelmässig und sobald die App wieder in den Vordergrund kommt. Kalender
   // (js/calendars.js) dabei auch – sie laden selbst nur, wenn ihr Stand älter als 15 Minuten ist
-  // Live-Spielstände (js/livescores.js) fragen selbst nur, wenn gerade ein Spiel läuft – höchstens einmal pro Minute
   refreshCalendars();
-  refreshLive();
-  setInterval(() => { if (document.visibilityState === 'visible') { pull(); refreshCalendars(); refreshLive(); } }, 15000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull(); refreshCalendars(); refreshLive(); } });
+  setInterval(() => { if (document.visibilityState === 'visible') { pull(); refreshCalendars(); } }, 15000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull(); refreshCalendars(); } });
   window.addEventListener('online', () => pull());
 });
 
