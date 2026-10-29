@@ -315,8 +315,9 @@ function fridgeTile() {
 //  2. Für das Menü von heute fehlen Zutaten (Menü-Kachel mit Knopf)
 //  3. Morgen Sonntag/Feiertag: Läden zu, Zutaten fehlen
 //  4. Reste im Kühlschrank laufen heute ab (oder sind abgelaufen)
-//  5. Überfällige ToDos
-//  6. Sonst das Menü von heute
+//  5. Als wichtig markierte ToDos (im ToDo „Unter ‚Jetzt wichtig‘ zeigen“, auch ohne Datum)
+//  6. Überfällige ToDos
+//  7. Sonst das Menü von heute
 const WASTE_EVENING = '17:00';
 const WASTE_MORNING_UNTIL = '07:30';
 
@@ -331,6 +332,15 @@ function wasteFocus() {
   if (!day || state.settings.wasteOut === day) return null;
   const kinds = next.filter((k) => k.next === day);
   return { day, kinds, names: kinds.map((k) => k.short).join(' und ') };
+}
+
+// Als wichtig markierte offene ToDos; geteilte nur, wenn sie mich betreffen. Fällige zuerst, ohne Datum zuletzt
+function pinnedTodos() {
+  const pick = (scope, d, mine = () => true) => d.todos
+    .filter((t) => t.pinned && !t.done && d.lists.some((l) => l.id === t.listId) && mine(t))
+    .map((t) => ({ scope, t }));
+  return [...pick('shared', { lists: state.todolists, todos: state.todos }, concernsMe), ...pick('personal', personal())]
+    .sort((a, b) => (a.t.due || '9999').localeCompare(b.t.due || '9999') || (a.t.time || '99').localeCompare(b.t.time || '99'));
 }
 
 const overdueTodos = () => dueTodos().filter(({ t }) => t.due < todayKey());
@@ -372,6 +382,21 @@ function focus() {
           ? `<button type="button" class="tile-btn" data-action="fridgeUsed" data-id="${esc(f.id)}">${icon('trash', 'icon-sm')} Weggeworfen</button>`
           : `<button type="button" class="tile-btn" data-action="fridgeUsed" data-id="${esc(f.id)}">${icon('check', 'icon-sm')} Aufgebraucht</button>`,
         '<button type="button" class="tile-btn tile-btn-soft" data-action="go" data-hash="#kuehlschrank">Kühlschrank</button>',
+      ],
+    }) };
+  }
+  const pinned = pinnedTodos();
+  if (pinned.length) {
+    const { scope, t } = pinned[0];
+    const rest = pinned.slice(1).map((x) => x.t.title);
+    return { kind: 'todo', html: focusCard({
+      eyebrow: pinned.length > 1 ? `Jetzt wichtig · ${pinned.length}` : 'Jetzt wichtig',
+      title: t.title,
+      note: [t.due ? `fällig ${t.due < todayKey() ? 'seit' : ''} ${fmtShort(t.due)}${t.time ? ` · ${t.time}` : ''}`.replace('  ', ' ') : '',
+        rest.length ? `Auch: ${rest.slice(0, 3).join(', ')}${rest.length > 3 ? ' …' : ''}` : ''].filter(Boolean).join(' · '),
+      buttons: [
+        `<button type="button" class="tile-btn" data-action="toggleTodo" data-scope="${scope}" data-id="${esc(t.id)}">${icon('check', 'icon-sm')} Erledigt</button>`,
+        `<button type="button" class="tile-btn tile-btn-soft" data-action="go" data-hash="#todo/${scope}/${esc(t.listId)}">Zur Liste</button>`,
       ],
     }) };
   }

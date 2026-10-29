@@ -332,7 +332,8 @@ function todoItem(t) {
     <button type="button" class="check" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? 'Wieder offen' : 'Erledigt'}: ${esc(t.title)}">${icon('check', 'icon-sm')}</button>
     <button type="button" class="list-main" data-action="edit" data-id="${esc(t.id)}" aria-label="${esc(t.title)}${who ? ` (für ${esc(who.name)})` : ''} bearbeiten">
       ${esc(t.title)}${t.note ? ` <span class="todo-note-mark" title="Mit Notiz" aria-label="mit Notiz">${icon('note', 'icon-xs')}</span>` : ''}
-      ${t.due || t.repeat ? `<small>${[
+      ${t.due || t.repeat || t.pinned ? `<small>${[
+        t.pinned && !t.done ? `<span class="todo-repeat" title="Unter „Jetzt wichtig“">${icon('bolt', 'icon-xs')} Wichtig</span>` : '',
         t.due ? `<span class="${overdue(t) ? 'amount-minus' : ''}">${esc(dueLabel(t))}</span>` : '',
         t.repeat && !t.done ? `<span class="todo-repeat">${icon('refresh', 'icon-xs')} ${esc(repeatLabel(t))}</span>` : '',
         t.remind && t.due && !t.done && remindShown() ? `<span class="todo-repeat" title="Erinnerung am Vortag">${icon('bell', 'icon-xs')} Vortag</span>` : '',
@@ -447,6 +448,9 @@ function editTodo(cur, id, { isNew = false } = {}) {
       else delete item.repeat;
       if (form.elements.remind?.checked && item.due) item.remind = true;
       else delete item.remind;
+      // Auf der Startseite unter „Jetzt wichtig“ zeigen (js/views/heute.js)
+      if (form.elements.pinned.checked) item.pinned = true;
+      else delete item.pinned;
       // Erinnerung vor dem ToDo: nur mit Datum und Uhrzeit (js/alarms.js)
       const alarm = Number(form.elements.alarm?.value) || 0;
       if (alarm && item.due && item.time) item.alarm = alarm;
@@ -504,6 +508,7 @@ function editTodo(cur, id, { isNew = false } = {}) {
       ${cur.scope === 'shared'
         ? `<label class="check-field remind-field"><input type="checkbox" name="remind" ${t.remind ? 'checked' : ''}> ${icon('bell', 'icon-xs')} Am Vortag um 18 Uhr erinnern (alle mit Mitteilungen)</label>`
         : ''}
+      <label class="check-field"><input type="checkbox" name="pinned" ${t.pinned ? 'checked' : ''}> ${icon('bolt', 'icon-xs')} Auf der Startseite unter „Jetzt wichtig“ zeigen</label>
       <label class="field"><span>Notiz</span>
         <textarea class="textarea" name="note" maxlength="500">${esc(t.note)}</textarea>
       </label>`,
