@@ -112,7 +112,7 @@
   font-family: var(--mono); letter-spacing: 0.04em;
 }
 :root[data-palette="modular"] :is(.section-title, .settings-group, .tile h3, .sport-strip h3, .tab span) { text-transform: uppercase; font-weight: 700; }
-:root[data-palette="modular"] .tile h3 { opacity: 1; font-size: 11.5px; }
+:root[data-palette="modular"] .tile h3 { opacity: 1; font-size: var(--fs-2xs); }
 :root[data-palette="modular"] .section-title::before { width: 10px; height: 10px; }
 :root[data-palette="modular"] .heute-hello { font-weight: 900; letter-spacing: -0.03em; }
 
