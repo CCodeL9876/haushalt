@@ -1176,3 +1176,28 @@ button.plan-sum.total-toggle { float: right; }
 .sound-chip { border: 0; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .sound-chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .palette-note { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+
+/* ---------- Tippflächen und Fokus (Impeccable adapt) ----------
+   Kleine Bedienelemente behalten ihr Aussehen, bekommen aber eine unsichtbare Trefferfläche von mind. 44 px
+   (Apple-Richtlinie). Ausgedehnt wird nur in Richtungen mit genug Abstand zum Nachbarn, damit sich Flächen nicht
+   überlappen: Abhak-Kästchen rundum (12 px Abstand zum Text, Zeile 52 px hoch), Umschalter/Chips/kleine Knöpfe
+   nur nach oben und unten. */
+.check, .btn-sm, .seg-btn, .chip, .add-mittag { position: relative; }
+.check::after, .btn-sm::after, .seg-btn::after, .chip::after, .add-mittag::after { content: ""; position: absolute; }
+.check::after { inset: -9px; }                    /* 26 px → 44 px */
+.btn-sm::after { inset: -5px 0; }                 /* 34 px → 44 px */
+.seg-btn::after { inset: -6px 0; }                /* 32 px → 44 px (breite Umschalter 36 → 48) */
+.chip::after { inset: -4px 0; }                   /* 36 px → 44 px; Chip-Zeilen haben 8 px Abstand */
+.add-mittag::after { inset: -8px -2px; }          /* 28 px → 44 px */
+.tile-todos .check::after { inset: -8px -9px; }   /* „Heute zu tun“: Zeilen nur 42 px hoch → senkrecht ohne Überlappung */
+.day-check::after { inset: -13px -7px; }          /* „Dein Tag“: 18 px → 44 × 32 px, innerhalb von Zeile und Spaltenabstand */
+
+/* Sichtbarer Tastatur-Fokus für alle Knöpfe und Links (bisher nur Eingabefelder). In der Textfarbe, damit er in
+   jedem Farbdesign deutlich ist (Akzent-Lila erreicht auf Creme nur 2,9:1); in der dunklen Tab-Leiste hell. */
+:root { --focus-ring: var(--text); }
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:focus-visible {
+  outline: 2.5px solid var(--focus-ring); outline-offset: 2px;
+}
+.check:focus-visible { outline-offset: 3px; }
+.tabbar :focus-visible { --focus-ring: var(--on-hero); outline-offset: 2px; } /* aussen auf der dunklen Leiste, auch beim hellen aktiven Tab sichtbar */
+.input:focus, .select:focus, .textarea:focus { outline-color: var(--focus-ring); }
