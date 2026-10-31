@@ -5,3 +5,6 @@
 haushalt-*.json
 manifest.json
 *.backup.json
+
+# Notizen der Design-Prüfungen (Impeccable), nur lokal
+.impeccable/

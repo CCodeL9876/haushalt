@@ -154,11 +154,43 @@ if (window.visualViewport) {
 // ---------- Kurze Meldung unten ----------
 const toastEl = document.getElementById('toast');
 let toastTimer;
-export function toast(text) {
+// action: { label, run } – Knopf in der Meldung (z. B. „Rückgängig“); die Meldung bleibt dann länger stehen
+export function toast(text, action) {
   // Ein offenes Sheet liegt über allem – die Meldung muss dann darin stehen, sonst bleibt sie verdeckt
   (sheet.open ? sheet : document.body).append(toastEl);
-  toastEl.textContent = text;
+  toastEl.textContent = '';
+  const msg = document.createElement('span');
+  msg.textContent = text;
+  toastEl.append(msg);
+  const hide = () => { toastEl.classList.remove('is-visible', 'has-action'); };
+  if (action) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-action';
+    btn.textContent = action.label;
+    btn.addEventListener('click', () => { clearTimeout(toastTimer); hide(); action.run(); }, { once: true });
+    toastEl.append(btn);
+  }
+  toastEl.classList.toggle('has-action', Boolean(action));
   toastEl.classList.add('is-visible');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('is-visible'), 2400);
+  toastTimer = setTimeout(hide, action ? 6000 : 2400);
+}
+
+// Nach dem Löschen aus einer Liste: Meldung mit „Rückgängig“, das die Einträge an ihrer alten Stelle wieder einsetzt.
+// list(d) liefert das Array, in dem gelöscht wurde; removed sind [Index, Eintrag] vor dem Löschen; change ist die
+// Änderungsfunktion der Ansicht (update bzw. die Liste der ToDo-Ebene) – so geht die Wiederherstellung den normalen
+// Weg und wird wie jede Änderung mit den anderen Geräten abgeglichen.
+export function undoRemove(text, change, list, removed) {
+  if (!removed.length) return;
+  toast(text, {
+    label: 'Rückgängig',
+    run: () => change((d) => {
+      const arr = list(d);
+      for (const [i, item] of [...removed].sort((a, b) => a[0] - b[0])) {
+        if (arr.some((x) => x.id === item.id)) continue;
+        arr.splice(Math.min(i, arr.length), 0, item);
+      }
+    }),
+  });
 }

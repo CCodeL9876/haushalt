@@ -3,7 +3,7 @@
 // beim Tippen erscheinen passende Begriffe als Vorschläge, bei leerem Feld die häufigsten.
 
 import { refresh, state, update, uid, termKey } from '../store.js';
-import { esc, icon, openSheet, toast } from '../ui.js';
+import { esc, icon, openSheet, toast, undoRemove } from '../ui.js';
 import { AISLES, aisleLabel, aisleOf, aisleOrder } from '../aisles.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
@@ -548,10 +548,20 @@ export default {
       });
     },
     remove(el) {
-      update((s) => { s.shopping = s.shopping.filter((x) => x.id !== el.dataset.id); });
+      let removed = [];
+      update((s) => {
+        removed = s.shopping.map((x, i) => [i, x]).filter(([, x]) => x.id === el.dataset.id);
+        s.shopping = s.shopping.filter((x) => x.id !== el.dataset.id);
+      });
+      undoRemove(`«${removed[0]?.[1].name || 'Artikel'}» gelöscht`, update, (d) => d.shopping, removed);
     },
     clearDone() {
-      update((s) => { s.shopping = s.shopping.filter((x) => !x.done); });
+      let removed = [];
+      update((s) => {
+        removed = s.shopping.map((x, i) => [i, x]).filter(([, x]) => x.done);
+        s.shopping = s.shopping.filter((x) => !x.done);
+      });
+      undoRemove(`${removed.length} Artikel aufgeräumt`, update, (d) => d.shopping, removed);
     },
   },
 

@@ -63,12 +63,25 @@ function render(source = 'local') {
     return;
   }
   renderLater = false;
-  const focusedId = root.contains(document.activeElement) ? document.activeElement.id : '';
+  // Fokus merken, damit Tastatur und VoiceOver nach dem Neuzeichnen nicht an den Anfang springen: Feld per id,
+  // Knopf per Aktion + Eintrag (data-action/data-id); fehlt der Eintrag danach (gelöscht), den gleichartigen Knopf
+  // an derselben Stelle nehmen
+  const active = root.contains(document.activeElement) ? document.activeElement : null;
+  const focusedId = active?.id || '';
+  const focusAction = !focusedId && active?.dataset.action ? active.dataset.action : '';
+  const focusKey = focusAction ? active.dataset.id || '' : '';
+  const focusIndex = focusAction ? [...root.querySelectorAll(`[data-action="${CSS.escape(focusAction)}"]`)].indexOf(active) : -1;
   // Seitwärts gescrollte Leisten (data-keep-scroll, z. B. „Sport diese Woche“) beim Neuzeichnen nicht zurückspringen lassen
   const scrolled = [...root.querySelectorAll('[data-keep-scroll]')].map((el) => [el.dataset.keepScroll, el.scrollLeft]);
   root.innerHTML = current.render();
   for (const [key, x] of scrolled) { const el = root.querySelector(`[data-keep-scroll="${key}"]`); if (el) el.scrollLeft = x; }
-  if (focusedId) document.getElementById(focusedId)?.focus();
+  if (focusedId) document.getElementById(focusedId)?.focus({ preventScroll: true });
+  else if (focusAction) {
+    const same = [...root.querySelectorAll(`[data-action="${CSS.escape(focusAction)}"]`)];
+    const target = (focusKey && same.find((el) => el.dataset.id === focusKey))
+      || same[Math.min(Math.max(focusIndex, 0), same.length - 1)];
+    target?.focus({ preventScroll: true });
+  }
 }
 
 // Farbe der iPhone-Statusleiste = Hintergrund des offenen Bereichs (auch nach Wechsel hell/dunkel)

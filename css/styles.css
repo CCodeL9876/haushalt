@@ -708,6 +708,14 @@ button.plan-sum.total-toggle { float: right; }
   opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
 }
 .toast.is-visible { opacity: 1; transform: translateY(0); }
+/* Meldung mit Knopf („Rückgängig“): antippbar, Knopf gut mit dem Daumen erreichbar (44 px hoch) */
+.toast.has-action { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 18px; min-height: 48px; }
+.toast.has-action.is-visible { pointer-events: auto; }
+.toast-action {
+  min-height: 44px; padding: 0 14px; margin: 0; border: 0; border-radius: 999px; background: transparent;
+  color: inherit; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.toast-action:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
 
 /* Menge auf der Einkaufsliste: kleine Marke hinter dem Namen */
 .qty-pill { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--chip); color: var(--text-soft); font-size: 12.5px; font-weight: 650; vertical-align: 1px; white-space: nowrap; }

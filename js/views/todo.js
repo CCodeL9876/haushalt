@@ -10,7 +10,7 @@ import { notifyAssigned, pushConfigured } from '../push.js';
 import { ALARM_CHOICES, alarmLabel } from '../alarms.js';
 import { celebrate } from '../celebrate.js';
 import { addons, combinedItems, fromTemplate, newPackItem, packActions, packInfo, packPicker, packPickerActions, packSource, packView, saveTemplate, templates } from '../packliste.js';
-import { avatar, closeSheet, esc, icon, openSheet, toast } from '../ui.js';
+import { avatar, closeSheet, esc, icon, openSheet, toast, undoRemove } from '../ui.js';
 import { currentMember } from '../login.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
 import { REPEAT_CHOICES, formatDates, nextDue, parseDates, parseIcs, repeatChoice, repeatFromChoice, repeatLabel } from '../repeat.js';
@@ -750,11 +750,24 @@ export default {
       if (cur) editTodo(cur, el.dataset.id);
     },
     remove(el) {
-      current()?.change((d) => { d.todos = d.todos.filter((x) => x.id !== el.dataset.id); });
+      const cur = current();
+      if (!cur) return;
+      let removed = [];
+      cur.change((d) => {
+        removed = d.todos.map((x, i) => [i, x]).filter(([, x]) => x.id === el.dataset.id);
+        d.todos = d.todos.filter((x) => x.id !== el.dataset.id);
+      });
+      undoRemove(`«${removed[0]?.[1].title || 'Eintrag'}» gelöscht`, (fn) => cur.change(fn), (d) => d.todos, removed);
     },
     clearDone() {
       const cur = current();
-      cur?.change((d) => { d.todos = d.todos.filter((x) => !(x.listId === cur.list.id && x.done)); });
+      if (!cur) return;
+      let removed = [];
+      cur.change((d) => {
+        removed = d.todos.map((x, i) => [i, x]).filter(([, x]) => x.listId === cur.list.id && x.done);
+        d.todos = d.todos.filter((x) => !(x.listId === cur.list.id && x.done));
+      });
+      undoRemove((removed.length === 1 ? '1 erledigter Eintrag aufgeräumt' : `${removed.length} erledigte Einträge aufgeräumt`), (fn) => cur.change(fn), (d) => d.todos, removed);
     },
     editList() {
       const cur = current();
