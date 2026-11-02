@@ -1,6 +1,6 @@
 // Wochenmenüplan: Montag bis Sonntag, je Mittag und Abend. Gerichte frei eintragen oder aus den Menüideen wählen.
 // Oben ein Hinweis auf Reste im Kühlschrank; beim Gericht lassen sich Reste dorthin eintragen (js/fridge.js).
-// Platzhalter („Auswärts essen“, „Bestellen“): Mahlzeit ohne Kochen (away) – zählt als geplant, ohne Zutaten.
+// Platzhalter („Auswärts essen“, „Bestellen, juhu Pizza!“): Mahlzeit ohne Kochen (away) – zählt als geplant, ohne Zutaten.
 
 import { refresh, state, update } from '../store.js';
 import { closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui.js';
@@ -23,7 +23,9 @@ export const mealTitle = (meal) => ideaOf(meal)?.title || meal?.title || '';
 // Rezept-Link der verknüpften Menüidee (nur http/https), sonst ''
 export const recipeLink = (meal) => safeLink(ideaOf(meal)?.url);
 
-export const PLACEHOLDERS = ['Auswärts essen', 'Bestellen'];
+export const PLACEHOLDERS = ['Auswärts essen', 'Bestellen, juhu Pizza!'];
+// Symbol eines Platzhalters: Bestellen → Pizzastück, sonst Türe (auswärts)
+export const awayIcon = (title) => (/^bestell/i.test(String(title || '').trim()) ? 'pizza' : 'away');
 
 function setAway(day, slot, title) {
   update((s) => { s.plan[day] = { ...(s.plan[day] || {}), [slot]: { title, ideaId: null, away: true } }; });
@@ -115,7 +117,7 @@ function editMeal(day, slot) {
         : `<div class="field"><span>Aus den Menüideen</span><div class="chips">${ideaChips()}</div></div>`}
       <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>
       <div class="field"><span>Oder Platzhalter</span>
-        <div class="chips">${PLACEHOLDERS.map((t) => `<button type="button" class="chip chip-away" data-sheet-action="away" data-title="${esc(t)}">${icon('away', 'icon-xs')} ${esc(t)}</button>`).join('')}</div>
+        <div class="chips">${PLACEHOLDERS.map((t) => `<button type="button" class="chip chip-away" data-sheet-action="away" data-title="${esc(t)}">${icon(awayIcon(t), 'icon-xs')} ${esc(t)}</button>`).join('')}</div>
       </div>`,
     submitLabel: 'Speichern',
     footer: meal?.away ? '<button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Platzhalter entfernen</button>' : meal ? `${recipeLink(meal) ? `<a class="btn btn-block" href="${esc(recipeLink(meal))}" target="_blank" rel="noopener noreferrer">${icon('link', 'icon-sm')} Rezept öffnen</a>` : ''}
@@ -191,7 +193,7 @@ export default {
                   <button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'} ${meal?.away ? 'is-away' : ''} ${url ? 'has-recipe' : ''}" data-action="edit" data-day="${key}" data-slot="${esc(s.id)}">
                     <span class="slot-label">${s.label}</span>
                     <span class="slot-title">${meal ? esc(mealTitle(meal)) : 'Noch nichts geplant'}</span>
-                    ${meal ? (meal.away ? icon('away', 'icon-sm') : '') : icon('plus', 'icon-sm')}
+                    ${meal ? (meal.away ? icon(awayIcon(meal.title), 'icon-sm') : '') : icon('plus', 'icon-sm')}
                   </button>
                   ${url ? `<a class="slot-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen: ${esc(mealTitle(meal))}" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
                 </div>`;

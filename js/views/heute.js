@@ -19,7 +19,7 @@ import { addDays, dateKey, fmtShort, holidayName, shopsClosed, todayKey } from '
 import { glutenFree, isStaple, splitIngredient } from '../ingredients.js';
 import { daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
 import { addToShopping, openOnList, recentlyBought, shopIngredients } from './einkauf.js';
-import { forMeal, mealTitle } from './wochenplan.js';
+import { awayIcon, forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
 import { eventsOn, homeHidden, isFavourite, upcomingSmall } from '../calendars.js';
@@ -66,7 +66,7 @@ function mealTile(hero = true) {
     // Platzhalter im Wochenplan: heute kein Kochen
     return `<button type="button" class="tile ${cls} wide tile-meal" data-action="go" data-hash="#woche">
       <span class="tile-meal-text"><h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3><strong>${esc(mealTitle(t.meal))}</strong><small>Kein Kochen nötig</small></span>
-      ${icon('away')}</button>`;
+      ${icon(awayIcon(t.meal.title))}</button>`;
   }
   const missing = missingFor(t.meal);
   const known = state.ideas.some((i) => i.id === t.meal.ideaId);
