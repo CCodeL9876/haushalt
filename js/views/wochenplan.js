@@ -49,7 +49,7 @@ function othersFromForm(form, main) {
 }
 // Was gekocht wird: der Haupteintrag – ist der ein Platzhalter (z. B. Bestellen), aber eine Person kocht ein Menü,
 // dann dieses Menü (für „Heute“: Anzeige und fehlende Zutaten)
-export const cookedMeal = (meal) => (meal?.away ? othersOf(meal).map(([, c]) => c).find((c) => !c.away) || meal : meal);
+export const cookedMeal = (meal) => (meal?.away || meal?.undecided ? othersOf(meal).map(([, c]) => c).find((c) => !c.away) || meal : meal);
 
 function setOthers(day, slot, others) {
   update((s) => {
@@ -195,8 +195,14 @@ function editMeal(day, slot) {
     onSubmit(data, form) {
       const title = String(data.get('title') || '');
       // Leeres Gericht, aber ein Platzhalter steht schon: Platzhalter behalten (nur Personen geändert)
-      const idea = title.trim() || !meal?.away ? setMeal(day, slot, title) : null;
-      setOthers(day, slot, othersFromForm(form, state.plan[day]?.[slot]));
+      const keepAway = !title.trim() && meal?.away;
+      const others = othersFromForm(form, keepAway ? meal : title.trim() ? choiceOf(title) : null);
+      let idea = null;
+      if (!title.trim() && !keepAway && others) {
+        // Nur einzelne Personen geplant (z. B. Ben auswärts), für die anderen noch nichts: Eintrag „noch offen“
+        update((s) => { s.plan[day] = { ...(s.plan[day] || {}), [slot]: { title: '', ideaId: null, undecided: true } }; });
+      } else if (!keepAway) idea = setMeal(day, slot, title);
+      setOthers(day, slot, others);
       if (data.get('shop')) {
         if (!idea?.ingredients.length) toast('Keine Zutaten hinterlegt – in den Menüideen ergänzen');
         else {
@@ -219,8 +225,8 @@ function slotPeople(meal) {
     groups.get(key).members.push(m);
   }
   return `<span class="slot-people">${[...groups.values()].map(({ c, members }) => `
-    <span class="slot-person ${c.away ? 'is-away' : ''}"><span class="slot-avatars">${members.map(avatar).join('')}</span>
-      ${c.away ? icon(awayIcon(c.title), 'icon-xs') : ''}<span class="slot-person-title">${esc(mealTitle(c))}</span></span>`).join('')}</span>`;
+    <span class="slot-person ${c.away ? 'is-away' : ''} ${c.undecided ? 'is-open' : ''}"><span class="slot-avatars">${members.map(avatar).join('')}</span>
+      ${c.away ? icon(awayIcon(c.title), 'icon-xs') : ''}<span class="slot-person-title">${c.undecided ? 'noch offen' : esc(mealTitle(c))}</span></span>`).join('')}</span>`;
 }
 
 export default {

@@ -1241,4 +1241,5 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .slot-avatars .avatar + .avatar { margin-left: -6px; }
 .slot-person-title { flex: 1; min-width: 0; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot-person.is-away .slot-person-title { font-style: italic; font-weight: 500; color: var(--muted); }
+.slot-person.is-open .slot-person-title { font-weight: 400; color: var(--muted); }
 .slot-person .icon-xs { flex: none; color: var(--muted); }

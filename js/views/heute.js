@@ -38,7 +38,9 @@ function todaysMeal() {
   const day = todayKey();
   const entry = state.plan[day] || {};
   const slot = new Date().getHours() < 14 && entry.mittag ? 'mittag' : entry.abend ? 'abend' : entry.mittag ? 'mittag' : null;
-  return slot ? { day, slot, meal: cookedMeal(entry[slot]) } : null;
+  const meal = slot ? cookedMeal(entry[slot]) : null;
+  // „noch offen“ (nur einzelne Personen geplant, niemand kocht): wie nichts geplant
+  return meal && !meal.undecided ? { day, slot, meal } : null;
 }
 
 // Zutaten, die fehlen: weder Grundzutat noch auf der Einkaufsliste, nicht kürzlich gekauft (abgehakt) und nicht
