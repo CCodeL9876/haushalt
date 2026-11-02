@@ -1,6 +1,6 @@
 // Wochenmenüplan: Montag bis Sonntag, je Mittag und Abend. Gerichte frei eintragen oder aus den Menüideen wählen.
 // Oben ein Hinweis auf Reste im Kühlschrank; beim Gericht lassen sich Reste dorthin eintragen (js/fridge.js).
-// Platzhalter („Nicht zuhause“, „Auswärts essen“): Mahlzeit ohne Kochen (away) – zählt als geplant, ohne Zutaten.
+// Platzhalter („Nicht zuhause“, „Auswärts essen“, „Heute bestellen wir!“): Mahlzeit ohne Kochen (away) – zählt als geplant, ohne Zutaten.
 
 import { refresh, state, update } from '../store.js';
 import { closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui.js';
@@ -23,7 +23,7 @@ export const mealTitle = (meal) => ideaOf(meal)?.title || meal?.title || '';
 // Rezept-Link der verknüpften Menüidee (nur http/https), sonst ''
 export const recipeLink = (meal) => safeLink(ideaOf(meal)?.url);
 
-export const PLACEHOLDERS = ['Nicht zuhause', 'Auswärts essen'];
+export const PLACEHOLDERS = ['Nicht zuhause', 'Auswärts essen', 'Heute bestellen wir!'];
 
 function setAway(day, slot, title) {
   update((s) => { s.plan[day] = { ...(s.plan[day] || {}), [slot]: { title, ideaId: null, away: true } }; });
