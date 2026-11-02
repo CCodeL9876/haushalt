@@ -1225,3 +1225,20 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .check:focus-visible { outline-offset: 3px; }
 .tabbar :focus-visible { --focus-ring: var(--on-hero); outline-offset: 2px; } /* aussen auf der dunklen Leiste, auch beim hellen aktiven Tab sichtbar */
 .input:focus, .select:focus, .textarea:focus { outline-color: var(--focus-ring); }
+
+/* ---------- Wochenplan: pro Person (Standard: alle essen dasselbe) ---------- */
+.person-rows { display: grid; gap: 8px; margin-top: 10px; }
+.person-row { display: grid; grid-template-columns: auto minmax(0, 5.5em) minmax(0, 1fr); align-items: center; gap: 10px; }
+.person-row .avatar { width: 28px; height: 28px; font-size: min(var(--fs-2xs), 12px); }
+.person-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person-row .select { min-height: 44px; }
+.slot-people { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.slot-person { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.slot-person + .slot-person { padding-top: 6px; border-top: 1px dashed color-mix(in srgb, currentColor 22%, transparent); }
+.slot-avatars { display: inline-flex; flex: none; }
+.slot-avatars .avatar { width: 22px; height: 22px; font-size: min(var(--fs-2xs), 11px); box-shadow: 0 0 0 2px var(--abend-bg); }
+.slot-mittag .slot-avatars .avatar { box-shadow: 0 0 0 2px var(--mittag-bg); }
+.slot-avatars .avatar + .avatar { margin-left: -6px; }
+.slot-person-title { flex: 1; min-width: 0; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot-person.is-away .slot-person-title { font-style: italic; font-weight: 500; color: var(--muted); }
+.slot-person .icon-xs { flex: none; color: var(--muted); }

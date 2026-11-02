@@ -3,7 +3,7 @@
 // Platzhalter („Auswärts essen“, „Bestellen, juhu Pizza!“): Mahlzeit ohne Kochen (away) – zählt als geplant, ohne Zutaten.
 
 import { refresh, state, update } from '../store.js';
-import { closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui.js';
+import { avatar, closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui.js';
 import { addDays, dateKey, fmtDayMonth, fmtShort, fmtWeekday, isoWeek, startOfWeek, todayKey } from '../dates.js';
 import { shopIngredients } from './einkauf.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
@@ -26,6 +26,39 @@ export const recipeLink = (meal) => safeLink(ideaOf(meal)?.url);
 export const PLACEHOLDERS = ['Auswärts essen', 'Bestellen, juhu Pizza!'];
 // Symbol eines Platzhalters: Bestellen → Pizzastück, sonst Türe (auswärts)
 export const awayIcon = (title) => (/^bestell/i.test(String(title || '').trim()) ? 'pizza' : 'away');
+
+// Pro Person (others): Standard ist „alle essen dasselbe“ (der Haupteintrag). Wer etwas anderes isst, steht in
+// others[memberId] = { title, ideaId, away? } – z. B. Anna kocht Gemüsecurry, Ben isst auswärts. Einkauf und „Heute“
+// richten sich nach dem Haupteintrag; Menüs einzelner Personen kommen beim Einkaufen zusätzlich dazu.
+const othersOf = (meal) => Object.entries(meal?.others || {}).filter(([id]) => state.members.some((m) => m.id === id));
+const choiceOf = (title) => {
+  const t = String(title || '').trim();
+  if (!t) return null;
+  if (PLACEHOLDERS.includes(t)) return { title: t, ideaId: null, away: true };
+  const idea = ideaByTitle(t);
+  return { title: idea?.title || t, ideaId: idea?.id || null };
+};
+// Auswahl pro Person aus dem Formular (select p_<memberId>); gleich wie der Haupteintrag = keine Abweichung
+function othersFromForm(form, main) {
+  const others = {};
+  for (const m of state.members) {
+    const c = choiceOf(form.elements[`p_${m.id}`]?.value);
+    if (c && !(main && c.title === main.title && Boolean(c.away) === Boolean(main.away))) others[m.id] = c;
+  }
+  return Object.keys(others).length ? others : null;
+}
+// Was gekocht wird: der Haupteintrag – ist der ein Platzhalter (z. B. Bestellen), aber eine Person kocht ein Menü,
+// dann dieses Menü (für „Heute“: Anzeige und fehlende Zutaten)
+export const cookedMeal = (meal) => (meal?.away ? othersOf(meal).map(([, c]) => c).find((c) => !c.away) || meal : meal);
+
+function setOthers(day, slot, others) {
+  update((s) => {
+    const meal = s.plan[day]?.[slot];
+    if (!meal) return;
+    if (others) meal.others = others;
+    else delete meal.others;
+  });
+}
 
 function setAway(day, slot, title) {
   update((s) => { s.plan[day] = { ...(s.plan[day] || {}), [slot]: { title, ideaId: null, away: true } }; });
@@ -93,11 +126,33 @@ function fridgeHint() {
 }
 
 // Zutaten eines Menüs mit Tag – auf der Einkaufsliste lassen sie sich dann bis zu diesem Tag ausblenden
-export const forMeal = (day, meal) => { const idea = ideaOf(meal); return (idea?.ingredients || []).map((line) => ({ line, gf: Boolean(idea.glutenfree), meal: { day, title: mealTitle(meal) } })); };
+export const forMeal = (day, meal) => {
+  // Haupteintrag und Menüs einzelner Personen (je Menüidee nur einmal)
+  const ideas = [ideaOf(meal), ...othersOf(meal).map(([, c]) => ideaOf(c))].filter(Boolean);
+  return [...new Map(ideas.map((i) => [i.id, i])).values()]
+    .flatMap((idea) => (idea.ingredients || []).map((line) => ({ line, gf: Boolean(idea.glutenfree), meal: { day, title: idea.title } })));
+};
 
 // Getränke (js/views/ideen.js) gehören nicht in die Menüauswahl
 const mealIdeas = () => state.ideas.filter((i) => i.kind !== 'drink');
 const ideaChips = () => mealIdeas().map((i) => `<button type="button" class="chip" data-sheet-action="pick" data-title="${esc(i.title)}">${esc(i.title)}</button>`).join('');
+
+// Auswahl pro Person: zugeklappt „Für alle gleich“; aufgeklappt (oder wenn schon jemand abweicht) je Person ein Feld
+function personsHtml(meal) {
+  if (state.members.length < 2) return '';
+  const others = Object.fromEntries(othersOf(meal));
+  const options = (sel) => `<option value="">Wie alle</option>
+    <optgroup label="Platzhalter">${PLACEHOLDERS.map((t) => `<option ${sel === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</optgroup>
+    ${mealIdeas().length ? `<optgroup label="Menüideen">${mealIdeas().map((i) => `<option ${sel === i.title ? 'selected' : ''}>${esc(i.title)}</option>`).join('')}</optgroup>` : ''}
+    ${sel && !PLACEHOLDERS.includes(sel) && !mealIdeas().some((i) => i.title === sel) ? `<option selected>${esc(sel)}</option>` : ''}`;
+  return `<details class="field ideas-field persons-field" ${Object.keys(others).length ? 'open' : ''}>
+      <summary>Für einzelne Personen anders${Object.keys(others).length ? ` (${Object.keys(others).length})` : ' – sonst für alle gleich'}</summary>
+      <div class="person-rows">${state.members.map((m) => `
+        <label class="person-row">${avatar(m)}<span class="person-name">${esc(m.name)}</span>
+          <select class="select" name="p_${esc(m.id)}" aria-label="${esc(m.name)} isst">${options(others[m.id] ? mealTitle(others[m.id]) : '')}</select>
+        </label>`).join('')}</div>
+    </details>`;
+}
 
 function editMeal(day, slot) {
   const meal = state.plan[day]?.[slot];
@@ -118,7 +173,8 @@ function editMeal(day, slot) {
       <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>
       <div class="field"><span>Oder Platzhalter</span>
         <div class="chips">${PLACEHOLDERS.map((t) => `<button type="button" class="chip chip-away" data-sheet-action="away" data-title="${esc(t)}">${icon(awayIcon(t), 'icon-xs')} ${esc(t)}</button>`).join('')}</div>
-      </div>`,
+      </div>
+      ${personsHtml(meal)}`,
     submitLabel: 'Speichern',
     footer: meal?.away ? '<button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Platzhalter entfernen</button>' : meal ? `${recipeLink(meal) ? `<a class="btn btn-block" href="${esc(recipeLink(meal))}" target="_blank" rel="noopener noreferrer">${icon('link', 'icon-sm')} Rezept öffnen</a>` : ''}
       ${ideaOf(meal)?.ingredients?.length ? `<button type="button" class="btn btn-block" data-sheet-action="shop">${icon('cart', 'icon-sm')} Zutaten einkaufen (${ideaOf(meal).ingredients.length})</button>` : ''}
@@ -126,8 +182,9 @@ function editMeal(day, slot) {
       <button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Eintrag entfernen</button>` : '',
     actions: {
       pick(btn, form) { form.elements.title.value = btn.dataset.title; },
-      away(btn) {
+      away(btn, form) {
         setAway(day, slot, btn.dataset.title);
+        setOthers(day, slot, othersFromForm(form, state.plan[day]?.[slot]));
         closeSheet();
       },
       leftovers() { leftovers(meal); },
@@ -135,9 +192,11 @@ function editMeal(day, slot) {
       shop() { shopIngredients(forMeal(day, meal), `für ${mealTitle(meal)}`); },
       clear() { setMeal(day, slot, ''); closeSheet(); },
     },
-    onSubmit(data) {
+    onSubmit(data, form) {
       const title = String(data.get('title') || '');
-      const idea = setMeal(day, slot, title);
+      // Leeres Gericht, aber ein Platzhalter steht schon: Platzhalter behalten (nur Personen geändert)
+      const idea = title.trim() || !meal?.away ? setMeal(day, slot, title) : null;
+      setOthers(day, slot, othersFromForm(form, state.plan[day]?.[slot]));
       if (data.get('shop')) {
         if (!idea?.ingredients.length) toast('Keine Zutaten hinterlegt – in den Menüideen ergänzen');
         else {
@@ -147,6 +206,21 @@ function editMeal(day, slot) {
       }
     },
   });
+}
+
+// Im Plan: eine Zeile pro Person, wenn jemand anders isst (wer dasselbe isst, teilt sich eine Zeile)
+function slotPeople(meal) {
+  const others = Object.fromEntries(othersOf(meal));
+  const groups = new Map();
+  for (const m of state.members) {
+    const c = others[m.id] || meal;
+    const key = `${c.away ? 'a' : 'm'}:${mealTitle(c)}`;
+    if (!groups.has(key)) groups.set(key, { c, members: [] });
+    groups.get(key).members.push(m);
+  }
+  return `<span class="slot-people">${[...groups.values()].map(({ c, members }) => `
+    <span class="slot-person ${c.away ? 'is-away' : ''}"><span class="slot-avatars">${members.map(avatar).join('')}</span>
+      ${c.away ? icon(awayIcon(c.title), 'icon-xs') : ''}<span class="slot-person-title">${esc(mealTitle(c))}</span></span>`).join('')}</span>`;
 }
 
 export default {
@@ -190,10 +264,10 @@ export default {
                 // Rezept-Link neben dem Eintrag (ein Link darf nicht im Knopf stecken, darum daneben in einer Hülle)
                 const url = recipeLink(meal);
                 return `<div class="slot-wrap">
-                  <button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'} ${meal?.away ? 'is-away' : ''} ${url ? 'has-recipe' : ''}" data-action="edit" data-day="${key}" data-slot="${esc(s.id)}">
+                  <button type="button" class="slot slot-${s.id} ${meal ? '' : 'is-empty'} ${meal?.away && !othersOf(meal).length ? 'is-away' : ''} ${url ? 'has-recipe' : ''}" data-action="edit" data-day="${key}" data-slot="${esc(s.id)}">
                     <span class="slot-label">${s.label}</span>
-                    <span class="slot-title">${meal ? esc(mealTitle(meal)) : 'Noch nichts geplant'}</span>
-                    ${meal ? (meal.away ? icon(awayIcon(meal.title), 'icon-sm') : '') : icon('plus', 'icon-sm')}
+                    ${meal && othersOf(meal).length ? slotPeople(meal) : `<span class="slot-title">${meal ? esc(mealTitle(meal)) : 'Noch nichts geplant'}</span>
+                    ${meal ? (meal.away ? icon(awayIcon(meal.title), 'icon-sm') : '') : icon('plus', 'icon-sm')}`}
                   </button>
                   ${url ? `<a class="slot-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen: ${esc(mealTitle(meal))}" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
                 </div>`;

@@ -19,7 +19,7 @@ import { addDays, dateKey, fmtShort, holidayName, shopsClosed, todayKey } from '
 import { glutenFree, isStaple, splitIngredient } from '../ingredients.js';
 import { daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
 import { addToShopping, openOnList, recentlyBought, shopIngredients } from './einkauf.js';
-import { awayIcon, forMeal, mealTitle } from './wochenplan.js';
+import { awayIcon, cookedMeal, forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
 import { eventsOn, homeHidden, isFavourite, upcomingSmall } from '../calendars.js';
@@ -38,7 +38,7 @@ function todaysMeal() {
   const day = todayKey();
   const entry = state.plan[day] || {};
   const slot = new Date().getHours() < 14 && entry.mittag ? 'mittag' : entry.abend ? 'abend' : entry.mittag ? 'mittag' : null;
-  return slot ? { day, slot, meal: entry[slot] } : null;
+  return slot ? { day, slot, meal: cookedMeal(entry[slot]) } : null;
 }
 
 // Zutaten, die fehlen: weder Grundzutat noch auf der Einkaufsliste, nicht kürzlich gekauft (abgehakt) und nicht
