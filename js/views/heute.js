@@ -16,7 +16,7 @@ import { personal } from '../personal.js';
 import { currentMember } from '../login.js';
 import { esc, icon, safeLink, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, holidayName, shopsClosed, todayKey } from '../dates.js';
-import { isStaple, splitIngredient } from '../ingredients.js';
+import { glutenFree, isStaple, splitIngredient } from '../ingredients.js';
 import { daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
 import { addToShopping, openOnList, recentlyBought, shopIngredients } from './einkauf.js';
 import { forMeal, mealTitle } from './wochenplan.js';
@@ -48,7 +48,7 @@ function missingFor(meal) {
   const have = new Set([...openOnList(), ...recentlyBought(), ...state.fridge.map((f) => termKey(f.name))]);
   return (idea?.ingredients || []).filter((line) => {
     const { name } = splitIngredient(line);
-    return !isStaple(name) && !have.has(termKey(name));
+    return !isStaple(name) && !have.has(termKey(idea.glutenfree ? glutenFree(name) : name));
   });
 }
 

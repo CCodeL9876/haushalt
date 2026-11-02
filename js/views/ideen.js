@@ -70,6 +70,8 @@ function editIdea(id) {
       <label class="field"><span>Notiz</span>
         <input class="input" name="note" value="${esc(idea?.note)}" placeholder="Tipp, Beilage, Portionen …" autocomplete="off">
       </label>
+      ${drink ? '' : `<label class="check-field"><input type="checkbox" name="glutenfree" ${idea?.glutenfree ? 'checked' : ''}> Glutenfrei einkaufen</label>
+      <p class="muted small" style="margin:-4px 0 12px">Teigwaren, Mehl, Brot, Paniermehl, Sojasauce … kommen als glutenfreie Variante auf die Einkaufsliste.</p>`}
       ${idea ? linkHtml : ''}`,
     submitLabel: 'Speichern',
     footer: idea ? `
@@ -80,7 +82,7 @@ function editIdea(id) {
       <button type="button" class="btn btn-danger btn-block" data-sheet-action="remove">Idee löschen</button>` : '',
     actions: {
       plan() { planIdea(idea); },
-      shop() { shopIngredients(idea.ingredients, `für ${idea.title}`); },
+      shop() { shopIngredients(idea.ingredients, `für ${idea.title}`, { gf: Boolean(idea.glutenfree) }); },
       // Rezeptseite einlesen und das Formular füllen – gespeichert wird erst mit „Speichern“
       async import(btn, form) {
         const url = normalizeUrl(form.elements.url.value);
@@ -104,6 +106,7 @@ function editIdea(id) {
           form.elements.tags.value = tags.join(', ');
           const extra = [r.servings && (/\D/.test(r.servings) ? r.servings : `${r.servings} Portionen`), r.minutes && `${r.minutes} Min.`].filter(Boolean).join(' · ');
           if (extra && !form.elements.note.value.trim()) form.elements.note.value = extra;
+          if (form.elements.glutenfree) form.elements.glutenfree.checked = true; // eingelesene Rezepte: glutenfrei einkaufen
           status.textContent = `✓ ${r.ingredients?.length || 0} Zutaten eingelesen – kurz prüfen und speichern.`;
         } catch (err) {
           status.textContent = err.message;
@@ -126,6 +129,7 @@ function editIdea(id) {
         tags: splitList(data.get('tags'), ','),
         note: String(data.get('note') || '').trim(),
         kind: data.get('kind') === 'drink' ? 'drink' : undefined,
+        glutenfree: data.get('kind') !== 'drink' && data.get('glutenfree') ? true : undefined,
       };
       // Neu als andere Art gespeichert: dorthin umschalten, sonst wäre sie gleich unsichtbar
       if (!idea && (values.kind === 'drink') !== (kind === 'drink')) setKind(values.kind || 'food');
@@ -134,6 +138,7 @@ function editIdea(id) {
         if (current) {
           Object.assign(current, values);
           if (!values.kind) delete current.kind;
+          if (!values.glutenfree) delete current.glutenfree;
           // Umbenannt: Einträge im Wochenplan, die auf diese Idee zeigen, bekommen den neuen Namen
           for (const day of Object.values(s.plan)) {
             for (const meal of Object.values(day)) if (meal?.ideaId === idea.id) meal.title = values.title;

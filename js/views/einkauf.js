@@ -6,7 +6,7 @@ import { refresh, state, update, uid, termKey } from '../store.js';
 import { esc, icon, openSheet, toast, undoRemove } from '../ui.js';
 import { AISLES, aisleLabel, aisleOf, aisleOrder } from '../aisles.js';
 import { addDays, dateKey, fmtShort, todayKey } from '../dates.js';
-import { isStaple, splitIngredient } from '../ingredients.js';
+import { glutenFree, isStaple, splitIngredient } from '../ingredients.js';
 import { openTerms } from '../terms.js';
 import { cards, showCards } from '../cards.js';
 
@@ -149,12 +149,17 @@ export const openOnList = () => new Set(state.shopping.filter((i) => !i.done).ma
 
 // Zutaten eines Rezepts (oder mehrerer) auf die Einkaufsliste – vorher auswählen. Grundzutaten (Salz, Öl …) und
 // was schon auf der Liste steht, sind anfangs abgewählt. lines: Rezeptzeilen wie „400 g Kartoffeln“ oder
-// { line, meal: { day, title } } für ein Menü im Wochenplan (dann lässt sich der Artikel bis zu diesem Tag ausblenden).
-export function shopIngredients(lines, label = '') {
+// { line, meal: { day, title }, gf } für ein Menü im Wochenplan (dann lässt sich der Artikel bis zu diesem Tag ausblenden).
+// gf (pro Zeile oder für alle über opts.gf): Menüidee mit „Glutenfrei einkaufen“ → glutenhaltige Zutaten als glutenfreie Variante.
+export function shopIngredients(lines, label = '', opts = {}) {
   const byKey = new Map();
   const items = [];
   for (const entry of lines) {
     const it = { ...splitIngredient(typeof entry === 'string' ? entry : entry.line), meals: [] };
+    if (opts.gf || (typeof entry === 'object' && entry.gf)) {
+      const gfName = glutenFree(it.name);
+      if (gfName !== it.name) { it.gfFrom = it.name; it.name = gfName; }
+    }
     if (/^\d+(?:[.,]\d+)?$/.test(it.amount)) it.amount += '×'; // „1 Zwiebel“ → 1×
     const key = termKey(it.name);
     if (!key) continue;
@@ -185,7 +190,7 @@ export function shopIngredients(lines, label = '') {
           : fridge.has(termKey(it.name)) ? 'im Kühlschrank' : isStaple(it.name) ? 'meist zu Hause' : '';
         return `<label class="pick-row">
           <input type="checkbox" name="i${n}" ${why ? '' : 'checked'}>
-          <span class="list-main">${esc(it.name)}<small>${esc([it.amount, mealsText(it.meals), why].filter(Boolean).join(' · '))}</small></span>
+          <span class="list-main">${esc(it.name)}<small>${esc([it.amount, mealsText(it.meals), it.gfFrom && `statt «${it.gfFrom}»`, why].filter(Boolean).join(' · '))}</small></span>
         </label>`;
       }).join('')}</div>`,
     submitLabel: 'Hinzufügen',

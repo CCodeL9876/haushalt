@@ -57,3 +57,27 @@ export function isStaple(name) {
   const n = String(name || '').toLowerCase().replace(/\s+/g, ' ').trim();
   return STAPLES.includes(n) || /^(salz|pfeffer|wasser)\b/.test(n);
 }
+
+// ---------- Glutenfrei einkaufen (Menüidee mit „Glutenfrei einkaufen“) ----------
+// Glutenhaltige Zutaten bekommen auf der Einkaufsliste den Zusatz „glutenfrei“ („Spaghetti“ → „Spaghetti glutenfrei“),
+// von Natur aus glutenfreie bleiben, wie sie sind. Erkannt über Stichwörter im Namen; Mais-, Reis-, Buchweizen- usw.
+// sind schon glutenfrei.
+const GLUTEN = ['spaghetti', 'nudel', 'pasta', 'penne', 'fusilli', 'farfalle', 'tagliatelle', 'linguine', 'rigatoni', 'lasagne',
+  'makkaroni', 'maccheroni', 'magronen', 'hörnli', 'hornli', 'spätzli', 'spätzle', 'knöpfli', 'gnocchi', 'ravioli', 'tortellini',
+  'teigwaren', 'couscous', 'bulgur', 'mehl', 'brösel', 'brot', 'toast', 'brötchen', 'weggli', 'zopf', 'baguette', 'ciabatta',
+  'pita', 'wrap', 'tortilla', 'gipfeli', 'croissant', 'teig', 'biskuit', 'keks', 'guetzli', 'cracker', 'zwieback', 'griess',
+  'hafer', 'müesli', 'muesli', 'cornflakes', 'bier', 'bouillon', 'brühe', 'panade', 'paniert'];
+const NATURALLY_FREE = /^(reis|mais|glas|buchweizen|kichererbsen|linsen|erbsen|kartoffel|mandel|kokos|hirse|quinoa|amaranth|tapioka|maniok|soja)/i;
+const SOY_SAUCE = /^soja\s*-?\s*(sauce|soße|sosse)$/i;
+
+export function glutenFree(name) {
+  const n = String(name || '').trim();
+  const low = n.toLowerCase();
+  if (!n || /gluten\s*-?\s*frei|ohne gluten/.test(low)) return n;
+  if (SOY_SAUCE.test(n)) return 'Tamari (glutenfreie Sojasauce)';
+  const first = low.split(/[\s-]+/)[0];
+  if (NATURALLY_FREE.test(first)) return n;
+  // Weiss-, Halbweiss-, Ruch-, Dinkel-, Zopfmehl usw.: im Laden gibt es einfach „Mehl glutenfrei“
+  if (/mehl$/.test(low) && !/paniermehl$/.test(low)) return 'Mehl glutenfrei';
+  return GLUTEN.some((w) => low.includes(w)) ? `${n} glutenfrei` : n;
+}

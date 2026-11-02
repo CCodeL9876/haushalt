@@ -91,7 +91,7 @@ function fridgeHint() {
 }
 
 // Zutaten eines Menüs mit Tag – auf der Einkaufsliste lassen sie sich dann bis zu diesem Tag ausblenden
-export const forMeal = (day, meal) => (ideaOf(meal)?.ingredients || []).map((line) => ({ line, meal: { day, title: mealTitle(meal) } }));
+export const forMeal = (day, meal) => { const idea = ideaOf(meal); return (idea?.ingredients || []).map((line) => ({ line, gf: Boolean(idea.glutenfree), meal: { day, title: mealTitle(meal) } })); };
 
 // Getränke (js/views/ideen.js) gehören nicht in die Menüauswahl
 const mealIdeas = () => state.ideas.filter((i) => i.kind !== 'drink');
