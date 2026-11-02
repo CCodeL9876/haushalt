@@ -1,6 +1,6 @@
 // Wochenmenüplan: Montag bis Sonntag, je Mittag und Abend. Gerichte frei eintragen oder aus den Menüideen wählen.
 // Oben ein Hinweis auf Reste im Kühlschrank; beim Gericht lassen sich Reste dorthin eintragen (js/fridge.js).
-// Platzhalter („Nicht zuhause“, „Auswärts essen“, „Heute bestellen wir!“): Mahlzeit ohne Kochen (away) – zählt als geplant, ohne Zutaten.
+// Platzhalter („Auswärts essen“, „Bestellen“): Mahlzeit ohne Kochen (away) – zählt als geplant, ohne Zutaten.
 
 import { refresh, state, update } from '../store.js';
 import { closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui.js';
@@ -23,7 +23,7 @@ export const mealTitle = (meal) => ideaOf(meal)?.title || meal?.title || '';
 // Rezept-Link der verknüpften Menüidee (nur http/https), sonst ''
 export const recipeLink = (meal) => safeLink(ideaOf(meal)?.url);
 
-export const PLACEHOLDERS = ['Nicht zuhause', 'Auswärts essen', 'Heute bestellen wir!'];
+export const PLACEHOLDERS = ['Auswärts essen', 'Bestellen'];
 
 function setAway(day, slot, title) {
   update((s) => { s.plan[day] = { ...(s.plan[day] || {}), [slot]: { title, ideaId: null, away: true } }; });
@@ -114,7 +114,7 @@ function editMeal(day, slot) {
           </details>`
         : `<div class="field"><span>Aus den Menüideen</span><div class="chips">${ideaChips()}</div></div>`}
       <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>
-      <div class="field"><span>Oder Platzhalter, z. B. wenn ihr nicht zuhause esst</span>
+      <div class="field"><span>Oder Platzhalter</span>
         <div class="chips">${PLACEHOLDERS.map((t) => `<button type="button" class="chip chip-away" data-sheet-action="away" data-title="${esc(t)}">${icon('away', 'icon-xs')} ${esc(t)}</button>`).join('')}</div>
       </div>`,
     submitLabel: 'Speichern',
