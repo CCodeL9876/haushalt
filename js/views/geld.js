@@ -1,12 +1,13 @@
-// Geld: gemeinsame Abrechnung und persönliche Planung unter einem Tab, oben umschaltbar (wie Essen, js/views/essen.js).
+// Geld: gemeinsame Abrechnung, persönliche Planung und gemeinsames Moneyflow unter einem Tab, oben umschaltbar (wie Essen, js/views/essen.js).
 // Die Planung liegt nur auf diesem Gerät (js/planung.js). Jedes Gerät merkt sich, welcher Teil zuletzt offen war.
-// #abrechnung zeigt den zuletzt offenen Teil, #kosten die Abrechnung, #planung die Planung.
+// #abrechnung zeigt den zuletzt offenen Teil, #kosten die Abrechnung, #planung die Planung, #moneyflow das Moneyflow.
 
 import { refresh } from '../store.js';
 import abrechnung from './abrechnung.js';
 import planung from './planung.js';
+import moneyflow from './moneyflow.js';
 
-const PARTS = [abrechnung, planung];
+const PARTS = [abrechnung, planung, moneyflow];
 const PART_KEY = 'haushalt.geld';
 
 let partId = (() => { try { const v = localStorage.getItem(PART_KEY); return PARTS.some((p) => p.id === v) ? v : 'abrechnung'; } catch { return 'abrechnung'; } })();
@@ -23,10 +24,10 @@ export default {
   id: 'abrechnung',
   tab: 'Geld',
   icon: 'wallet',
-  aliases: ['kosten', 'planung'],
+  aliases: ['kosten', 'planung', 'moneyflow'],
   get title() { return part().title; },
 
-  // Aufruf über #abrechnung (ohne Zusatz) zeigt den zuletzt offenen Teil; #planung bzw. #kosten gezielt
+  // Aufruf über #abrechnung (ohne Zusatz) zeigt den zuletzt offenen Teil; #planung, #moneyflow bzw. #kosten gezielt
   enter(id) { choose(id); },
 
   render() {

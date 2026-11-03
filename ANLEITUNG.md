@@ -138,6 +138,15 @@ Sammlung: **SQL Editor** → **New query** → den ganzen Inhalt von [supabase/s
 einfügen → **Run**. Das ist gefahrlos: Bestehende Daten bleiben. Bis dahin meldet die App beim Erfassen eines Rests
 „Nicht gespeichert“.
 
+**Moneyflow (Geld → Moneyflow)** braucht ebenso eine neue Sammlung (`flow`): schema.sql gleich wie oben nochmals
+ausführen – oder nur diese zwei Zeilen:
+
+```sql
+alter table public.items drop constraint if exists items_collection_check;
+alter table public.items add constraint items_collection_check
+  check (collection in ('members', 'shopping', 'terms', 'ideas', 'plan', 'expenses', 'settings', 'todolists', 'todos', 'private', 'fridge', 'flow'));
+```
+
 ## 10. Push-Mitteilungen (einmalig einrichten)
 
 Die App verschickt fünf Arten von Mitteilungen – von einer Funktion in Supabase, die ein Zeitplan alle 5 Minuten

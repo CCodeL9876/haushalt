@@ -27,6 +27,9 @@
 //             repeat?: { every, unit } oder { dates }, remind?: am Vortag erinnern (js/repeat.js)
 //             order?: selbst gewählte Reihenfolge in der Liste (sonst nach Datum), alarm?: Minuten vorher erinnern
 //   fridge    [{ id, name, useBy, addedAt, from?, idea? }]   Reste im Kühlschrank: useBy 'JJJJ-MM-TT' = aufbrauchen bis, from = Gericht, idea = Menüidee (Morgen-Mitteilung)
+//   flow      [{ id, type: 'income' | 'fix' | 'bill', name, amount, by?, changedAt? }]   Moneyflow: gemeinsame Planung (js/views/moneyflow.js)
+//             income: memberId? · bill: due 'JJJJ-MM-TT', payer ('joint' | members.id), when ('whole' | 'rate' | 'spread'),
+//             rate?, spread? (Anzahl Monate), repeat? ('q' | 'y'), payments [{ id, date, amount, expenseId? }], doneAt?, nextId?
 // In der Datenbank ist jeder Eintrag eine Zeile (collection + id); plan je Tag, settings als eine Zeile „main“.
 
 import { todayKey } from './dates.js';
@@ -34,7 +37,7 @@ import { AccessError } from './remote.js';
 
 const LOCAL_KEY = 'haushalt.v1';
 const CACHE_PREFIX = 'haushalt.cache.';
-const LIST_COLLECTIONS = ['members', 'shopping', 'terms', 'ideas', 'expenses', 'todolists', 'todos', 'fridge'];
+const LIST_COLLECTIONS = ['members', 'shopping', 'terms', 'ideas', 'expenses', 'todolists', 'todos', 'fridge', 'flow'];
 
 // Dunkle Töne aus Lila, Oliv und Lavendel – weisse Initialen bleiben darauf lesbar
 export const MEMBER_COLORS = ['#8A35C2', '#6B6728', '#4B2F80', '#5E5AB8', '#55531F', '#A23FB0'];
@@ -57,6 +60,7 @@ function empty() {
     todolists: [],
     todos: [],
     fridge: [],
+    flow: [],
     settings: { currency: 'CHF', categories: [...DEFAULT_CATEGORIES], methods: [...DEFAULT_METHODS] },
   };
 }
@@ -122,6 +126,7 @@ function normalize(saved) {
     todolists: Array.isArray(saved.todolists) ? saved.todolists : base.todolists,
     todos: Array.isArray(saved.todos) ? saved.todos : base.todos,
     fridge: Array.isArray(saved.fridge) ? saved.fridge : base.fridge,
+    flow: Array.isArray(saved.flow) ? saved.flow : base.flow,
     settings: { ...base.settings, ...(saved.settings || {}) },
   };
 }
@@ -227,9 +232,9 @@ function flush() {
     }
     if (!upserts.length && !Object.keys(removals).length) return true;
     try {
-      // Neuere Sammlungen (ToDo, Kühlschrank) in eigener Anfrage zuletzt: Ist die Datenbank noch nicht auf dem
+      // Neuere Sammlungen (ToDo, Kühlschrank, Moneyflow) in eigener Anfrage zuletzt: Ist die Datenbank noch nicht auf dem
       // neuen Stand (schema.sql), scheitert nur diese – alles andere ist dann schon oben
-      const late = (r) => ['todolists', 'todos', 'fridge'].includes(r.collection);
+      const late = (r) => ['todolists', 'todos', 'fridge', 'flow'].includes(r.collection);
       await remote.upsert(upserts.filter((r) => !late(r)));
       await remote.upsert(upserts.filter(late));
       await remote.remove(removals);
