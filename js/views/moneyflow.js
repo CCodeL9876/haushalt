@@ -391,6 +391,7 @@ function billSheet(b) {
       const amount = parseMoney(data.get('amount'));
       if (!amount) { toast('Bitte einen Betrag eingeben'); return false; }
       const rect = f.querySelector('[type="submit"]')?.getBoundingClientRect();
+      closeSheet(); // zuerst schliessen: Meldungen landen sonst im Fenster und verschwinden mit ihm
       addPayment(b, Math.min(amount, open), String(data.get('date') || todayKey()), data.get('settle') === 'on');
       if (amount >= open && rect) celebrate(rect);
     },

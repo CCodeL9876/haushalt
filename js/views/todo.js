@@ -410,6 +410,51 @@ function current() {
   return list ? { scope: open.scope, list, d, change: SCOPES[open.scope].change } : null;
 }
 
+// Ziele fürs Verschieben: alle Listen ausser Packlisten (deren Einträge sind anders aufgebaut, js/packliste.js)
+const moveTargets = (scope) => [...SCOPES[scope].data().lists]
+  .filter((l) => l.kind !== 'pack')
+  .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || (a.createdAt || 0) - (b.createdAt || 0));
+const listOptions = (cur) => [['shared', 'Geteilt'], ['personal', 'Nur für mich']].map(([scope, label]) => {
+  const lists = moveTargets(scope);
+  return lists.length ? `<optgroup label="${label}">${lists.map((l) => `<option value="${scope}:${esc(l.id)}" ${scope === cur.scope && l.id === cur.list.id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</optgroup>` : '';
+}).join('');
+
+// ToDo in eine andere Liste verschieben, auch zwischen geteilt und persönlich. Persönliche Listen kennen weder
+// Zuweisung noch Erinnerung am Vortag; die eigene Reihenfolge gilt nur in der alten Liste. Rückgängig stellt alles her.
+function moveToList(cur, id, scope, listId) {
+  const from = SCOPES[cur.scope];
+  const to = SCOPES[scope];
+  const list = to.data().lists.find((l) => l.id === listId);
+  const items = from.data().todos;
+  const index = items.findIndex((x) => x.id === id);
+  if (!list || index < 0) return;
+  const before = { ...items[index] };
+  const moved = { ...before, listId };
+  delete moved.order;
+  if (scope === 'personal') {
+    delete moved.assignee;
+    delete moved.remind;
+  }
+  const without = (d) => { d.todos = d.todos.filter((x) => x.id !== id); };
+  // Zuerst ins Ziel, dann aus der Quelle: So geht das ToDo auch bei einem Fehler dazwischen nicht verloren
+  if (from === to) from.change((d) => { d.todos = d.todos.map((x) => (x.id === id ? moved : x)); });
+  else {
+    to.change((d) => { d.todos.push(moved); });
+    from.change(without);
+  }
+  closeSheet();
+  toast(`Verschoben nach «${list.name}»${scope === 'shared' && cur.scope === 'personal' ? ' – für alle sichtbar' : ''}`, {
+    label: 'Rückgängig',
+    run() {
+      if (from !== to) to.change(without);
+      from.change((d) => {
+        without(d);
+        d.todos.splice(Math.min(index, d.todos.length), 0, before);
+      });
+    },
+  });
+}
+
 function editTodo(cur, id, { isNew = false } = {}) {
   const t = cur.d.todos.find((x) => x.id === id);
   if (!t) return;
@@ -459,8 +504,14 @@ function editTodo(cur, id, { isNew = false } = {}) {
     // Neu einer anderen Person zugewiesen → Mitteilung an sie (js/push.js)
     const to = form.elements.assignee?.value || '';
     const me = currentMember()?.id;
-    if (to && to !== before && to !== me) notifyAssigned(id, me);
+    if (to && to !== before && to !== me && !form.elements.list?.value.startsWith('personal:')) notifyAssigned(id, me);
     return true;
+  };
+  // Andere Liste gewählt: nach dem Speichern dorthin verschieben
+  const applyMove = (form) => {
+    const [scope, ...rest] = (form.elements.list?.value || '').split(':');
+    const listId = rest.join(':');
+    if (listId && (scope !== cur.scope || listId !== cur.list.id)) moveToList(cur, id, scope, listId);
   };
   // Datumsliste nur bei „Nach Plan“, Erinnerung nur mit Datum
   const showRepeat = (form) => {
@@ -480,6 +531,9 @@ function editTodo(cur, id, { isNew = false } = {}) {
       <label class="field"><span>Was</span>
         <input class="input" name="title" value="${esc(t.title)}" required maxlength="120" autocomplete="off">
       </label>
+      ${moveTargets('shared').length + moveTargets('personal').length > 1 ? `<label class="field"><span>Liste</span>
+        <select class="select" name="list">${listOptions(cur)}</select>
+      </label>` : ''}
       ${cur.scope === 'shared' && state.members.length ? `
       <fieldset class="field todo-assign"><legend>Für wen?</legend>
         <div class="chips">
@@ -518,7 +572,10 @@ function editTodo(cur, id, { isNew = false } = {}) {
     headerActions: `${cur.scope === 'shared' && !isNew ? `<button type="button" class="icon-btn todo-cal-btn" data-sheet-action="share" aria-label="Link auf dieses ToDo senden" title="Link senden">${icon('link')}</button>` : ''}<button type="button" class="icon-btn todo-cal-btn" data-sheet-action="calendar"
       aria-label="${isInCalendar(t.id) ? 'Nochmals in Apple-Kalender eintragen (schon eingetragen)' : 'In Apple-Kalender eintragen'}"
       title="${isInCalendar(t.id) ? 'Schon eingetragen – Änderungen bei Bedarf neu eintragen' : 'In Apple-Kalender eintragen'}">${icon(isInCalendar(t.id) ? 'calendarCheck' : 'calendarPlus')}</button>`,
-    onSubmit: (_, f) => save(f),
+    onSubmit(_, f) {
+      if (save(f) === false) return false;
+      applyMove(f);
+    },
     actions: {
       change(el, f) {
         if (el.name === 'due' || el.name === 'time') timeNeedsDate(f);
@@ -540,6 +597,7 @@ function editTodo(cur, id, { isNew = false } = {}) {
         btn.disabled = false;
         btn.classList.remove('is-busy');
         if (problem) return toast(problem);
+        applyMove(form);
         closeSheet();
         refresh(); // Kalender-Zeichen in der Liste
       },
