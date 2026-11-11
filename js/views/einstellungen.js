@@ -67,6 +67,18 @@ const themeHtml = () => {
     <button type="button" class="seg-btn" data-sheet-action="theme" data-id="${id}" aria-pressed="${id === cur}">${label}</button>`).join('');
 };
 
+// App-Symbol pro Gerät (js/palette-boot.js setzt es beim Start): Schlüssel (Standard), Einkaufstasche, früheres Haus
+const ICON_KEY = 'haushalt.icon';
+const APP_ICONS = [['schluessel', 'Schlüssel', 'assets/favicon-schluessel.svg'], ['tasche', 'Einkaufstasche', 'assets/favicon-tasche.svg'], ['haus', 'Haus (bisher)', 'assets/favicon.svg']];
+const appIconHtml = () => {
+  let cur = 'schluessel';
+  try { cur = localStorage.getItem(ICON_KEY) || 'schluessel'; } catch { /* privates Fenster */ }
+  return APP_ICONS.map(([id, name, src]) => `
+    <button type="button" class="icon-btn-pick" data-sheet-action="appIcon" data-id="${id}" aria-pressed="${id === cur}">
+      <img src="${src}" alt="" width="52" height="52"><span>${name}</span>
+    </button>`).join('');
+};
+
 const paletteHtml = () => {
   const cur = currentPalette();
   return [...PALETTES, ...STYLE_PALETTES].map((p) => `
@@ -191,6 +203,10 @@ export function openSettings() {
         <p class="muted small theme-hint" style="margin:-6px 0 10px">${currentTheme() === 'auto' ? 'Folgt der Einstellung des iPhones (hell am Tag, dunkel am Abend, falls so eingestellt).' : 'Gilt immer, unabhängig von der Einstellung des iPhones.'}</p>
         <div class="palette-grid">${paletteHtml()}</div>
       </div>
+      <div class="field"><span>App-Symbol <small class="muted" style="font-weight:500">· nur auf diesem Gerät</small></span>
+        <div class="icon-grid">${appIconHtml()}</div>
+        <p class="muted small" style="margin:8px 0 0">Das iPhone übernimmt ein neues Symbol erst, wenn die App vom Home-Bildschirm entfernt und über «Teilen → Zum Home-Bildschirm» neu hinzugefügt wird. Die Daten bleiben dabei erhalten.</p>
+      </div>
       `),
       box('Daten', `
       <div class="field">
@@ -260,6 +276,13 @@ export function openSettings() {
         setCelebrateStyle(btn.dataset.id);
         for (const b of document.querySelectorAll('#sheet .style-seg .seg-btn')) b.setAttribute('aria-pressed', String(b === btn));
         celebrate(btn);
+      },
+      appIcon(btn) {
+        const id = btn.dataset.id;
+        try { localStorage.setItem(ICON_KEY, id); } catch { /* privates Fenster: gilt bis zum Neuladen */ }
+        window.haushaltAppIcon?.(id);
+        for (const b of document.querySelectorAll('#sheet .icon-btn-pick')) b.setAttribute('aria-pressed', String(b === btn));
+        toast('Symbol gewählt – App vom Home-Bildschirm entfernen und neu hinzufügen, damit es erscheint');
       },
       palette(btn) {
         applyPalette(btn.dataset.id);

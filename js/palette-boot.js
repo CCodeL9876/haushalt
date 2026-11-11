@@ -6,7 +6,18 @@ try {
   // Hell/Dunkel: „light“ oder „dark“ erzwingt es unabhängig vom iPhone; ohne Eintrag folgt die App dem iPhone
   var theme = localStorage.getItem('haushalt.theme');
   if (theme === 'light' || theme === 'dark') document.documentElement.setAttribute('data-theme', theme);
+  // App-Symbol (App-Einstellungen → App-Symbol): iOS übernimmt es beim Hinzufügen zum Home-Bildschirm
+  var appIcon = localStorage.getItem('haushalt.icon') || 'schluessel';
+  if (appIcon !== 'schluessel') haushaltAppIcon(appIcon);
 } catch (e) { /* privates Fenster: Standard-Design */ }
+
+// Symbol für Home-Bildschirm und Browser-Tab setzen ('haus' = früheres Symbol)
+function haushaltAppIcon(id) {
+  var touch = document.querySelector('link[rel="apple-touch-icon"]');
+  var fav = document.querySelector('link[rel="icon"]');
+  if (touch) touch.href = id === 'haus' ? 'assets/icon-180.png' : 'assets/icon-' + id + '-180.png';
+  if (fav) fav.href = id === 'haus' ? 'assets/favicon.svg' : 'assets/favicon-' + id + '.svg';
+}
 
 // Statusleiste (Uhr, Akku) der App vom Home-Bildschirm: Im dunklen Modus durchsichtig, damit der dunkle Hintergrund
 // bis ganz oben reicht (Schrift dort weiss). Im hellen Modus wie gehabt – weisse Uhr auf hellem Grund wäre unlesbar.
