@@ -36,7 +36,6 @@ const START = heute;
 
 const root = document.getElementById('view');
 const titleEl = document.getElementById('view-title');
-const kickerEl = document.getElementById('view-kicker');
 const tabbar = document.getElementById('tabbar');
 let current = START;
 
@@ -102,9 +101,7 @@ function route() {
   // Bereich als Merkmal am <html>, z. B. für eigene Farben pro Bereich (css/styles.css, :root[data-view=…])
   document.documentElement.dataset.view = current.id;
   syncThemeColor();
-  // Kopfzeile: kleine Zeile darüber (kicker, z. B. Gruss) und Überschrift (heading, sonst der Titel des Bereichs)
-  titleEl.textContent = current.heading ?? current.title;
-  kickerEl.textContent = current.kicker ?? '';
+  titleEl.textContent = current.title;
   document.title = `${current.title} · Haushalt`;
   // Alte Adresse (#woche) durch die des Tabs ersetzen, damit Zurück/Neuladen stimmt
   if ((id !== current.id && next.aliases?.includes(id)) || rest.length) history.replaceState(null, '', `#${current.id}`);

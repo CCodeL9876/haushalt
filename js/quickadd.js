@@ -129,10 +129,9 @@ function preview(text, type) {
   return `Erkannt: <span class="qa-label">${label}</span> <b>${esc(parts[0])}</b>${parts.slice(1).map((p) => ` · ${esc(p)}`).join('')}`;
 }
 
-// initial: Art schon gewählt (z. B. Schnellaktionen auf Heute) – dann wechselt sie nicht mehr automatisch
-export function quickAdd(initial) {
-  let type = TYPES.some((t) => t.id === initial) ? initial : 'shop';
-  let chosen = type === initial; // Art von Hand gewählt: dann nicht mehr automatisch wechseln
+export function quickAdd() {
+  let type = 'shop';
+  let chosen = false; // Art von Hand gewählt: dann nicht mehr automatisch wechseln
   const lists = allLists();
   const remembered = lastList();
   const form = openSheet({

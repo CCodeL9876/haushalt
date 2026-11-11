@@ -21,15 +21,16 @@ import { daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '.
 import { addToShopping, openOnList, recentlyBought, shopIngredients } from './einkauf.js';
 import { awayIcon, cookedMeal, forMeal, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
-import { quickAdd } from '../quickadd.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
 import { eventsOn, homeHidden, isFavourite, upcomingSmall } from '../calendars.js';
 
 const MAX_TODOS = 5;
 
-function hello() {
+function greeting() {
   const h = new Date().getHours();
-  return h < 5 ? 'Gute Nacht' : h < 11 ? 'Guten Morgen' : h < 17 ? 'Guten Tag' : 'Guten Abend';
+  const hello = h < 5 ? 'Gute Nacht' : h < 11 ? 'Guten Morgen' : h < 17 ? 'Guten Tag' : 'Guten Abend';
+  const me = currentMember();
+  return `${hello}${me ? `, ${me.name}` : ''}`;
 }
 
 // Menü von heute: am Abend der Abend, sonst zuerst das Nächste
@@ -446,70 +447,34 @@ function parmesanTile() {
   </section>`;
 }
 
-// ---------- Aufbau ----------
-// Oben die Hauptkarte („Jetzt wichtig“) mit einem Stapel kleiner Karten rechts (Znacht, Einkauf, ToDo – antippen
-// öffnet den Bereich), darunter runde Schnellaktionen (öffnen „Neu“ mit der Art schon gewählt), dann ein Blatt
-// mit „Heute zu tun“ und den übrigen Kacheln.
-
-function stack(kind) {
-  const meal = todaysMeal();
-  const open = openOnList().size;
-  const todos = dueTodos().length;
-  const fridge = fridgeSorted().length;
-  const card = (hash, sym, label, value) => `<button type="button" class="hh-stack-card" data-action="go" data-hash="${hash}">
-    <i aria-hidden="true">${sym}</i><span>${esc(label)}</span><b>${esc(value)}</b></button>`;
-  return `<div class="hh-stack">
-    ${kind === 'meal'
-      ? card('#kuehlschrank', icon('box', 'icon-xs'), 'Kühlschrank', fridge ? String(fridge) : '–')
-      : card('#woche', icon('utensils', 'icon-xs'), meal ? mealTitle(meal.meal) : 'Znacht', meal ? '' : 'planen')}
-    ${card('#einkauf', icon('cart', 'icon-xs'), 'Einkauf', open ? `${open} offen` : 'leer')}
-    ${card('#todo', icon('check', 'icon-xs'), 'ToDo', todos ? `${todos} heute` : 'nichts')}
-  </div>`;
-}
-
-const QUICK = [['shop', 'cart', 'Einkauf'], ['todo', 'check', 'ToDo'], ['bill', 'receipt', 'Ausgabe'], ['menu', 'utensils', 'Menü']];
-
 export default {
   id: 'heute',
   title: 'Heute',
   icon: 'home',
-  // Kopfzeile: Gruss klein, darunter der Name (ohne Anmeldung das Datum)
-  get kicker() { return `${hello()}!`; },
-  get heading() {
-    return currentMember()?.name || new Intl.DateTimeFormat('de-CH', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
-  },
 
   render() {
+    const day = new Intl.DateTimeFormat('de-CH', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
     const f = focus();
     // Kachelfarben reihum (tile-auto → tile-1/2/3) in der Reihenfolge, in der die Kacheln heute erscheinen – so
     // haben zwei Kacheln nacheinander nie dieselbe Farbe, auch wenn einzelne fehlen
     let n = 0;
-    const cheese = parmesanTile();
     return `
-      ${cheese ? `<div class="bento hh-top">${cheese}</div>` : ''}
-      <section class="hh-hero">
+      <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
+      <div class="bento">
+        ${parmesanTile()}
         ${f.html}
-        ${stack(f.kind)}
-      </section>
-      <nav class="hh-quick" aria-label="Schnell erfassen">${QUICK.map(([type, ic, label]) => `
-        <button type="button" class="hh-quick-btn" data-action="quick" data-type="${type}"><span>${icon(ic)}</span>${label}</button>`).join('')}
-      </nav>
-      <section class="hh-sheet">
-        <div class="bento">
-          ${todoTile()}
-          ${f.kind === 'meal' ? '' : mealTile(false)}
-          ${f.kind === 'closed' ? '' : closedTile()}
-          ${dayTile()}
-          ${sportStrip()}
-          ${wasteTile(f.kind === 'waste')}
-          ${fridgeTile()}
-        </div>
-      </section>`.replace(/\btile-auto\b/g, () => `tile-${(n++ % 3) + 1}`);
+        ${f.kind === 'meal' ? '' : mealTile(false)}
+        ${f.kind === 'closed' ? '' : closedTile()}
+        ${sportStrip()}
+        ${dayTile()}
+        ${todoTile()}
+        ${wasteTile(f.kind === 'waste')}
+        ${fridgeTile()}
+      </div>`.replace(/\btile-auto\b/g, () => `tile-${(n++ % 3) + 1}`);
   },
 
   actions: {
     go(el) { location.hash = el.dataset.hash; },
-    quick(el) { quickAdd(el.dataset.type); },
     waste() { openWaste(); },
     parmesanAdd() {
       addToShopping(['Parmesan']);

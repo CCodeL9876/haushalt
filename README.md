@@ -50,14 +50,10 @@ ohne Anmeldung und nur lokal (mit Beispieldaten).
 
 Beim ersten Start sind Beispieldaten drin (Anna, Ben, drei Menüideen). „App-Einstellungen → Alles zurücksetzen“ leert alles.
 
-## Aufbau (seit Nov. 2026)
-
-Kopfzeile: Avatar links, darüber eine kleine Zeile (`kicker`, z. B. Gruss auf Heute), Titel (`heading` oder `title` der Ansicht), Einstellungen rechts. **Heute**: Hauptkarte «Jetzt wichtig» mit Kartenstapel (Znacht, Einkauf, ToDo), runde Schnellaktionen (öffnen «Neu» mit gewählter Art), Blatt mit «Heute zu tun» und den übrigen Kacheln (`.hh-*`). **Planung/Moneyflow → Monat**: Karte «Bleibt im …» mit Vormonat und Punkten zum Blättern, nächste Rechnung mit «Bezahlt», Monatsrechnung als Balken, Blatt mit Rechnungen (`.mf-*`).
-
 ## Farbdesigns
 
 Standard ist „Creme“ (Farben in `css/styles.css`, `:root`). Weitere Designs wählt jedes Gerät selbst unter
-**App-Einstellungen → Farbdesign** (Standard ohne eigene Wahl: Stil „Moos“, moosgrün mit Glas-Kacheln, Limettenkarte für „Jetzt wichtig“, Listen und Fenster als weisse Blätter: `css/moos.css`; dazu die Stile „Glas“, Glassmorphism, immer dunkel: `css/glas.css`, und „Modular“, Modular Typography, hell und dunkel, mit Druckraster und Siebdruck-Korn: `css/modular.css`); `js/palette-boot.js` setzt die Wahl beim Start, bevor die Seite gezeichnet wird.
+**App-Einstellungen → Farbdesign** (dazu die Stile „Glas“, Glassmorphism, immer dunkel: `css/glas.css`, und „Modular“, Modular Typography, hell und dunkel, mit Druckraster und Siebdruck-Korn: `css/modular.css`); `js/palette-boot.js` setzt die Wahl beim Start, bevor die Seite gezeichnet wird.
 Die Farbwerte der weiteren Designs erzeugt `tools/make-palettes.py` aus je vier Grundfarben (hell und dunkel,
 mit Kontrastprüfung) nach `css/palettes.css` und `js/palettes.js`. Neues Design: dort in `PALETTES` eintragen
 und `python3 tools/make-palettes.py` ausführen.

@@ -58,84 +58,50 @@ export function makePlanView({ shared = false } = {}) {
 
   // ---------- Teile ----------
 
-  // Monat: Limettenkarte «Bleibt im …» (links angedeutet der Vormonat, darunter Punkte zum Blättern), nächste offene
-  // Rechnung mit «Bezahlt», die Monatsrechnung als Balken, darunter ein Blatt mit Rechnungen, nicht monatlichen
-  // Posten und Jahresübersicht. Balken nur bei gezeigten Beträgen – sonst verrieten sie die Grössenordnung.
   function monthPart() {
     const s = monthSums(month);
-    const out = s.fix + s.abos + s.active + s.bills;
-    const rest = s.income - out;
+    const rest = s.income - s.fix - s.abos - s.active - s.bills;
     const items = notMonthly();
-    const name = (k) => monthLabel(k).split(' ')[0];
-    const prev = addMonths(month, -1);
-    const next = addMonths(month, 1);
-    // Anteile der Einnahmen pro Person (gemeinsam, wenn Einnahmen Personen zugeordnet sind)
-    const byMember = shared ? state.members.map((x) => [x, plan().incomes.filter((i) => i.memberId === x.id && (i.kind === 'm' || i.month === month)).reduce((t, i) => t + i.amount, 0)]).filter(([, v]) => v > 0) : [];
-    const third = byMember.length > 1 && s.income
-      ? ['Anteil', byMember.map(([, v]) => Math.round((v / s.income) * 100)).join(' / ')]
-      : ['Rechnungen', m(s.bills)];
-    const bar = (label, v) => `
-      <div class="mf-lim"><span>${label}</span>${tap(`${m(v)} <em>/ ${m(s.income)}</em>`)}</div>
-      <div class="mf-track"><i style="width:${shown && s.income ? Math.min(100, Math.round((v / s.income) * 100)) : 0}%"></i></div>`;
-    const nextBill = plan().bills.filter((b) => openOf(b) > 0).sort(byDue)[0];
-    const due = nextBill?.due ? parseKey(nextBill.due) : null;
+    const line = (label, v, sign) => `<li><span class="list-main">${label}</span>${v ? tap(`${sign > 0 ? '+' : '−'} ${m(v)}`, `list-value ${sign > 0 ? 'amount-plus' : ''}`) : '<span class="list-value">–</span>'}</li>`;
     return `
-      <div class="mf-card">
-        <button type="button" class="mf-side" data-action="plMonth" data-step="-1" aria-label="Zum ${esc(monthLabel(prev))}">${esc(name(prev))}</button>
-        <section class="mf-lime">
-          <div class="mf-k"><span>Bleibt im ${esc(name(month))}</span>${icon(shared ? 'users' : 'lock', 'icon-sm')}</div>
-          ${tap(`<span class="mf-big ${shown && rest < 0 ? 'amount-minus' : ''}">${m(rest, { sign: true })}</span>${hint()}`, 'mf-big-wrap')}
-          <div class="mf-foot">
-            <span>Rein<b>${m(s.income)}</b></span><span>Verplant<b>${m(out)}</b></span><span>${third[0]}<b>${third[1]}</b></span>
-          </div>
-        </section>
+      <div class="plan-month">
+        <button type="button" class="icon-btn" data-action="plMonth" data-step="-1" aria-label="Monat zurück">${icon('left')}</button>
+        <strong>${esc(monthLabel(month))}</strong>
+        <button type="button" class="icon-btn" data-action="plMonth" data-step="1" aria-label="Monat vor">${icon('right')}</button>
       </div>
-      <div class="mf-pager">
-        <button type="button" class="mf-dot" data-action="plMonth" data-step="-1" aria-label="Zum ${esc(monthLabel(prev))}"></button>
-        <span class="mf-dot is-on">${esc(monthLabel(month))}</span>
-        <button type="button" class="mf-dot" data-action="plMonth" data-step="1" aria-label="Zum ${esc(monthLabel(next))}"></button>
-      </div>
-      ${nextBill ? `
-        <section class="mf-box mf-next">
-          <span class="mf-due ${isOverdue(nextBill) ? 'is-late' : ''}">${due ? `${due.getDate()}<small>${esc(monthLabel(nextBill.due.slice(0, 7)).slice(0, 3).toUpperCase())}</small>` : `${icon('receipt', 'icon-sm')}`}</span>
-          <button type="button" class="mf-next-main" data-action="plBill" data-id="${esc(nextBill.id)}">
-            <small>${isOverdue(nextBill) ? 'Überfällig' : 'Nächste Rechnung'}${shared ? ` · ${payerName(nextBill) ? `${esc(payerName(nextBill))} bezahlt` : 'gemeinsames Konto'}` : ''}</small>
-            <b>${esc(nextBill.name)} · ${m(openOf(nextBill))}</b>
-          </button>
-          <button type="button" class="btn btn-sm mf-paid" data-action="plPayAll" data-id="${esc(nextBill.id)}">Bezahlt</button>
-        </section>` : ''}
-      <section class="mf-box">
-        <h2 class="mf-box-title">Monatsrechnung</h2>
-        ${bar('Fixkosten', s.fix)}
-        ${bar('Abos', s.abos)}
-        ${items.length ? bar('Aktiviert', s.active) : ''}
-        ${bar('Rechnungen', s.bills)}
+      <section class="card plan-hero">
+        <small>Bleibt im ${esc(monthLabel(month).split(' ')[0])}</small>
+        ${tap(`<span class="hero-number ${shown && rest < 0 ? 'amount-minus' : ''}">${m(rest, { sign: true })}</span>${hint()}`, 'total-hero')}
       </section>
-      <section class="mf-sheet">
-        ${monthBills()}
-        ${items.length ? `
-          <h2 class="section-title">Nicht monatlich – für ${esc(name(month))} aktivieren</h2>
-          <ul class="list plan-nm">${items.map((x) => {
-            const here = amountIn(month, x);
-            const part = partOf(month, x.id);
-            const planned = plannedInPeriod(month, x);
-            const [from, to] = periodOf(month, x.rhythm);
-            const period = x.rhythm === 'y' ? from.slice(0, 4) : `${name(from).slice(0, 3)}–${name(to).slice(0, 3)}`;
-            return `
-            <li class="${here ? '' : 'is-off'}">
-              <button type="button" class="check ${here ? 'is-on' : ''}" data-action="plActive" data-id="${esc(x.id)}" aria-pressed="${Boolean(here)}" aria-label="${esc(x.name)} ${here ? 'nicht mehr' : 'ganz'} in diesem Monat zählen">${icon('check', 'icon-sm')}</button>
-              <span class="list-main">${esc(x.name)}<small>${x.src === 'abo' ? 'Abo · ' : ''}${esc(RHYTHM[x.rhythm] || '')} · ${esc(period)}: <span class="${shown && planned > x.amount ? 'amount-minus' : ''}">${m(planned)}</span> von ${m(x.amount)}${shown && planned > x.amount ? ' – mehr als nötig' : ''}</small></span>
-              ${tap(part ? `<small class="plan-part">Teil</small>${m(part)}` : m(x.amount), 'list-value')}
-              <button type="button" class="btn btn-sm plan-part-btn" data-action="plPart" data-id="${esc(x.id)}" aria-label="Teilbetrag für ${esc(x.name)}">Teil</button>
-            </li>`;
-          }).join('')}</ul>
-          <p class="muted small" style="margin:6px 2px 0">Kästchen = ganzer Betrag in diesem Monat · „Teil“ = nur ein Teil, auch über mehrere Monate verteilt.</p>` : ''}
-        <div class="plan-more">
-          <button type="button" class="btn" data-action="plYear">${icon('chart', 'icon-sm')} Jahresübersicht</button>
-          <button type="button" class="btn" data-action="plUntil">${icon('calendar', 'icon-sm')} Bis Ende Jahr …</button>
-        </div>
-        ${shared ? lastChange() : ''}
-      </section>`;
+      <ul class="list plan-lines">
+        ${line('Einnahmen', s.income, 1)}
+        ${line('Fixkosten', s.fix, -1)}
+        ${line('Abos (monatlich)', s.abos, -1)}
+        ${items.length ? line('Aktiviert in diesem Monat', s.active, -1) : ''}
+        ${line('Rechnungen in diesem Monat', s.bills, -1)}
+      </ul>
+      ${monthBills()}
+      ${items.length ? `
+        <h2 class="section-title">Nicht monatlich – für ${esc(monthLabel(month).split(' ')[0])} aktivieren</h2>
+        <ul class="list plan-nm">${items.map((x) => {
+          const here = amountIn(month, x);
+          const part = partOf(month, x.id);
+          const planned = plannedInPeriod(month, x);
+          const [from, to] = periodOf(month, x.rhythm);
+          const period = x.rhythm === 'y' ? from.slice(0, 4) : `${monthLabel(from).split(' ')[0].slice(0, 3)}–${monthLabel(to).split(' ')[0].slice(0, 3)}`;
+          return `
+          <li class="${here ? '' : 'is-off'}">
+            <button type="button" class="check ${here ? 'is-on' : ''}" data-action="plActive" data-id="${esc(x.id)}" aria-pressed="${Boolean(here)}" aria-label="${esc(x.name)} ${here ? 'nicht mehr' : 'ganz'} in diesem Monat zählen">${icon('check', 'icon-sm')}</button>
+            <span class="list-main">${esc(x.name)}<small>${x.src === 'abo' ? 'Abo · ' : ''}${esc(RHYTHM[x.rhythm] || '')} · ${esc(period)}: <span class="${shown && planned > x.amount ? 'amount-minus' : ''}">${m(planned)}</span> von ${m(x.amount)}${shown && planned > x.amount ? ' – mehr als nötig' : ''}</small></span>
+            ${tap(part ? `<small class="plan-part">Teil</small>${m(part)}` : m(x.amount), 'list-value')}
+            <button type="button" class="btn btn-sm plan-part-btn" data-action="plPart" data-id="${esc(x.id)}" aria-label="Teilbetrag für ${esc(x.name)}">Teil</button>
+          </li>`;
+        }).join('')}</ul>
+        <p class="muted small" style="margin:6px 2px 0">Kästchen = ganzer Betrag in diesem Monat · „Teil“ = nur ein Teil, auch über mehrere Monate verteilt.</p>` : ''}
+      <div class="plan-more">
+        <button type="button" class="btn" data-action="plYear">${icon('chart', 'icon-sm')} Jahresübersicht</button>
+        <button type="button" class="btn" data-action="plUntil">${icon('calendar', 'icon-sm')} Bis Ende Jahr …</button>
+      </div>`;
   }
 
   // Welche Rechnungen im gewählten Monat zählen (und warum): bezahlt, Rate, zugewiesen oder offen
@@ -151,9 +117,11 @@ export function makePlanView({ shared = false } = {}) {
       return month < now ? 'bezahlt' : b.rate ? 'Rate' : 'offen – ganz in diesem Monat';
     };
     return `
-      <h2 class="section-title">${list.length} ${list.length === 1 ? 'Rechnung' : 'Rechnungen'} im ${esc(monthLabel(month).split(' ')[0])}</h2>
-      <ul class="list">${list.map(({ b, v }) => row('plBill', b, why(b), m(v))).join('')}</ul>
-      ${month >= now ? '<p class="muted small" style="margin:6px 2px 0">Rechnung antippen → „Monate“, um sie (oder Teile) einem anderen Monat zuzuweisen.</p>' : ''}`;
+      <details class="plan-month-bills">
+        <summary>${list.length} ${list.length === 1 ? 'Rechnung' : 'Rechnungen'} im ${esc(monthLabel(month).split(' ')[0])}</summary>
+        <ul class="list">${list.map(({ b, v }) => row('plBill', b, why(b), m(v))).join('')}</ul>
+        ${month >= now ? '<p class="muted small" style="margin:6px 2px 0">Rechnung antippen → „Monate“, um sie (oder Teile) einem anderen Monat zuzuweisen.</p>' : ''}
+      </details>`;
   }
 
   const row = (action, x, sub, value = m(x.amount)) => `
@@ -792,7 +760,7 @@ export function makePlanView({ shared = false } = {}) {
             ${TABS.map(([id, label]) => `<button type="button" class="seg-btn" data-action="plTab" data-tab="${id}" aria-pressed="${id === tab}">${label}</button>`).join('')}
           </div>
           ${PARTS[tab]()}
-          ${tab === 'monat' ? '' : lastChange()}`;
+          ${lastChange()}`;
       }
       const due = backupDue();
       const at = plan().backup.at;
