@@ -7,8 +7,10 @@
 //    · Vortag: ab 18 Uhr an alle Geräte des Haushalts, wenn ein geteiltes ToDo mit „am Vortag erinnern“ (remind)
 //      morgen fällig ist – z. B. Altpapier oder Grüngut aus dem Abfuhrplan.
 //    · Erinnerung vor einem ToDo (Datum, Uhrzeit, „Erinnern“): kurz vor dem gewählten Zeitpunkt (Tabelle push_alarms).
-//    · Abfuhrkalender: ab 18 Uhr an alle Geräte des Haushalts, wenn morgen eine Abfuhr mit Glocke ansteht
-//      (Haushalt → Abfuhrkalender, gespeichert in settings.waste).
+//    · Abfuhrkalender: ab 17 Uhr (wie „Jetzt wichtig“ auf Heute) an alle Geräte des Haushalts, wenn morgen eine
+//      Abfuhr mit Glocke ansteht (Haushalt → Abfuhrkalender, settings.waste) – nicht, wenn schon „draussen“ getippt.
+//    · Menü (wie „Jetzt wichtig“): ab 15 Uhr, wenn fürs Menü von heute Zutaten fehlen (nicht, wenn als gekocht
+//      abgehakt), und am Tag vor Sonntag/Feiertag, wenn für die Menüs dann Zutaten fehlen („Läden zu“).
 //    Jede Erinnerung nur einmal (Tabelle push_sent). Ohne Fälliges passiert nichts – darum ohne Anmeldung.
 //  - POST { test: true, endpoint, kind? } – von der App (mit Haushalt-Schlüssel und Zugangscode): Probe an dieses
 //    Gerät; kind 'todo' schickt die Morgen-Erinnerung so, wie sie jetzt aussähe.
@@ -20,6 +22,10 @@
 // ohne Zusatzbibliothek. Secret: VAPID_PRIVATE_KEY (ANLEITUNG.md, „Push-Mitteilungen“); der öffentliche Schlüssel
 // steht hier und in js/config.js (PUSH_PUBLIC_KEY) – beide müssen zusammenpassen.
 
+// Zutaten und Feiertage genau wie in der App (dieselben Dateien, beim Einrichten der Funktion geladen)
+import { glutenFree, isStaple, splitIngredient } from 'https://ccodel9876.github.io/haushalt/js/ingredients.js';
+import { addDays, dateKey, holidayName, shopsClosed } from 'https://ccodel9876.github.io/haushalt/js/dates.js';
+
 const VAPID_PUBLIC_KEY = 'BJvU0TeuBTa-QQLamVufZ_ck7Skh8gAA1SCzb5vcN-u6MgRoN2nGa5hgsEfs1FinZn9Hd8v77yjfBArWCi_u_Ig';
 // Kontakt für die Push-Dienste (Apple verlangt eine https- oder mailto-Adresse)
 const VAPID_SUBJECT = 'https://ccodel9876.github.io/haushalt/';
@@ -27,6 +33,8 @@ const TIME_ZONE = 'Europe/Zurich';
 const REMIND_HOUR = 17;
 const EVE_HOUR = 18;
 const IDEA_MORNING = 7 * 60 + 15; // Mo–Fr 7:15: Menüidee im Kühlschrank
+const MEAL_HOUR = 15; // Menü: Zutaten fehlen / morgen Läden zu – Zeit genug, noch einzukaufen
+const MEAL_UNTIL = 20; // danach nicht mehr nachholen
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -372,15 +380,16 @@ async function eveReminders() {
   return { households: sent };
 }
 
-// ---------- Abfuhrkalender: am Vortag ab 18 Uhr (settings.waste, js/waste.js) ----------
+// ---------- Abfuhrkalender: am Vortag ab 17 Uhr (settings.waste, js/waste.js) ----------
 
 async function wasteReminders() {
   const now = local();
-  if (now.hour < EVE_HOUR) return { skipped: 'vor 18 Uhr' };
+  if (now.hour < REMIND_HOUR) return { skipped: 'vor 17 Uhr' };
   const tomorrow = nextDay(now.day);
   const rows = await db('items?collection=eq.settings&id=eq.main&select=household_key,data');
   let sent = 0;
   for (const row of rows || []) {
+    if (row.data?.wasteOut === tomorrow) continue; // auf Heute schon „Draussen“ getippt
     const kinds = (row.data?.waste?.kinds || []).filter((k) => k?.remind && Array.isArray(k.dates) && k.dates.includes(tomorrow));
     if (!kinds.length) continue;
     const household = row.household_key;
@@ -392,7 +401,7 @@ async function wasteReminders() {
     const subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth`);
     if (!subs.length) continue;
     const payload = {
-      title: `Morgen: ${list(entries.map((e) => e.name))}`,
+      title: `Morgen: ${list(entries.map((e) => e.name))} rausstellen`,
       body: 'Abfuhr morgen früh – am besten heute Abend rausstellen.',
       url: '#heute',
       tag: `waste-${tomorrow}`,
@@ -403,6 +412,108 @@ async function wasteReminders() {
     sent += 1;
   }
   return { households: sent };
+}
+
+// ---------- Menü wie „Jetzt wichtig“ (js/views/heute.js): Zutaten fehlen, morgen Läden zu ----------
+// Gleiche Rechnung wie in der App: fehlend = keine Grundzutat, nicht offen auf der Einkaufsliste, nicht in den
+// letzten 7 Tagen gekauft (abgehakt) und nicht im Kühlschrank; bei „Glutenfrei einkaufen“ die glutenfreie Variante.
+
+const termKey = (name) => String(name || '').trim().toLowerCase().slice(0, 64);
+const RECENT_DAYS = 7;
+
+// Wer anders isst (others) oder „noch offen“: das Menü, das jemand kocht (wie cookedMeal in js/views/wochenplan.js)
+function cookedMeal(meal, members) {
+  if (!meal?.away && !meal?.undecided) return meal;
+  const other = Object.entries(meal.others || {}).filter(([id]) => members.has(id)).map(([, c]) => c).find((c) => !c?.away);
+  return other || meal;
+}
+
+function missingFor(meal, h, now = Date.now()) {
+  const idea = h.ideas.find((i) => i.id === meal?.ideaId);
+  const have = new Set([
+    ...h.shopping.filter((i) => !i.done).map((i) => termKey(i.name)),
+    ...h.shopping.filter((i) => i.done && (i.doneAt || 0) > now - RECENT_DAYS * 86400000).map((i) => termKey(i.name)),
+    ...h.fridge.map((f) => termKey(f.name)),
+  ]);
+  return (idea?.ingredients || []).filter((line) => {
+    const { name } = splitIngredient(line);
+    return !isStaple(name) && !have.has(termKey(idea.glutenfree ? glutenFree(name) : name));
+  }).map((line) => clip(splitIngredient(line).name, 40));
+}
+const titleOf = (meal, h) => clip(h.ideas.find((i) => i.id === meal?.ideaId)?.title || meal?.title || 'Menü', 60);
+
+// Schweizer Tag als Datum (Mittag UTC: getDay und die Feiertage stimmen auch in UTC)
+const asDate = (day) => new Date(`${day}T12:00:00Z`);
+
+async function mealReminders() {
+  const now = local();
+  if (now.hour < MEAL_HOUR || now.hour >= MEAL_UNTIL) return { skipped: 'nicht zwischen 15 und 20 Uhr' };
+  const subs = await db('push_subscriptions?select=household_key,endpoint,p256dh,auth');
+  const byHousehold = new Map();
+  for (const s of subs || []) {
+    if (!byHousehold.has(s.household_key)) byHousehold.set(s.household_key, []);
+    byHousehold.get(s.household_key).push(s);
+  }
+  if (!byHousehold.size) return { households: 0 };
+  // Heute und die nächsten 4 Tage (Läden zu über mehrere Tage, z. B. Weihnachten)
+  const days = Array.from({ length: 5 }, (_, i) => dateKey(addDays(asDate(now.day), i)));
+  const keys = [...byHousehold.keys()].map((k) => `"${k.replace(/"/g, '')}"`).join(',');
+  const rows = await db(`items?household_key=in.(${encodeURIComponent(keys)})&or=(collection.in.(ideas,shopping,fridge,members),and(collection.eq.plan,id.in.(${days.join(',')})))&select=household_key,collection,id,data`);
+  const data = new Map();
+  for (const r of rows || []) {
+    if (!data.has(r.household_key)) data.set(r.household_key, { ideas: [], shopping: [], fridge: [], members: new Set(), plan: {} });
+    const h = data.get(r.household_key);
+    if (r.collection === 'plan') h.plan[r.id] = r.data || {};
+    else if (r.collection === 'members') h.members.add(r.id);
+    else h[r.collection].push(r.data || {});
+  }
+  let sent = 0;
+  for (const [household, h] of data) {
+    const messages = [];
+    // Menü von heute (am Nachmittag: Abend, sonst Mittag)
+    const entry = h.plan[now.day] || {};
+    const slot = entry.abend ? 'abend' : entry.mittag ? 'mittag' : null;
+    const meal = slot ? cookedMeal(entry[slot], h.members) : null;
+    if (meal && !meal.undecided && !meal.away && !entry[slot].cooked) {
+      const missing = missingFor(meal, h);
+      if (missing.length) {
+        messages.push({ ref: `meal:${now.day}:${slot}`, payload: {
+          title: `${slot === 'abend' ? 'Znacht' : 'Zmittag'}: ${titleOf(meal, h)}`,
+          body: `Es ${missing.length === 1 ? 'fehlt' : 'fehlen'}: ${list(missing.slice(0, 6))}${missing.length > 6 ? ' …' : ''}`,
+          url: '#heute', tag: `meal-${now.day}`,
+        } });
+      }
+    }
+    // Morgen Sonntag/Feiertag (heute nicht): Menüs dieser Tage
+    if (!shopsClosed(asDate(now.day))) {
+      const closed = [];
+      for (const d of days.slice(1)) { if (shopsClosed(asDate(d))) closed.push(d); else break; }
+      if (closed.length) {
+        const meals = closed.flatMap((d) => ['mittag', 'abend'].map((s) => h.plan[d]?.[s])).filter((m) => m && !m.away);
+        const missing = [...new Set(meals.flatMap((m) => missingFor(m, h)))];
+        const unknown = meals.filter((m) => !h.ideas.find((i) => i.id === m.ideaId)?.ingredients?.length);
+        const name = (d) => holidayName(asDate(d)) || new Intl.DateTimeFormat('de-CH', { weekday: 'long', timeZone: 'UTC' }).format(asDate(d));
+        const names = closed.length === 1 ? name(closed[0]) : `${name(closed[0])} bis ${name(closed.at(-1))}`;
+        if (missing.length || unknown.length) {
+          messages.push({ ref: `closed:${closed[0]}`, payload: {
+            title: `Morgen ${names} · Läden zu`,
+            body: missing.length ? `Heute noch einkaufen: ${list(missing.slice(0, 6))}${missing.length > 6 ? ' …' : ''}` : `An den Einkauf denken: ${list(meals.map((m) => titleOf(m, h)))}`,
+            url: '#heute', tag: `closed-${closed[0]}`,
+          } });
+        }
+      }
+    }
+    if (!messages.length) continue;
+    const refs = messages.map((m) => `"${m.ref}"`).join(',');
+    const done = new Set((await db(`push_sent?household_key=eq.${encodeURIComponent(household)}&ref=in.(${encodeURIComponent(refs)})&select=ref`)).map((r) => r.ref));
+    for (const m of messages.filter((x) => !done.has(x.ref))) {
+      const results = await Promise.all(byHousehold.get(household).map((s) => send(s, m.payload)));
+      if (!results.some(Boolean)) continue; // später nochmals versuchen
+      await db('push_sent', { method: 'POST', body: [{ household_key: household, ref: m.ref }], prefer: 'resolution=ignore-duplicates,return=minimal' });
+      sent += 1;
+    }
+  }
+  return { sent };
 }
 
 // ---------- Erinnerung vor einem ToDo (push_alarms, js/alarms.js) ----------
@@ -429,7 +540,7 @@ async function alarmReminders() {
 }
 
 async function reminders() {
-  return { alarm: await alarmReminders(), todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), fridge: await fridgeReminders(), idea: await ideaReminders() };
+  return { alarm: await alarmReminders(), todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), meal: await mealReminders(), fridge: await fridgeReminders(), idea: await ideaReminders() };
 }
 
 async function test(household, body) {
