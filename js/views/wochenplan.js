@@ -92,10 +92,10 @@ export function leftovers(meal) {
   const form = openSheet({
     title: 'Reste in den Kühlschrank',
     body: `
-      <p class="muted small" style="margin:0 0 10px">Was ist von „${esc(title)}“ übrig geblieben?</p>
+      <p class="muted small" style="margin:0 0 10px">Was ist von „${esc(title)}“ übrig geblieben? Das Gericht ist schon angewählt.</p>
       <div class="pick-list">${names.map((name, n) => `
         <label class="pick-row">
-          <input type="checkbox" name="i${n}">
+          <input type="checkbox" name="i${n}" ${n === 0 ? 'checked' : ''}>
           <span class="list-main">${esc(name)}<small>${n === 0 ? 'das Gericht selbst · ' : ''}hält etwa ${suggestDays(name)} ${suggestDays(name) === 1 ? 'Tag' : 'Tage'}</small></span>
         </label>`).join('')}
       </div>
@@ -115,7 +115,7 @@ export function leftovers(meal) {
       toast(take ? `${what} im Kühlschrank – morgen früh erinnere ich dich ans Mitnehmen` : `${what} im Kühlschrank`);
     },
   });
-  form.querySelector('input[type="checkbox"]')?.focus();
+  form.querySelector('[type="submit"]')?.focus();
 }
 
 // Hinweis oben im Wochenplan: was im Kühlschrank wartet, das Dringendste zuerst (antippen → Kühlschrank)
