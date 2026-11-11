@@ -50,6 +50,10 @@ ohne Anmeldung und nur lokal (mit Beispieldaten).
 
 Beim ersten Start sind Beispieldaten drin (Anna, Ben, drei Menüideen). „App-Einstellungen → Alles zurücksetzen“ leert alles.
 
+## Aufbau (seit Nov. 2026)
+
+Kopfzeile: Avatar links, darüber eine kleine Zeile (`kicker`, z. B. Gruss auf Heute), Titel (`heading` oder `title` der Ansicht), Einstellungen rechts. **Heute**: Hauptkarte «Jetzt wichtig» mit Kartenstapel (Znacht, Einkauf, ToDo), runde Schnellaktionen (öffnen «Neu» mit gewählter Art), Blatt mit «Heute zu tun» und den übrigen Kacheln (`.hh-*`). **Planung/Moneyflow → Monat**: Karte «Bleibt im …» mit Vormonat und Punkten zum Blättern, nächste Rechnung mit «Bezahlt», Monatsrechnung als Balken, Blatt mit Rechnungen (`.mf-*`).
+
 ## Farbdesigns
 
 Standard ist „Creme“ (Farben in `css/styles.css`, `:root`). Weitere Designs wählt jedes Gerät selbst unter

@@ -69,6 +69,9 @@
   --tab-on-text: #FFFFFF;
   --focus-ring: #DCF3A0;
   --moos-edge: rgba(255, 255, 255, 0.18);
+  --sheet-bg: #FFFFFF;          /* Blätter auf Heute und im Monat (css/styles.css .hh-sheet, .mf-sheet) */
+  --mf-lime: #DCF3A0;
+  --mf-lime-text: #1D2610;
   color-scheme: dark;
   background: #3E4D33;
 }
@@ -96,8 +99,8 @@
   --on-hero: #1D2610; --accent: #2F3B24; --on-accent: #FFFFFF; --muted: rgba(29, 38, 16, 0.68);
 }
 
-/* Weisse Blätter: Listen und Fenster mit dunkler Schrift */
-:root[data-palette="moos"] :is(.list, .sheet) {
+/* Weisse Blätter: Listen, Fenster und die Blätter auf Heute und im Monat mit dunkler Schrift */
+:root[data-palette="moos"] :is(.list, .sheet, .hh-sheet, .mf-sheet) {
   --text: #1B2112; --text-soft: #343C29; --muted: #6B7360; --card: #FFFFFF; --chip: #EEF1E7; --line: #EBEEE3;
   --accent: #2F3B24; --accent-hover: #3D4C30; --on-accent: #FFFFFF; --accent-text: #4B6A2A; --accent-tint: #EEF5DA;
   --check-border: #7C8768; --plus: #2C6E3F; --minus: #A63D2F; --seg-bg: #EEF1E7; --seg-active-bg: #2F3B24; --seg-active-text: #FFFFFF;
@@ -123,6 +126,26 @@
 /* Eingabefelder auf dem grünen Grund: Glas; auf weissen Blättern: hell */
 :root[data-palette="moos"] :is(.input, .select, .textarea) { background: rgba(255, 255, 255, 0.12); border-color: var(--moos-edge); color: var(--text); }
 :root[data-palette="moos"] :is(.input, .textarea)::placeholder { color: rgba(245, 247, 238, 0.6); }
-:root[data-palette="moos"] :is(.list, .sheet) :is(.input, .select, .textarea) { background: #F4F6EF; border-color: #E1E5D8; color: #1B2112; }
-:root[data-palette="moos"] :is(.list, .sheet) :is(.input, .textarea)::placeholder { color: #8A9180; }
+:root[data-palette="moos"] :is(.list, .sheet, .hh-sheet, .mf-sheet) :is(.input, .select, .textarea) { background: #F4F6EF; border-color: #E1E5D8; color: #1B2112; }
+:root[data-palette="moos"] :is(.list, .sheet, .hh-sheet, .mf-sheet) :is(.input, .textarea)::placeholder { color: #8A9180; }
 :root[data-palette="moos"] .select option { background: #FFFFFF; color: #1B2112; }
+
+/* Blätter auf Heute und im Monat: Griff oben, Kacheln und Listen darin hell */
+:root[data-palette="moos"] :is(.hh-sheet, .mf-sheet) {
+  --moos-edge: #E6EADC; --hero: #2F3B24; --on-hero: #FFFFFF;
+  --tile-1-bg: #F3F5EE; --tile-2-bg: #EEF5DA; --tile-3-bg: #F6F1E4; --tile-text: #1B2112; --tile-badge-text: #1D2610;
+  box-shadow: 0 -8px 30px rgba(20, 30, 10, 0.18);
+}
+:root[data-palette="moos"] :is(.hh-sheet, .mf-sheet)::before {
+  content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 38px; height: 4px; border-radius: 9px; background: #D9DDD0;
+}
+:root[data-palette="moos"] :is(.hh-sheet, .mf-sheet) .list { background: #F7F8F3; box-shadow: none; }
+:root[data-palette="moos"] :is(.hh-sheet, .mf-sheet) .tile-focus { background: #DCF3A0; }
+/* Schnellaktionen und Kartenstapel: Glas bzw. dunkles Moos */
+:root[data-palette="moos"] .hh-quick-btn span { background: rgba(255, 255, 255, 0.12); border-color: var(--moos-edge); box-shadow: none; }
+:root[data-palette="moos"] .mf-side { border-color: var(--moos-edge); }
+:root[data-palette="moos"] .mf-box { border-color: var(--moos-edge); }
+:root[data-palette="moos"] .mf-paid { background: rgba(0, 0, 0, 0.2); color: #FFFFFF; border: 1px solid var(--moos-edge); }
+:root[data-palette="moos"] .mf-track { background: rgba(0, 0, 0, 0.2); }
+:root[data-palette="moos"] .mf-track i { background: #DCF3A0; }
+:root[data-palette="moos"] .topbar-actions { border-color: var(--moos-edge); }
