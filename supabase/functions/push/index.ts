@@ -9,6 +9,8 @@
 //    · Erinnerung vor einem ToDo (Datum, Uhrzeit, „Erinnern“): kurz vor dem gewählten Zeitpunkt (Tabelle push_alarms).
 //    · Abfuhrkalender: ab 17 Uhr (wie „Jetzt wichtig“ auf Heute) an alle Geräte des Haushalts, wenn morgen eine
 //      Abfuhr mit Glocke ansteht (Haushalt → Abfuhrkalender, settings.waste) – nicht, wenn schon „draussen“ getippt.
+//    · Mitnehmen: ab 6:45 an die Person, die Reste mit „Morgen mitnehmen“ markiert hat (sonst an alle) –
+//      „Gemüsecurry aus dem Kühlschrank mitnehmen“ (fridge: take = heute, takeFor).
 //    · Menü (wie „Jetzt wichtig“): ab 15 Uhr, wenn fürs Menü von heute Zutaten fehlen (nicht, wenn als gekocht
 //      abgehakt), und am Tag vor Sonntag/Feiertag, wenn für die Menüs dann Zutaten fehlen („Läden zu“).
 //    Jede Erinnerung nur einmal (Tabelle push_sent). Ohne Fälliges passiert nichts – darum ohne Anmeldung.
@@ -29,6 +31,7 @@ const TIME_ZONE = 'Europe/Zurich';
 const REMIND_HOUR = 17;
 const EVE_HOUR = 18;
 const IDEA_MORNING = 7 * 60 + 15; // Mo–Fr 7:15: Menüidee im Kühlschrank
+const TAKE_MORNING = 6 * 60 + 45; // Reste mitnehmen: vor dem Aus-dem-Haus-Gehen
 const MEAL_HOUR = 15; // Menü: Zutaten fehlen / morgen Läden zu – Zeit genug, noch einzukaufen
 const MEAL_UNTIL = 20; // danach nicht mehr nachholen
 
@@ -210,6 +213,40 @@ async function fridgeReminders() {
   return { households: sent };
 }
 
+// ---------- Am Morgen: Reste mitnehmen (fridge.take, js/fridge.js setTake) ----------
+// Je Haushalt und Person eine Mitteilung; nur bis 11 Uhr nachholen
+async function takeReminders() {
+  const now = local();
+  if (now.minutes < TAKE_MORNING || now.hour >= 11) return { skipped: 'nicht am Morgen' };
+  const items = await db(`items?collection=eq.fridge&data->>take=eq.${now.day}&select=household_key,id,data`);
+  const groups = new Map();
+  for (const it of items || []) {
+    const f = it.data || {};
+    if (!f.name) continue;
+    const key = `${it.household_key}|${f.takeFor || ''}`;
+    if (!groups.has(key)) groups.set(key, { household: it.household_key, member: f.takeFor || '', entries: [] });
+    groups.get(key).entries.push({ ref: `take:${it.id}:${now.day}`, name: clip(f.name, 60) });
+  }
+  let sent = 0;
+  for (const { household, member, entries } of groups.values()) {
+    const refs = entries.map((e) => `"${e.ref.replace(/"/g, '')}"`).join(',');
+    const done = new Set((await db(`push_sent?household_key=eq.${encodeURIComponent(household)}&ref=in.(${encodeURIComponent(refs)})&select=ref`)).map((r) => r.ref));
+    const open = entries.filter((e) => !done.has(e.ref));
+    if (!open.length) continue;
+    const who = member ? `&member_id=eq.${encodeURIComponent(member)}` : '';
+    let subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}${who}&select=endpoint,p256dh,auth`);
+    // Person ohne Mitteilungen: dann an alle im Haushalt
+    if (!subs?.length && member) subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth`);
+    if (!subs?.length) continue;
+    const payload = { title: '🥡 Mitnehmen', body: `${list(entries.map((e) => e.name))} aus dem Kühlschrank – nicht vergessen!`, url: '#heute', tag: `take-${now.day}` };
+    const results = await Promise.all(subs.map((s) => send(s, payload)));
+    if (!results.some(Boolean)) continue; // später nochmals versuchen
+    await db('push_sent', { method: 'POST', body: open.map((e) => ({ household_key: household, ref: e.ref })), prefer: 'resolution=ignore-duplicates,return=minimal' });
+    sent += 1;
+  }
+  return { sent };
+}
+
 // ---------- Mo–Fr am Morgen: Menüidee im Kühlschrank ----------
 // Einträge, die als Menüidee erfasst wurden (idea), einmal pro Tag und Haushalt; nur bis 11 Uhr nachholen
 async function ideaReminders() {
@@ -221,7 +258,7 @@ async function ideaReminders() {
   const byHousehold = new Map();
   for (const it of items || []) {
     const f = it.data || {};
-    if (!f.idea || !f.name || (f.useBy && f.useBy < now.day)) continue;
+    if (!f.idea || !f.name || (f.useBy && f.useBy < now.day) || f.take === now.day) continue; // Mitnehmen: eigene Mitteilung
     if (!byHousehold.has(it.household_key)) byHousehold.set(it.household_key, []);
     byHousehold.get(it.household_key).push(clip(f.name, 60));
   }
@@ -660,7 +697,7 @@ async function alarmReminders() {
 }
 
 async function reminders() {
-  return { alarm: await alarmReminders(), todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), meal: await mealReminders(), fridge: await fridgeReminders(), idea: await ideaReminders() };
+  return { alarm: await alarmReminders(), todo: await todoReminders(), eve: await eveReminders(), waste: await wasteReminders(), meal: await mealReminders(), fridge: await fridgeReminders(), take: await takeReminders(), idea: await ideaReminders() };
 }
 
 async function test(household, body) {

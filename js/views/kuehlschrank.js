@@ -3,8 +3,9 @@
 
 import { state } from '../store.js';
 import { closeSheet, esc, icon, openSheet, toast } from '../ui.js';
-import { addDays, dateKey, fmtShort, parseKey } from '../dates.js';
-import { DAY_CHOICES, addToFridge, addedDay, changeFridgeItem, daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
+import { addDays, dateKey, fmtShort, parseKey, todayKey } from '../dates.js';
+import { currentMember } from '../login.js';
+import { DAY_CHOICES, addToFridge, addedDay, changeFridgeItem, daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem, setTake } from '../fridge.js';
 
 const MAX_QUICK = 8;
 const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -36,9 +37,12 @@ const item = (f) => `
       : `<button type="button" class="check" data-action="fridgeUsed" data-id="${esc(f.id)}" aria-label="Aufgebraucht: ${esc(f.name)}">${icon('check', 'icon-sm')}</button>`}
     <button type="button" class="list-main" data-action="fridgeEdit" data-id="${esc(f.id)}" aria-label="${esc(f.name)} bearbeiten">
       ${esc(f.name)}
-      <small><span class="${isUrgent(f) ? 'amount-minus' : ''}">${esc(leftLabel(f))}</span>${f.from ? ` · von ${esc(f.from)}` : ''}</small>
+      <small><span class="${isUrgent(f) ? 'amount-minus' : ''}">${esc(leftLabel(f))}</span>${f.from ? ` · von ${esc(f.from)}` : ''}${takeLabel(f) ? ` · <b class="fridge-take-label">${takeLabel(f)}</b>` : ''}</small>
     </button>
+    <button type="button" class="icon-btn fridge-take${takeLabel(f) ? ' is-on' : ''}" data-action="fridgeTake" data-id="${esc(f.id)}" aria-pressed="${Boolean(takeLabel(f))}" aria-label="${takeLabel(f) ? `${esc(f.name)}: nicht mehr ans Mitnehmen erinnern` : `${esc(f.name)}: morgen früh ans Mitnehmen erinnern`}">${icon('bag', 'icon-sm')}</button>
   </li>`;
+// „morgen mitnehmen“ / „heute mitnehmen“ (vergangene Tage zählen nicht mehr)
+const takeLabel = (f) => (f.take === todayKey() ? 'heute mitnehmen' : f.take && f.take > todayKey() ? 'morgen mitnehmen' : '');
 
 // Meldung nach dem Erfassen: bis wann es hält (antippen in der Liste ändert das)
 function added() {
@@ -126,6 +130,13 @@ export default {
       if (f) done(f, daysLeft(f) < 0 ? 'weggeworfen' : 'aufgebraucht');
     },
     fridgeEdit(el) { editItem(el.dataset.id); },
+    fridgeTake(el) {
+      const f = state.fridge.find((x) => x.id === el.dataset.id);
+      if (!f) return;
+      const on = !(f.take && f.take >= todayKey());
+      setTake(f.id, on, currentMember()?.id);
+      toast(on ? `Morgen früh erinnere ich dich: ${f.name} mitnehmen` : 'Keine Erinnerung zum Mitnehmen');
+    },
     fridgeQuick(el) {
       addToFridge([{ name: el.dataset.name, idea: isIdea(el.dataset.name) }]);
       added();

@@ -1329,3 +1329,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .icon-btn-pick { display: grid; justify-items: center; gap: 6px; padding: 10px 6px; border: 2px solid var(--line); border-radius: var(--radius-sm); background: var(--card); color: inherit; font-size: var(--fs-xs); font-weight: 600; }
 .icon-btn-pick img { width: 52px; height: 52px; border-radius: 12px; }
 .icon-btn-pick[aria-pressed="true"] { border-color: var(--accent-text); box-shadow: 0 0 0 2px var(--accent-tint); }
+/* Kühlschrank: Reste zum Mitnehmen markieren (Tasche) */
+.fridge-take { color: var(--muted); }
+.fridge-take.is-on { color: var(--accent-text); background: var(--accent-tint); }
+.fridge-take-label { font-weight: 700; color: var(--accent-text); }

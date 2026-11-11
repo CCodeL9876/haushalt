@@ -7,7 +7,8 @@ import { avatar, closeSheet, esc, icon, openSheet, safeLink, toast } from '../ui
 import { addDays, dateKey, fmtDayMonth, fmtShort, fmtWeekday, isoWeek, startOfWeek, todayKey } from '../dates.js';
 import { shopIngredients } from './einkauf.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
-import { addToFridge, fridgeSorted, isUrgent, leftLabel, suggestDays } from '../fridge.js';
+import { addToFridge, fridgeSorted, isUrgent, leftLabel, suggestDays, tomorrowKey } from '../fridge.js';
+import { currentMember } from '../login.js';
 
 export const SLOTS = [
   { id: 'mittag', label: 'Mittag' },
@@ -76,8 +77,9 @@ export function setMeal(day, slot, title) {
   return idea;
 }
 
-// Reste eines Gerichts in den Kühlschrank: das Gericht selbst oder einzelne Zutaten der Menüidee (z. B. Pesto)
-function leftovers(meal) {
+// Reste eines Gerichts in den Kühlschrank: das Gericht selbst oder einzelne Zutaten der Menüidee (z. B. Pesto).
+// «Morgen mitnehmen»: am nächsten Morgen erinnert eine Mitteilung (und Heute) daran, das Gericht mitzunehmen.
+export function leftovers(meal) {
   const title = mealTitle(meal);
   const seen = new Set([title.toLowerCase()]);
   const names = [title];
@@ -99,14 +101,18 @@ function leftovers(meal) {
       </div>
       <label class="field" style="margin-top:12px"><span>Anderes (optional)</span>
         <input class="input" name="other" maxlength="80" autocomplete="off" placeholder="z. B. Parmesan, Sauce">
-      </label>`,
+      </label>
+      <label class="check-field"><input type="checkbox" name="take"> ${icon('bag', 'icon-xs')} Morgen mitnehmen – am Morgen daran erinnern</label>`,
     submitLabel: 'In den Kühlschrank',
     onSubmit(data) {
       const chosen = names.filter((_, n) => data.get(`i${n}`));
       const other = String(data.get('other') || '').split(',').map((x) => x.trim()).filter(Boolean);
-      const count = addToFridge([...chosen, ...other].map((name) => ({ name, from: name === title ? '' : title })));
+      const take = data.get('take') ? { day: tomorrowKey(), for: currentMember()?.id } : null;
+      const count = addToFridge([...chosen, ...other].map((name) => ({ name, from: name === title ? '' : title, take })));
       if (!count) return false;
-      toast(count === 1 ? `${[...chosen, ...other][0]} im Kühlschrank` : `${count} Reste im Kühlschrank`);
+      closeSheet(); // zuerst schliessen: die Meldung landet sonst im Fenster und verschwindet mit ihm
+      const what = count === 1 ? [...chosen, ...other][0] : `${count} Reste`;
+      toast(take ? `${what} im Kühlschrank – morgen früh erinnere ich dich ans Mitnehmen` : `${what} im Kühlschrank`);
     },
   });
   form.querySelector('input[type="checkbox"]')?.focus();

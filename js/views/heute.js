@@ -17,9 +17,9 @@ import { currentMember } from '../login.js';
 import { esc, icon, safeLink, toast } from '../ui.js';
 import { addDays, dateKey, fmtShort, holidayName, isoWeek, shopsClosed, todayKey } from '../dates.js';
 import { glutenFree, isStaple, splitIngredient } from '../ingredients.js';
-import { daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
+import { daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem, setTake, takeToday } from '../fridge.js';
 import { addToShopping, openOnList, recentlyBought, shopIngredients } from './einkauf.js';
-import { awayIcon, cookedMeal, forMeal, mealTitle } from './wochenplan.js';
+import { awayIcon, cookedMeal, forMeal, leftovers, mealTitle } from './wochenplan.js';
 import { toggleTodo } from './todo.js';
 import { lastPickup, nextPickups, openWaste, wasteKinds } from '../waste.js';
 import { eventsOn, homeHidden, isFavourite, upcomingSmall } from '../calendars.js';
@@ -85,6 +85,7 @@ function mealTile(hero = true) {
       ${cooked ? '<small>Gekocht ✓</small>' : !missing.length && known ? '<small>Alle Zutaten da ✓</small>' : ''}
     </span>
     ${url ? `<a class="tile-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
+    ${cooked ? `<button type="button" class="tile-btn tile-meal-btn" data-action="mealLeftovers" data-day="${t.day}" data-slot="${t.slot}">${icon('box', 'icon-sm')} Reste</button>` : ''}
     ${missing.length
       ? `<button type="button" class="tile-btn tile-meal-btn" data-action="shopMeal" aria-label="${missing.length} ${missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'} – auf die Einkaufsliste">${icon('cart', 'icon-sm')} ${missing.length} fehl${missing.length === 1 ? 't' : 'en'}</button>`
       : ''}
@@ -364,6 +365,20 @@ const focusCard = ({ eyebrow, title, note, buttons }) => `<div class="tile wide 
 
 // skip: Regeln, die schon eine eigene, hervorgehobene Kachel haben (Abfuhr, Menü, Läden zu) – auslassen
 function focus(skip = new Set()) {
+  // Am Morgen (bis Mittag): Reste, die heute mitgenommen werden sollen
+  const take = new Date().getHours() < 12 ? takeToday() : [];
+  if (take.length) {
+    const f = take[0];
+    return { kind: 'take', html: focusCard({
+      eyebrow: 'Mitnehmen',
+      title: take.length > 1 ? take.map((x) => x.name).join(', ') : f.name,
+      note: 'aus dem Kühlschrank – nicht vergessen',
+      buttons: [
+        `<button type="button" class="tile-btn" data-action="takeDone" data-ids="${esc(take.map((x) => x.id).join(','))}">${icon('bag', 'icon-sm')} Eingepackt</button>`,
+        `<button type="button" class="tile-btn tile-btn-soft" data-action="takeStay" data-ids="${esc(take.map((x) => x.id).join(','))}">Bleibt hier</button>`,
+      ],
+    }) };
+  }
   const waste = skip.has('waste') ? null : wasteFocus();
   if (waste) {
     const tomorrow = waste.day !== todayKey();
@@ -473,7 +488,7 @@ export default {
     const now = new Date();
     const fmt = (o) => new Intl.DateTimeFormat('de-CH', o).format(now);
     const f = focus(new Set(['waste', 'meal', 'closed']));
-    const important = f.kind === 'fridge' || f.kind === 'todo' ? f.html : '';
+    const important = ['take', 'fridge', 'todo'].includes(f.kind) ? f.html : '';
     // Kachelfarben reihum (tile-auto → tile-1/2/3) in der Reihenfolge, in der die Kacheln heute erscheinen – so
     // haben zwei Kacheln nacheinander nie dieselbe Farbe, auch wenn einzelne fehlen
     let n = 0;
@@ -525,6 +540,20 @@ export default {
           run: () => update((s) => { if (s.plan[day]?.[slot]) delete s.plan[day][slot].cooked; }),
         });
       }
+    },
+    // Reste nach dem Kochen in den Kühlschrank (mit „Morgen mitnehmen“)
+    mealLeftovers(el) {
+      const meal = state.plan[el.dataset.day]?.[el.dataset.slot];
+      if (meal) leftovers(cookedMeal(meal));
+    },
+    // Mitnehmen: eingepackt = aus dem Kühlschrank; bleibt hier = nur die Erinnerung weg
+    takeDone(el) {
+      const ids = el.dataset.ids.split(',');
+      update((s) => { s.fridge = s.fridge.filter((x) => !ids.includes(x.id)); });
+      toast('Eingepackt – en Guete!');
+    },
+    takeStay(el) {
+      for (const id of el.dataset.ids.split(',')) setTake(id, false);
     },
     wasteOut(el) {
       update((s) => { s.settings.wasteOut = el.dataset.day; });

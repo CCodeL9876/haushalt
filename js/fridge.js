@@ -58,7 +58,8 @@ function learn(s, name, days) {
   s.settings.fridgeDays = { ...(s.settings.fridgeDays || {}), [key]: days };
 }
 
-// entries: [{ name, days?, from? }] – from: Gericht, von dem der Rest stammt. Gibt die Anzahl zurück.
+// entries: [{ name, days?, from?, take? }] – from: Gericht, von dem der Rest stammt; take: { day, for } morgen
+// mitnehmen (Erinnerung am Morgen, Push „take“ in supabase/functions/push). Gibt die Anzahl zurück.
 export function addToFridge(entries) {
   let added = 0;
   update((s) => {
@@ -66,7 +67,7 @@ export function addToFridge(entries) {
       const name = String(e.name || '').trim().slice(0, 80);
       if (!name) continue;
       const days = e.days ?? suggestDays(name);
-      s.fridge.push({ id: uid(), name, useBy: useByFrom(days), addedAt: Date.now(), ...(e.from ? { from: String(e.from).slice(0, 80) } : {}), ...(e.idea ? { idea: true } : {}) });
+      s.fridge.push({ id: uid(), name, useBy: useByFrom(days), addedAt: Date.now(), ...(e.from ? { from: String(e.from).slice(0, 80) } : {}), ...(e.idea ? { idea: true } : {}), ...(e.take ? { take: e.take.day, ...(e.take.for ? { takeFor: e.take.for } : {}) } : {}) });
       learn(s, name, days); // auch für die Schnellwahl im Kühlschrank
       added += 1;
     }
@@ -84,6 +85,25 @@ export function changeFridgeItem(id, { name, useBy, days }) {
     if (days != null) learn(s, item.name, days);
   });
 }
+
+// Mitnehmen: am nächsten Morgen daran erinnern (an who, sonst an alle) – oder wieder aus
+export const tomorrowKey = () => dateKey(addDays(new Date(), 1));
+export function setTake(id, on, who) {
+  update((s) => {
+    const item = s.fridge.find((x) => x.id === id);
+    if (!item) return;
+    if (on) {
+      item.take = tomorrowKey();
+      if (who) item.takeFor = who;
+      else delete item.takeFor;
+    } else {
+      delete item.take;
+      delete item.takeFor;
+    }
+  });
+}
+// Heute mitnehmen (bis Mittag unter „Jetzt wichtig“ auf Heute)
+export const takeToday = () => state.fridge.filter((f) => f.take === todayKey());
 
 export function removeFridgeItem(id) {
   update((s) => { s.fridge = s.fridge.filter((x) => x.id !== id); });
