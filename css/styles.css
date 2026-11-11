@@ -1244,27 +1244,9 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .slot-person.is-open .slot-person-title { font-weight: 400; color: var(--muted); }
 .slot-person .icon-xs { flex: none; color: var(--muted); }
 
-/* ---------- Geld → Moneyflow (gemeinsame Planung, js/views/moneyflow.js) ---------- */
-.mf-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 6px 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; }
-.mf-bills > li { padding-left: 10px; }
-.mf-bill.is-paid .list-main, .mf-bill.is-paid .list-value { opacity: 0.6; }
-.mf-bill.is-paid .list-value { text-decoration: line-through; }
-.mf-due { flex: none; width: 44px; padding: 5px 0; border-radius: var(--radius-sm); background: var(--chip); text-align: center; line-height: 1.05; }
-.mf-due b { display: block; font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
-.mf-due small { font-size: var(--fs-2xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.mf-due.is-soon { background: var(--tile-3-badge); color: var(--tile-badge-text); }
-.mf-due.is-soon small { color: var(--tile-badge-text); }
-.mf-due.is-late { background: color-mix(in srgb, var(--minus) 20%, var(--card)); }
-.mf-tag { display: inline-block; margin-left: 2px; padding: 1px 7px; border-radius: 999px; background: var(--chip); color: var(--text-soft); font-size: var(--fs-2xs); font-weight: 700; vertical-align: 1px; }
-.mf-tag.is-late { background: color-mix(in srgb, var(--minus) 16%, var(--card)); color: var(--minus); }
-.mf-mini { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
-.mf-mini > div { padding: 9px 10px; border-radius: var(--radius-sm); background: var(--card); box-shadow: var(--shadow); min-width: 0; }
-.mf-mini small { display: block; color: var(--muted); font-size: var(--fs-2xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mf-mini b { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-.mf-filter { margin-bottom: 10px; }
-.mf-add { margin-top: 14px; }
+/* ---------- Geld: Planung und Moneyflow (js/views/planung.js) ---------- */
+.seg-btn .icon-xs { margin-right: 2px; vertical-align: -2px; }
+.plan-bill-due { margin-bottom: 2px; }
+.plan-late { color: var(--minus); font-weight: 700; }
 .mf-who { display: flex; align-items: center; gap: 8px; margin: 16px 4px 0; color: var(--muted); font-size: var(--fs-xs); }
 .mf-who .avatar { width: 22px; height: 22px; font-size: var(--fs-2xs); flex: none; }
-.mf-sheet-info { margin: 0 0 14px; }
-.mf-sheet-sub { margin: 14px 2px 6px; font-size: var(--fs-sm); }
-.mf-payments > li { min-height: 44px; }

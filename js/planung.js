@@ -1,4 +1,6 @@
-// Persönliche Finanzplanung (Geld → Planung): Kosten, Rechnungen, Abos und Einnahmen.
+// Finanzplanung: Kosten, Rechnungen, Abos und Einnahmen – zwei Quellen mit gleichem Aufbau und gleicher Rechnung:
+//  - persönlich (Geld → Planung): alles unten zu Datenschutz, Ablage und Sicherung
+//  - gemeinsam (Geld → Moneyflow, useShared(true)): im Haushalt (state.flow, eine Zeile pro Posten, siehe sharedPlan)
 // Datenschutz: liegt NUR auf diesem Gerät – nie in Supabase, nie im Abgleich, nie in der Haushalts-Sicherung.
 // Getrennt pro Haushalt und Person (wie die persönlichen ToDo-Listen, js/personal.js), damit jemand anderes, der
 // sich am selben Gerät anmeldet, sie nicht sieht.
@@ -11,7 +13,9 @@
 //
 //   costs    [{ id, name, amount, kind: 'fix' | 'repeat', rhythm?: 'q' | 'h' | 'y' }]   Beträge in Rappen
 //   abos     [{ id, name, amount, rhythm: 'm' | 'y' }]
-//   bills    [{ id, name, amount, rate?, months?, payments: [{ id, date, amount }], doneAt?, addedAt }]
+//   bills    [{ id, name, amount, due?, repeat?, rate?, months?, payments: [{ id, date, amount, expenseId? }], doneAt?, nextId?, addedAt, payer? }]
+//            due 'JJJJ-MM-TT': fällig am – der offene Betrag zählt erst ab diesem Monat; repeat 'q' | 'y': nach dem ganzen
+//            Bezahlen die nächste anlegen (nextId); payer ('joint' | members.id) und expenseId nur gemeinsam
 //            months { 'JJJJ-MM': Rappen }: Rechnung (oder Teile davon) bestimmten Monaten zugewiesen – statt Ratenplan
 //   incomes  [{ id, name, amount, kind: 'm' | 'once', month? ('JJJJ-MM', bei einmaligen) }]
 //   active   { 'JJJJ-MM': [ids] }   nicht monatliche Kosten/Abos, die in diesem Monat ganz zählen
@@ -19,8 +23,9 @@
 //   payees   [{ name, amount }]      gemerkte Rechnungssteller (zuletzt verwendete zuerst)
 //   backup   { at, changedAt }       letzte Sicherung, letzte Änderung (für die Erinnerung)
 
-import { refresh, uid } from './store.js';
+import { refresh, session, state, uid, update } from './store.js';
 import { owner } from './personal.js';
+import { myMemberId } from './session.js';
 import { monthKey, todayKey } from './dates.js';
 
 const PREFIX = 'haushalt.planung.';
@@ -113,13 +118,83 @@ function askPersist() {
   navigator.storage?.persist?.().catch(() => {});
 }
 
+// ---------- Gemeinsame Quelle (Moneyflow) ----------
+// Jeder Posten eine Zeile in state.flow (type 'cost' | 'abo' | 'bill' | 'income'), Aktivierungen und Teile je Monat
+// eine Zeile (type 'month', id 'm-JJJJ-MM'), gemerkte Rechnungssteller eine Zeile (id 'payees'). So gleichen zwei
+// Personen ab, ohne sich gegenseitig ganze Pläne zu überschreiben. Geänderte Posten bekommen by/changedAt.
+
+let shared = false;
+// Welche Quelle plan()/updatePlan() gerade meinen – setzt die jeweilige Ansicht (js/views/planung.js)
+export const useShared = (on) => { shared = Boolean(on); };
+export const isShared = () => shared;
+
+const FLOW_LISTS = { cost: 'costs', abo: 'abos', bill: 'bills', income: 'incomes' };
+
+// Einträge aus dem ersten Moneyflow (Nov. 2026: fix / income / bill mit when) in den gemeinsamen Aufbau
+function normFlow(x) {
+  if (x.type === 'fix') return { ...x, type: 'cost', kind: 'fix' };
+  if (x.type === 'income' && !x.kind) return { ...x, kind: 'm' };
+  if (x.type === 'bill' && x.when) {
+    const { when, spread, ...b } = x;
+    if (when !== 'rate') delete b.rate;
+    if (when === 'spread' && spread > 1 && b.due) {
+      const each = Math.floor(b.amount / spread);
+      b.months = {};
+      for (let i = 0; i < spread; i += 1) b.months[addMonths(b.due.slice(0, 7), i)] = each + (i === 0 ? b.amount - each * spread : 0);
+    }
+    return b;
+  }
+  return x;
+}
+
+function sharedPlan() {
+  const d = empty();
+  for (const raw of state.flow) {
+    const x = normFlow(raw);
+    if (FLOW_LISTS[x.type]) d[FLOW_LISTS[x.type]].push(x);
+    else if (x.type === 'month' && x.month) {
+      if (arr(x.active).length) d.active[x.month] = [...x.active];
+      if (x.parts && Object.keys(x.parts).length) d.parts[x.month] = { ...x.parts };
+    } else if (x.type === 'payees') d.payees = arr(x.list);
+  }
+  return d;
+}
+
+// Vergleich ohne Reihenfolge der Schlüssel und ohne by/changedAt
+const sig = (v) => (Array.isArray(v) ? `[${v.map(sig).join(',')}]`
+  : v && typeof v === 'object' ? `{${Object.keys(v).filter((k) => k !== 'by' && k !== 'changedAt' && v[k] !== undefined).sort().map((k) => `${k}:${sig(v[k])}`).join(',')}}`
+    : JSON.stringify(v ?? null));
+
+function updateShared(fn) {
+  const d = JSON.parse(JSON.stringify(sharedPlan()));
+  fn(d);
+  const rows = [];
+  for (const [type, list] of Object.entries(FLOW_LISTS)) for (const x of d[list]) rows.push({ ...x, type });
+  for (const month of new Set([...Object.keys(d.active), ...Object.keys(d.parts)])) {
+    rows.push({ id: `m-${month}`, type: 'month', month, active: arr(d.active[month]), parts: d.parts[month] || {} });
+  }
+  if (d.payees.length) rows.push({ id: 'payees', type: 'payees', list: d.payees });
+  const old = new Map(state.flow.map((x) => [x.id, x]));
+  const by = (session.mode === 'shared' && state.members.find((m) => m.id === myMemberId(session.key))?.id) || null;
+  const now = Date.now();
+  update((s) => {
+    s.flow = rows.map((r) => {
+      const prev = old.get(r.id);
+      if (prev && sig(normFlow(prev)) === sig(r)) return prev;
+      return { ...r, by, changedAt: now };
+    });
+  });
+}
+
 // Immer über diese Funktion lesen (nach einem Personenwechsel gehört der Speicher jemand anderem)
 export function plan() {
+  if (shared) return sharedPlan();
   load();
   return data;
 }
 
 export function updatePlan(fn) {
+  if (shared) return updateShared(fn);
   load();
   fn(data);
   data.backup.changedAt = Date.now();
@@ -138,6 +213,7 @@ export function wipePlan() {
 
 // Ganz bezahlte Rechnungen nach 30 Tagen weg (mit Monaten: erst wenn der letzte vorbei ist), Aktivierungen älter als zwei Jahre weg
 function sweep() {
+  if (shared) return;
   const limit = Date.now() - PAID_KEEP_DAYS * 86400000;
   // … ausser einem Monat zugewiesen, der noch kommt (oder dieser ist): dort zählt sie ja noch
   const bills = data.bills.filter((b) => !b.doneAt || b.doneAt >= limit || Object.keys(b.months || {}).some((m) => m >= curMonth()));
@@ -167,8 +243,15 @@ export const monthsBetween = (from, to) => {
   return (b[0] - a[0]) * 12 + (b[1] - a[1]);
 };
 
+// Ab wann der offene Betrag zählt: ab dem Fälligkeitsmonat, frühestens jetzt
+export const dueMonth = (bill) => (bill.due ? bill.due.slice(0, 7) : '');
+const startMonth = (bill) => (dueMonth(bill) > curMonth() ? dueMonth(bill) : curMonth());
+// Offen und das Fälligkeitsdatum vorbei
+export const isOverdue = (bill, today = todayKey()) => Boolean(bill.due && bill.due < today && openOf(bill) > 0);
+
 // Ratenplan: erste noch fällige Rate – ist die Rate dieses Monats schon bezahlt, erst im nächsten Monat
 function rateStart(bill) {
+  if (dueMonth(bill) > curMonth()) return dueMonth(bill);
   const thisMonth = arr(bill.payments).filter((p) => p.date.startsWith(curMonth())).reduce((s, p) => s + p.amount, 0);
   return thisMonth >= bill.rate ? addMonths(curMonth(), 1) : curMonth();
 }
@@ -182,7 +265,7 @@ export function rateInfo(bill) {
   return { left, end: addMonths(rateStart(bill), left - 1) };
 }
 
-const isActive = (month, id) => arr(data.active[month]).includes(id);
+const isActive = (month, id) => arr(plan().active[month]).includes(id);
 // Betrag eines nicht monatlichen Postens im Monat: Teilbetrag, sonst ganz (aktiviert), sonst nichts
 export const partOf = (month, id) => plan().parts[month]?.[id] || 0;
 export const amountIn = (month, x) => partOf(month, x.id) || (isActive(month, x.id) ? x.amount : 0);
@@ -234,7 +317,7 @@ export function billSchedule(b) {
   const rest = unassignedOf(b, true);
   if (rest > 0) {
     const last = arr(b.payments).at(-1)?.date?.slice(0, 7);
-    const at = openOf(b) > 0 || !last ? curMonth() : last;
+    const at = openOf(b) > 0 || !last ? startMonth(b) : last;
     out[at] = (out[at] || 0) + rest;
   }
   return out;
@@ -257,7 +340,8 @@ export function billInMonth(b, month) {
   if (hasMonths(b)) return billSchedule(b)[month] || 0;
   if (month < now) return paidIn;
   const open = openOf(b);
-  if (month === now) return paidIn + (b.rate ? Math.min(open, Math.max(0, b.rate - paidIn)) : open);
+  if (month < startMonth(b)) return paidIn; // fällig erst später
+  if (month === startMonth(b)) return paidIn + (b.rate ? Math.min(open, Math.max(0, b.rate - paidIn)) : open);
   if (!b.rate || !open) return 0;
   const before = Math.max(0, monthsBetween(rateStart(b), month)); // Raten zwischen jetzt und diesem Monat
   return Math.min(b.rate, Math.max(0, open - before * b.rate));
@@ -274,7 +358,7 @@ export function untilSums(end) {
   const monthly = (list) => sum(list) * n;
   const bills = d.bills.filter((b) => openOf(b) > 0 || hasMonths(b)).reduce((s, b) => {
     if (hasMonths(b)) return s + Object.entries(billSchedule(b)).filter(([k]) => k >= start && k <= end).reduce((t, [, v]) => t + v, 0);
-    if (!b.rate) return s + openOf(b);
+    if (!b.rate) return s + (startMonth(b) <= end ? openOf(b) : 0);
     const rates = Math.max(0, monthsBetween(rateStart(b), end) + 1);
     return s + Math.min(openOf(b), rates * b.rate);
   }, 0);
@@ -328,13 +412,34 @@ export function rememberPayee(d, name, amount) {
   d.payees = [{ name, amount }, ...d.payees.filter((p) => p.name.toLowerCase() !== name.toLowerCase())].slice(0, 60);
 }
 
-export function addPayment(billId, amount, date = todayKey()) {
+// Nächstes Fälligkeitsdatum einer wiederkehrenden Rechnung (gleicher Tag, am Monatsende gekürzt)
+function nextDue(due, months) {
+  const [y, m, day] = due.split('-').map(Number);
+  const t = new Date(y, m - 1 + months, 1);
+  const last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+  return `${monthKey(t)}-${String(Math.min(day, last)).padStart(2, '0')}`;
+}
+
+// Zahlung erfassen. Ganz bezahlt und wiederkehrend: die nächste Rechnung anlegen (einmal) – gibt sie zurück.
+export function addPayment(billId, amount, date = todayKey(), extra = {}) {
+  let next = null;
   updatePlan((d) => {
     const b = d.bills.find((x) => x.id === billId);
     if (!b) return;
-    b.payments = [...arr(b.payments), { id: uid(), date, amount }].sort((x, y) => x.date.localeCompare(y.date));
-    if (paidOf(b) >= b.amount) b.doneAt ||= Date.now();
+    b.payments = [...arr(b.payments), { id: uid(), date, amount, ...extra }].sort((x, y) => x.date.localeCompare(y.date));
+    if (paidOf(b) < b.amount) return;
+    b.doneAt ||= Date.now();
+    if (b.repeat && b.due && !b.nextId) {
+      const step = b.repeat === 'q' ? 3 : 12;
+      next = { ...b, id: uid(), due: nextDue(b.due, step), payments: [], addedAt: Date.now() };
+      delete next.doneAt;
+      delete next.nextId;
+      if (b.months) next.months = Object.fromEntries(Object.entries(b.months).map(([k, v]) => [addMonths(k, step), v]));
+      b.nextId = next.id;
+      d.bills.push(next);
+    }
   });
+  return next;
 }
 
 export function removePayment(billId, paymentId) {

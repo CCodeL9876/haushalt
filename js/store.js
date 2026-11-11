@@ -27,9 +27,8 @@
 //             repeat?: { every, unit } oder { dates }, remind?: am Vortag erinnern (js/repeat.js)
 //             order?: selbst gewählte Reihenfolge in der Liste (sonst nach Datum), alarm?: Minuten vorher erinnern
 //   fridge    [{ id, name, useBy, addedAt, from?, idea? }]   Reste im Kühlschrank: useBy 'JJJJ-MM-TT' = aufbrauchen bis, from = Gericht, idea = Menüidee (Morgen-Mitteilung)
-//   flow      [{ id, type: 'income' | 'fix' | 'bill', name, amount, by?, changedAt? }]   Moneyflow: gemeinsame Planung (js/views/moneyflow.js)
-//             income: memberId? · bill: due 'JJJJ-MM-TT', payer ('joint' | members.id), when ('whole' | 'rate' | 'spread'),
-//             rate?, spread? (Anzahl Monate), repeat? ('q' | 'y'), payments [{ id, date, amount, expenseId? }], doneAt?, nextId?
+//   flow      [{ id, type: 'cost' | 'abo' | 'bill' | 'income' | 'month' | 'payees', …, by?, changedAt? }]   Moneyflow: gemeinsame
+//             Planung, gleicher Aufbau wie die persönliche (js/planung.js sharedPlan, Ansicht js/views/planung.js)
 // In der Datenbank ist jeder Eintrag eine Zeile (collection + id); plan je Tag, settings als eine Zeile „main“.
 
 import { todayKey } from './dates.js';

@@ -3,6 +3,7 @@
 // #abrechnung zeigt den zuletzt offenen Teil, #kosten die Abrechnung, #planung die Planung, #moneyflow das Moneyflow.
 
 import { refresh } from '../store.js';
+import { icon } from '../ui.js';
 import abrechnung from './abrechnung.js';
 import planung from './planung.js';
 import moneyflow from './moneyflow.js';
@@ -33,7 +34,7 @@ export default {
   render() {
     return `
       <div class="seg seg-wide" role="group" aria-label="Geld">
-        ${PARTS.map((p) => `<button type="button" class="seg-btn" data-action="geldPart" data-part="${p.id}" aria-pressed="${p.id === partId}">${p.short || p.title}</button>`).join('')}
+        ${PARTS.map((p) => `<button type="button" class="seg-btn" data-action="geldPart" data-part="${p.id}" aria-pressed="${p.id === partId}">${p.segIcon ? `${icon(p.segIcon, 'icon-xs')} ` : ''}${p.short || p.title}</button>`).join('')}
       </div>
       ${part().render()}`;
   },
