@@ -1320,7 +1320,9 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .waste-hi.is-soon:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) .waste-out { background: #FFFFFF; color: var(--w-strong); }
 .waste-dot:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) { background: var(--w-strong); color: #FFFFFF; }
 /* Menü von heute als gekocht abhaken (js/views/heute.js mealCooked) */
-.meal-check { border-color: color-mix(in srgb, currentColor 60%, transparent); }
+/* Rand aus der Kachelschrift (nicht currentColor: die ist bei .check durchsichtig, bis abgehakt) */
+.meal-check { border-color: color-mix(in srgb, var(--tile-text) 55%, transparent); }
+.tile-hero .meal-check { border-color: color-mix(in srgb, var(--on-hero) 70%, transparent); }
 .tile-meal.is-cooked .tile-meal-text strong { opacity: 0.75; }
 /* App-Symbol wählen (App-Einstellungen) */
 .icon-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
