@@ -15,7 +15,7 @@ import { refresh, state, termKey, update } from '../store.js';
 import { personal } from '../personal.js';
 import { currentMember } from '../login.js';
 import { esc, icon, safeLink, toast } from '../ui.js';
-import { addDays, dateKey, fmtShort, holidayName, shopsClosed, todayKey } from '../dates.js';
+import { addDays, dateKey, fmtShort, holidayName, isoWeek, shopsClosed, todayKey } from '../dates.js';
 import { glutenFree, isStaple, splitIngredient } from '../ingredients.js';
 import { daysLeft, fridgeSorted, isUrgent, leftLabel, removeFridgeItem } from '../fridge.js';
 import { addToShopping, openOnList, recentlyBought, shopIngredients } from './einkauf.js';
@@ -268,11 +268,12 @@ function wasteTile(focused = false) {
   };
   if (focused) return rest.length || note ? `<div class="waste-b">${rest.length ? `<div class="waste-chips" aria-label="Weitere Abfuhren">${rest.map(chip).join('')}</div>` : ''}${note}</div>` : '';
   return `<div class="waste-b">
-    <button type="button" class="tile waste-next${soon ? ' is-soon' : ' tile-auto'}" data-action="waste" aria-label="${esc(title)} – Abfuhrkalender öffnen">
+    <div class="tile waste-next waste-hi${soon ? ' is-soon' : ''}">
+      <button type="button" class="tile-link" data-action="waste" aria-label="${esc(title)} – Abfuhrkalender öffnen"></button>
       ${dot(first[0])}
       <span class="waste-text"><strong>${esc(title)}</strong><small>${esc(sub)}</small></span>
-      ${icon('right', 'icon-sm')}
-    </button>
+      ${soon ? `<button type="button" class="tile-btn waste-out" data-action="wasteOut" data-day="${esc(first[0].next)}">${icon('check', 'icon-sm')} Draussen</button>` : icon('right', 'icon-sm')}
+    </div>
     ${rest.length ? `<div class="waste-chips" aria-label="Weitere Abfuhren">${rest.map(chip).join('')}</div>` : ''}
     ${note}
   </div>`;
@@ -341,15 +342,20 @@ function pinnedTodos() {
 const overdueTodos = () => dueTodos().filter(({ t }) => t.due < todayKey());
 const fridgeToday = () => fridgeSorted().filter((f) => daysLeft(f) <= 0);
 
-const focusCard = ({ eyebrow, title, note, buttons }) => `<div class="tile tile-hero wide tile-focus">
-  <h3>${icon('bolt', 'icon-xs')} ${esc(eyebrow)}</h3>
-  <div class="tile-big">${esc(title)}</div>
-  ${note ? `<span class="tile-note">${esc(note)}</span>` : ''}
+// „Jetzt wichtig“: kompakte helle Zeile (Symbol, Text, Knöpfe) – das Menü darunter ist die dunkle Karte
+const focusCard = ({ eyebrow, title, note, buttons }) => `<div class="tile wide tile-focus now-card">
+  <span class="now-ic" aria-hidden="true">${icon('bolt', 'icon-sm')}</span>
+  <div class="now-m">
+    <h3>${esc(eyebrow)}</h3>
+    <strong>${esc(title)}</strong>
+    ${note ? `<span class="tile-note">${esc(note)}</span>` : ''}
+  </div>
   <div class="tile-acts">${buttons.join('')}</div>
 </div>`;
 
-function focus() {
-  const waste = wasteFocus();
+// skip: Regeln, die schon eine eigene, hervorgehobene Kachel haben (Abfuhr, Menü, Läden zu) – auslassen
+function focus(skip = new Set()) {
+  const waste = skip.has('waste') ? null : wasteFocus();
   if (waste) {
     const tomorrow = waste.day !== todayKey();
     return { kind: 'waste', html: focusCard({
@@ -363,8 +369,8 @@ function focus() {
     }) };
   }
   const meal = todaysMeal();
-  if (meal && missingFor(meal.meal).length) return { kind: 'meal', html: mealTile() };
-  if (closedMeals()) return { kind: 'closed', html: closedTile(true) };
+  if (!skip.has('meal') && meal && missingFor(meal.meal).length) return { kind: 'meal', html: mealTile() };
+  if (!skip.has('closed') && closedMeals()) return { kind: 'closed', html: closedTile(true) };
   const fridge = fridgeToday();
   if (fridge.length) {
     const f = fridge[0];
@@ -452,24 +458,33 @@ export default {
   title: 'Heute',
   icon: 'home',
 
+  // Oben das Datum (gross, mit Kalenderwoche) und der Gruss; dann „Jetzt wichtig“ (nur was nicht schon Menü oder
+  // Abfuhr zeigen), das Menü von heute, die Abfuhr hervorgehoben, danach der Rest
   render() {
-    const day = new Intl.DateTimeFormat('de-CH', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
-    const f = focus();
+    const now = new Date();
+    const fmt = (o) => new Intl.DateTimeFormat('de-CH', o).format(now);
+    const f = focus(new Set(['waste', 'meal', 'closed']));
+    const important = f.kind === 'fridge' || f.kind === 'todo' ? f.html : '';
     // Kachelfarben reihum (tile-auto → tile-1/2/3) in der Reihenfolge, in der die Kacheln heute erscheinen – so
     // haben zwei Kacheln nacheinander nie dieselbe Farbe, auch wenn einzelne fehlen
     let n = 0;
     return `
-      <p class="heute-hello"><span>${esc(day)}</span>${esc(greeting())}</p>
+      <div class="heute-date">
+        <span class="hd-num">${now.getDate()}</span>
+        <span class="hd-text"><b>${esc(holidayName(now) || fmt({ weekday: 'long' }))}</b>${esc(fmt({ month: 'long', year: 'numeric' }))}</span>
+        <span class="hd-kw">KW ${isoWeek(now)}</span>
+      </div>
+      <p class="heute-greet">${esc(greeting())}</p>
       <div class="bento">
         ${parmesanTile()}
-        ${f.html}
-        ${f.kind === 'meal' ? '' : mealTile(false)}
-        ${f.kind === 'closed' ? '' : closedTile()}
+        ${important}
+        ${mealTile(true)}
+        ${wasteTile(false)}
+        ${closedTile()}
         ${sportStrip()}
         ${dayTile()}
         ${todoTile()}
-        ${wasteTile(f.kind === 'waste')}
-        ${fridgeTile()}
+        ${f.kind === 'fridge' ? '' : fridgeTile()}
       </div>`.replace(/\btile-auto\b/g, () => `tile-${(n++ % 3) + 1}`);
   },
 
