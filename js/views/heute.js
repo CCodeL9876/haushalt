@@ -249,7 +249,7 @@ function wasteTile(focused = false) {
   }
   // Farbe pro Art fest (Reihenfolge im Kalender), damit Kehricht immer gleich aussieht
   const color = (k) => (kinds.findIndex((x) => x.id === k.id) % 3) + 1;
-  const dot = (k, cls = '') => `<span class="waste-dot waste-c${color(k)} ${cls}" aria-hidden="true">${icon(wasteIcon(k.short), 'icon-sm')}</span>`;
+  const dot = (k, cls = '') => `<span class="waste-dot waste-c${color(k)} ${wasteTone(k.short)} ${cls}" aria-hidden="true">${icon(wasteIcon(k.short), 'icon-sm')}</span>`;
   const days = (day) => Math.round((new Date(`${day}T12:00:00`) - new Date(`${today}T12:00:00`)) / 86400000);
   const names = (list) => list.map((k) => k.short).join(' und ');
   // Alle Arten am selben nächsten Tag gehören in den Streifen
@@ -268,7 +268,7 @@ function wasteTile(focused = false) {
   };
   if (focused) return rest.length || note ? `<div class="waste-b">${rest.length ? `<div class="waste-chips" aria-label="Weitere Abfuhren">${rest.map(chip).join('')}</div>` : ''}${note}</div>` : '';
   return `<div class="waste-b">
-    <div class="tile waste-next waste-hi${soon ? ' is-soon' : ''}">
+    <div class="tile waste-next waste-hi ${wasteTone(first[0].short)}${soon ? ' is-soon' : ''}">
       <button type="button" class="tile-link" data-action="waste" aria-label="${esc(title)} – Abfuhrkalender öffnen"></button>
       ${dot(first[0])}
       <span class="waste-text"><strong>${esc(title)}</strong><small>${esc(sub)}</small></span>
@@ -277,6 +277,12 @@ function wasteTile(focused = false) {
     ${rest.length ? `<div class="waste-chips" aria-label="Weitere Abfuhren">${rest.map(chip).join('')}</div>` : ''}
     ${note}
   </div>`;
+}
+
+// Farbe je Abfuhrart: Kehricht blau, Papier/Karton braun, Grüngut grün (css/styles.css .waste-tone-…); sonst Oliv
+function wasteTone(name) {
+  const ic = wasteIcon(name);
+  return ic === 'trash' ? 'waste-tone-blue' : ic === 'newspaper' || ic === 'box' ? 'waste-tone-brown' : ic === 'leaf' ? 'waste-tone-green' : '';
 }
 
 // Symbol je Abfuhrart (am Namen erkannt), sonst Recycling

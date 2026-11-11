@@ -1276,3 +1276,21 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .waste-next.waste-hi { position: relative; background: var(--tile-2-bg); color: var(--tile-text); }
 .waste-next.waste-hi.is-soon { background: var(--tile-2-badge); color: var(--tile-badge-text); }
 .waste-out { position: relative; flex: none; margin-top: 0; background: var(--tile-badge-text); color: var(--tile-2-badge); }
+/* Abfuhr nach Art eingefärbt (in allen Farbdesigns gleich): hell = nächste Abfuhr, kräftig = Vortag/Abfuhrtag */
+.waste-tone-blue { --w-bg: #DCE8FA; --w-strong: #2F64C2; --w-text: #12233F; }
+.waste-tone-brown { --w-bg: #EFE2CF; --w-strong: #8A5A2B; --w-text: #33220F; }
+.waste-tone-green { --w-bg: #DCEFCF; --w-strong: #3C7F2E; --w-text: #15290F; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .waste-tone-blue { --w-bg: #1D2C45; --w-strong: #2F64C2; --w-text: #E3ECFB; }
+  :root:not([data-theme="light"]) .waste-tone-brown { --w-bg: #3A2C1D; --w-strong: #8A5A2B; --w-text: #F4E8D8; }
+  :root:not([data-theme="light"]) .waste-tone-green { --w-bg: #213A1C; --w-strong: #3C7F2E; --w-text: #E2F2D8; }
+}
+:root[data-theme="dark"] .waste-tone-blue { --w-bg: #1D2C45; --w-strong: #2F64C2; --w-text: #E3ECFB; }
+:root[data-theme="dark"] .waste-tone-brown { --w-bg: #3A2C1D; --w-strong: #8A5A2B; --w-text: #F4E8D8; }
+:root[data-theme="dark"] .waste-tone-green { --w-bg: #213A1C; --w-strong: #3C7F2E; --w-text: #E2F2D8; }
+.waste-next.waste-hi:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) { background: var(--w-bg); color: var(--w-text); }
+.waste-next.waste-hi.is-soon:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) { background: var(--w-strong); color: #FFFFFF; }
+.waste-hi:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) .waste-dot { background: var(--w-strong); color: #FFFFFF; }
+.waste-hi.is-soon:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) .waste-dot { background: rgba(255, 255, 255, 0.22); }
+.waste-hi.is-soon:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) .waste-out { background: #FFFFFF; color: var(--w-strong); }
+.waste-dot:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) { background: var(--w-strong); color: #FFFFFF; }
