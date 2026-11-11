@@ -85,7 +85,7 @@ function mealTile(hero = true) {
       ${cooked ? '<small>Gekocht ✓</small>' : !missing.length && known ? '<small>Alle Zutaten da ✓</small>' : ''}
     </span>
     ${url ? `<a class="tile-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
-    ${cooked ? `<button type="button" class="tile-btn tile-meal-btn" data-action="mealLeftovers" data-day="${t.day}" data-slot="${t.slot}">${icon('box', 'icon-sm')} Reste</button>` : ''}
+    ${cooked ? `<button type="button" class="tile-btn tile-meal-btn" data-action="mealLeftovers" data-day="${t.day}" data-slot="${t.slot}">${icon('leftovers', 'icon-sm')} Reste</button>` : ''}
     ${missing.length
       ? `<button type="button" class="tile-btn tile-meal-btn" data-action="shopMeal" aria-label="${missing.length} ${missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'} – auf die Einkaufsliste">${icon('cart', 'icon-sm')} ${missing.length} fehl${missing.length === 1 ? 't' : 'en'}</button>`
       : ''}
