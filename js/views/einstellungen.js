@@ -28,7 +28,7 @@ import {
 // Seite gezeichnet wird; die Farben selbst stehen in css/palettes.css (erzeugt von tools/make-palettes.py).
 const PALETTE_KEY = 'haushalt.palette';
 const currentPalette = () => {
-  try { return localStorage.getItem(PALETTE_KEY) || 'creme'; } catch { return 'creme'; }
+  try { return localStorage.getItem(PALETTE_KEY) || 'moos'; } catch { return 'moos'; }
 };
 function applyPalette(id) {
   try { localStorage.setItem(PALETTE_KEY, id); } catch { /* privates Fenster: gilt bis zum Neuladen */ }
@@ -39,8 +39,9 @@ function applyPalette(id) {
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = bg;
   window.haushaltStatusBar?.(); // „Glas“ ist immer dunkel – Statusleiste entsprechend (ab dem nächsten Start)
 }
-// Ganze Stile (nicht nur Farben), von Hand gepflegt – css/glas.css (immer dunkel), css/modular.css (hell und dunkel)
+// Ganze Stile (nicht nur Farben), von Hand gepflegt – css/moos.css (Standard), css/glas.css (immer dunkel), css/modular.css (hell und dunkel)
 const STYLE_PALETTES = [
+  { id: 'moos', name: 'Moos', note: 'Stil · Standard', swatches: ['#4A5A3C', '#DCF3A0', '#FFFFFF', '#2F3B24'] },
   { id: 'glas', name: 'Glas', note: 'Stil · immer dunkel', swatches: ['#FF6CAB', '#7366FF', '#43E7FF', '#B6FF8A'] },
   { id: 'modular', name: 'Modular', note: 'Stil · hell und dunkel', swatches: ['#111111', '#FF3B1F', '#2747FF', '#FFD400'] },
 ];
