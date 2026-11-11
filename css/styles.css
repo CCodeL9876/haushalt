@@ -948,6 +948,31 @@ button.plan-sum.total-toggle { float: right; }
 .loyalty-preview .barcode { height: 70px; }
 .loyalty-number { margin-top: 10px; text-align: center; font-size: var(--fs-xl); font-weight: 700; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; color: #000000; }
 .loyalty-number.small { font-size: var(--fs-xs); letter-spacing: 0; font-weight: 600; color: #555555; }
+/* Karten in der Hausfarbe des Ladens: ganze Karte farbig, Strichcode als weisses Feld darin (weiss bleibt Pflicht für die Scanner) */
+.loyalty-shop-migros { --shop-bg: #173A85; --shop-bg-2: #173A85; --shop-text: #FFFFFF; --shop-accent: #EE622B; }
+.loyalty-shop-coop { --shop-bg: #2B6FC0; --shop-bg-2: #2B6FC0; --shop-text: #FFFFFF; --shop-accent: #F08A1C; }
+.loyalty-shop header {
+  padding: 12px 10px 12px 22px; background: linear-gradient(90deg, var(--shop-bg), var(--shop-bg-2)); color: var(--shop-text);
+  font-size: var(--fs-2xl, 1.6rem); font-weight: 800; letter-spacing: -0.01em;
+}
+.loyalty-shop header .icon-btn { color: var(--shop-text); }
+.loyalty-shop .loyalty-code {
+  border: 0; padding: 0 12px 12px; background: linear-gradient(90deg, var(--shop-bg), var(--shop-bg-2));
+}
+.loyalty-shop .loyalty-code > .barcode { box-sizing: content-box; width: calc(100% - 36px); padding: 20px 18px 0; background: #FFFFFF; border-radius: 14px 14px 0 0; }
+.loyalty-shop .loyalty-code > .loyalty-number { margin-top: 0; padding: 10px 0 14px; background: #FFFFFF; border-radius: 0 0 14px 14px; }
+/* Migros: dunkelblaue Karte, Name mittig, Code als weisses Feld mit runden Ecken, Nummer weiss darunter, oranger Abschluss */
+.loyalty-shop-migros header { position: relative; justify-content: center; padding: 22px 56px 16px; text-transform: uppercase; letter-spacing: 0.02em; }
+.loyalty-shop-migros header .icon-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+.loyalty-shop-migros .loyalty-code { padding: 0 22px 20px; border-bottom: 8px solid var(--shop-accent); }
+.loyalty-shop-migros .loyalty-code > .barcode { width: calc(100% - 44px); padding: 22px; border-radius: 18px; }
+.loyalty-shop-migros .loyalty-code > .loyalty-number { padding: 14px 0 0; background: none; border-radius: 0; color: #FFFFFF; font-weight: 500; letter-spacing: 0.08em; }
+/* Coop: mittelblaue Karte mit hellem Schein in der Mitte, Name gross, kursiv und weiss, oranger Abschluss */
+.loyalty-shop-coop header { position: relative; justify-content: center; padding: 22px 56px 16px; background: #2B6FC0; text-transform: uppercase; font-style: italic; font-weight: 900; letter-spacing: 0.01em; }
+.loyalty-shop-coop header .icon-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+.loyalty-shop-coop .loyalty-code { padding: 0 22px 20px; background: radial-gradient(ellipse 60% 50% at 50% 50%, #6FAAE6 0%, #2B6FC0 100%); border-bottom: 8px solid var(--shop-accent); }
+.loyalty-shop-coop .loyalty-code > .barcode { width: calc(100% - 44px); padding: 22px; border-radius: 18px; }
+.loyalty-shop-coop .loyalty-code > .loyalty-number { padding: 14px 0 0; background: none; border-radius: 0; color: #FFFFFF; font-weight: 500; letter-spacing: 0.08em; }
 .loyalty-dots { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
 .loyalty-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
 .loyalty-dots i.is-on { background: var(--accent); width: 18px; border-radius: 4px; }

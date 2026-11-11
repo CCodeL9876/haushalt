@@ -11,6 +11,13 @@ import { closeSheet, esc, icon, openSheet, toast } from './ui.js';
 const PREFIX = 'haushalt.cards.';
 const SHOPS = ['Migros', 'Coop', 'Denner', 'Lidl', 'Aldi', 'Volg', 'Manor'];
 
+// Karten in der Hausfarbe des Ladens (nur Farbe, keine Logos). Erkannt am Namen; alle anderen behalten die App-Farben.
+const SHOP_STYLES = [
+  { match: /migros|cumulus/i, style: 'migros' },
+  { match: /coop|supercard/i, style: 'coop' },
+];
+const shopStyle = (name) => SHOP_STYLES.find((s) => s.match.test(name || ''))?.style || '';
+
 const key = () => PREFIX + owner();
 export function cards() {
   try {
@@ -32,7 +39,8 @@ function markUsed(id) {
 
 const cardHtml = (c, n) => {
   const code = codeFor(c);
-  return `<article class="loyalty-card loyalty-${(n % 3) + 1}" data-id="${esc(c.id)}">
+  const shop = shopStyle(c.name);
+  return `<article class="loyalty-card loyalty-${(n % 3) + 1}${shop ? ` loyalty-shop loyalty-shop-${shop}` : ''}" data-id="${esc(c.id)}">
     <header><strong>${esc(c.name)}</strong>
       <button type="button" class="icon-btn" data-sheet-action="edit" data-id="${esc(c.id)}" aria-label="${esc(c.name)} bearbeiten">${icon('settings', 'icon-sm')}</button>
     </header>
