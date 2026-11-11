@@ -70,16 +70,19 @@ function mealTile(hero = true) {
       <span class="tile-meal-text"><h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3><strong>${esc(mealTitle(t.meal))}</strong><small>Kein Kochen nötig</small></span>
       ${icon(awayIcon(t.meal.title))}</button>`;
   }
-  const missing = missingFor(t.meal);
+  // Als gekocht abgehakt (am Eintrag im Wochenplan, für alle): keine fehlenden Zutaten mehr anzeigen
+  const cooked = Boolean(state.plan[t.day]?.[t.slot]?.cooked);
+  const missing = cooked ? [] : missingFor(t.meal);
   const known = state.ideas.some((i) => i.id === t.meal.ideaId);
   // Rezept-Link der Idee (falls hinterlegt): direkt aus der Kachel öffnen, ohne die Idee zu suchen
   const url = safeLink(state.ideas.find((i) => i.id === t.meal.ideaId)?.url);
-  return `<div class="tile ${cls} wide tile-meal">
+  return `<div class="tile ${cls} wide tile-meal${cooked ? ' is-cooked' : ''}">
     <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
+    <button type="button" class="check meal-check${cooked ? ' is-on' : ''}" data-action="mealCooked" data-day="${t.day}" data-slot="${t.slot}" aria-pressed="${cooked}" aria-label="${esc(mealTitle(t.meal))} ${cooked ? 'doch nicht gekocht' : 'als gekocht abhaken'}">${icon('check', 'icon-sm')}</button>
     <span class="tile-meal-text">
       <h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3>
       <strong>${esc(mealTitle(t.meal))}</strong>
-      ${!missing.length && known ? '<small>Alle Zutaten da ✓</small>' : ''}
+      ${cooked ? '<small>Gekocht ✓</small>' : !missing.length && known ? '<small>Alle Zutaten da ✓</small>' : ''}
     </span>
     ${url ? `<a class="tile-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
     ${missing.length
@@ -504,6 +507,24 @@ export default {
     parmesanLater() {
       try { localStorage.setItem(PARMESAN_LATER, todayKey()); } catch { /* privates Fenster */ }
       refresh();
+    },
+    // Menü von heute als gekocht abhaken (oder zurück) – am Eintrag im Wochenplan, damit es alle sehen
+    mealCooked(el) {
+      const { day, slot } = el.dataset;
+      let done = false;
+      update((s) => {
+        const meal = s.plan[day]?.[slot];
+        if (!meal) return;
+        done = !meal.cooked;
+        if (done) meal.cooked = true;
+        else delete meal.cooked;
+      });
+      if (done) {
+        toast('Gekocht – fehlende Zutaten ausgeblendet', {
+          label: 'Rückgängig',
+          run: () => update((s) => { if (s.plan[day]?.[slot]) delete s.plan[day][slot].cooked; }),
+        });
+      }
     },
     wasteOut(el) {
       update((s) => { s.settings.wasteOut = el.dataset.day; });

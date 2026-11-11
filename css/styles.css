@@ -1294,3 +1294,6 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .waste-hi.is-soon:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) .waste-dot { background: rgba(255, 255, 255, 0.22); }
 .waste-hi.is-soon:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) .waste-out { background: #FFFFFF; color: var(--w-strong); }
 .waste-dot:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) { background: var(--w-strong); color: #FFFFFF; }
+/* Menü von heute als gekocht abhaken (js/views/heute.js mealCooked) */
+.meal-check { border-color: color-mix(in srgb, currentColor 60%, transparent); }
+.tile-meal.is-cooked .tile-meal-text strong { opacity: 0.75; }
