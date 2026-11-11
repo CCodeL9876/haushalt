@@ -22,10 +22,6 @@
 // ohne Zusatzbibliothek. Secret: VAPID_PRIVATE_KEY (ANLEITUNG.md, „Push-Mitteilungen“); der öffentliche Schlüssel
 // steht hier und in js/config.js (PUSH_PUBLIC_KEY) – beide müssen zusammenpassen.
 
-// Zutaten und Feiertage genau wie in der App (dieselben Dateien, beim Einrichten der Funktion geladen)
-import { glutenFree, isStaple, splitIngredient } from 'https://ccodel9876.github.io/haushalt/js/ingredients.js';
-import { addDays, dateKey, holidayName, shopsClosed } from 'https://ccodel9876.github.io/haushalt/js/dates.js';
-
 const VAPID_PUBLIC_KEY = 'BJvU0TeuBTa-QQLamVufZ_ck7Skh8gAA1SCzb5vcN-u6MgRoN2nGa5hgsEfs1FinZn9Hd8v77yjfBArWCi_u_Ig';
 // Kontakt für die Push-Dienste (Apple verlangt eine https- oder mailto-Adresse)
 const VAPID_SUBJECT = 'https://ccodel9876.github.io/haushalt/';
@@ -413,6 +409,130 @@ async function wasteReminders() {
   }
   return { households: sent };
 }
+
+// ---------- Aus der App übernommen (js/ingredients.js, js/dates.js) – bei Änderungen dort hier nachführen ----------
+// Hier hineinkopiert statt importiert: Der Editor im Supabase-Dashboard lädt keine Dateien von anderen Adressen.
+
+const UNITS = [
+  'kg', 'g', 'mg', 'l', 'dl', 'cl', 'ml', 'el', 'tl', 'msp', 'essl[öo]ffel', 'teel[öo]ffel', 'prisen?', 'st[üu]ck', 'stk',
+  'bund', 'dosen?', 'packungen?', 'pack', 'pck', 'p[äa]ckchen', 'beutel', 'becher', 'gl[äa]ser', 'glas', 'tassen?',
+  'zehen?', 'scheiben?', 'zweige?', 'handvoll', 'w[üu]rfel', 'bl[äa]tter', 'blatt', 'stiele?', 'stangen?', 'k[öo]pfe?',
+  'tropfen', 'spritzer', 'schuss', 'portionen?', 'flaschen?', 'kugeln?', 'knollen?', 'tranchen?',
+];
+const NUMBER = '(?:\\d+(?:[.,]\\d+)?|\\d+\\/\\d+|[½¼¾⅓⅔⅛])(?:\\s*[½¼¾⅓⅔])?';
+const AMOUNT = new RegExp(`^\\s*(${NUMBER}(?:\\s*(?:-|–|bis)\\s*${NUMBER})?)\\s*(?:(${UNITS.join('|')})\\.?(?=[\\s,]|$))?[\\s,]*`, 'i');
+// Ungefähre Mengen ohne Zahl: „wenig Pfeffer“, „etwas Butter“, „1 Prise Salz“
+const VAGUE = /^\s*(wenig|etwas|einige|ein paar|nach belieben|evtl\.?|eventuell|n\.\s?b\.|nach bedarf)\s+/i;
+const QUALIFIER = /^(gestr\.|gestrichen|geh\.|gehäuft|knapp|gross|groß|klein|mittelgrosse?|mittelgroße?)\s+/i;
+
+// → { name, amount }: amount enthält Menge, Einheit und Zusätze („gehackt“, Klammertexte)
+function splitIngredient(line) {
+  let rest = String(line || '').trim();
+  const extras = [];
+  let amount = '';
+  const m = AMOUNT.exec(rest);
+  if (m && m[0].trim()) {
+    amount = [m[1], m[2]].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+    rest = rest.slice(m[0].length);
+  } else {
+    const v = VAGUE.exec(rest);
+    if (v) {
+      amount = v[1];
+      rest = rest.slice(v[0].length);
+    }
+  }
+  const q = QUALIFIER.exec(rest);
+  if (q) {
+    extras.push(q[1]);
+    rest = rest.slice(q[0].length);
+  }
+  // Klammertexte und alles nach dem ersten Komma sind Zusätze, kein Teil des Artikels
+  rest = rest.replace(/\(([^)]*)\)/g, (all, inner) => {
+    if (/^(n|e|en|s|er|es)$/i.test(inner)) return ''; // „Zwiebel(n)“ → „Zwiebel“
+    extras.push(inner.trim());
+    return '';
+  });
+  const comma = rest.indexOf(',');
+  if (comma >= 0) {
+    extras.push(rest.slice(comma + 1).trim());
+    rest = rest.slice(0, comma);
+  }
+  const name = rest.replace(/\s+/g, ' ').trim() || String(line || '').trim();
+  return { name, amount: [amount, ...extras.filter(Boolean)].join(' · ') };
+}
+
+const STAPLES = ['salz', 'pfeffer', 'wasser', 'zucker', 'mehl', 'öl', 'oel', 'olivenöl', 'rapsöl', 'sonnenblumenöl',
+  'essig', 'muskat', 'muskatnuss', 'bratbutter', 'eiswasser', 'pfeffer aus der mühle', 'salz und pfeffer', 'salz, pfeffer'];
+
+// Grundzutat, die man meist zu Hause hat?
+function isStaple(name) {
+  const n = String(name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return STAPLES.includes(n) || /^(salz|pfeffer|wasser)\b/.test(n);
+}
+
+// ---------- Glutenfrei einkaufen (Menüidee mit „Glutenfrei einkaufen“) ----------
+// Glutenhaltige Zutaten bekommen auf der Einkaufsliste den Zusatz „glutenfrei“ („Spaghetti“ → „Spaghetti glutenfrei“),
+// von Natur aus glutenfreie bleiben, wie sie sind. Erkannt über Stichwörter im Namen; Mais-, Reis-, Buchweizen- usw.
+// sind schon glutenfrei.
+const GLUTEN = ['spaghetti', 'nudel', 'pasta', 'penne', 'fusilli', 'farfalle', 'tagliatelle', 'linguine', 'rigatoni', 'lasagne',
+  'makkaroni', 'maccheroni', 'magronen', 'hörnli', 'hornli', 'spätzli', 'spätzle', 'knöpfli', 'gnocchi', 'ravioli', 'tortellini',
+  'teigwaren', 'couscous', 'bulgur', 'mehl', 'brösel', 'brot', 'toast', 'brötchen', 'weggli', 'zopf', 'baguette', 'ciabatta',
+  'pita', 'wrap', 'tortilla', 'gipfeli', 'croissant', 'teig', 'biskuit', 'keks', 'guetzli', 'cracker', 'zwieback', 'griess',
+  'hafer', 'müesli', 'muesli', 'cornflakes', 'bier', 'bouillon', 'brühe', 'panade', 'paniert'];
+const NATURALLY_FREE = /^(reis|mais|glas|buchweizen|kichererbsen|linsen|erbsen|kartoffel|mandel|kokos|hirse|quinoa|amaranth|tapioka|maniok|soja)/i;
+const SOY_SAUCE = /^soja\s*-?\s*(sauce|soße|sosse)$/i;
+
+function glutenFree(name) {
+  const n = String(name || '').trim();
+  const low = n.toLowerCase();
+  if (!n || /gluten\s*-?\s*frei|ohne gluten/.test(low)) return n;
+  if (SOY_SAUCE.test(n)) return 'Tamari (glutenfreie Sojasauce)';
+  const first = low.split(/[\s-]+/)[0];
+  if (NATURALLY_FREE.test(first)) return n;
+  // Weiss-, Halbweiss-, Ruch-, Dinkel-, Zopfmehl usw.: im Laden gibt es einfach „Mehl glutenfrei“
+  if (/mehl$/.test(low) && !/paniermehl$/.test(low)) return 'Mehl glutenfrei';
+  return GLUTEN.some((w) => low.includes(w)) ? `${n} glutenfrei` : n;
+}
+
+const pad = (n) => String(n).padStart(2, '0');
+const dateKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+// Feiertage, an denen die Läden in der Schweiz (fast überall) zu sind. Berchtolds- und Stephanstag gelten nicht in
+// allen Kantonen – lieber einmal zu oft an den Einkauf erinnern als einmal zu wenig.
+function easter(year) { // Ostersonntag (Gauss, gregorianisch)
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const h = (19 * a + b - Math.floor(b / 4) - Math.floor((8 * b + 13) / 25) + 15) % 30;
+  const l = (32 + 2 * (b % 4) + 2 * Math.floor(c / 4) - h - (c % 4)) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  return new Date(year, month - 1, ((h + l - 7 * m + 114) % 31) + 1);
+}
+
+const holidayCache = new Map();
+function holidays(year) {
+  if (!holidayCache.has(year)) {
+    const e = easter(year);
+    holidayCache.set(year, new Map([
+      [`${year}-01-01`, 'Neujahr'], [`${year}-01-02`, 'Berchtoldstag'],
+      [dateKey(addDays(e, -2)), 'Karfreitag'], [dateKey(e), 'Ostern'], [dateKey(addDays(e, 1)), 'Ostermontag'],
+      [dateKey(addDays(e, 39)), 'Auffahrt'], [dateKey(addDays(e, 49)), 'Pfingsten'], [dateKey(addDays(e, 50)), 'Pfingstmontag'],
+      [`${year}-08-01`, '1. August'], [`${year}-12-25`, 'Weihnachten'], [`${year}-12-26`, 'Stephanstag'],
+    ]));
+  }
+  return holidayCache.get(year);
+}
+
+const holidayName = (date) => holidays(date.getFullYear()).get(dateKey(date)) || '';
+// Läden zu: Sonntag oder Feiertag
+const shopsClosed = (date) => date.getDay() === 0 || Boolean(holidayName(date));
 
 // ---------- Menü wie „Jetzt wichtig“ (js/views/heute.js): Zutaten fehlen, morgen Läden zu ----------
 // Gleiche Rechnung wie in der App: fehlend = keine Grundzutat, nicht offen auf der Einkaufsliste, nicht in den
