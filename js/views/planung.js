@@ -90,8 +90,9 @@ export function makePlanView({ shared = false } = {}) {
         ${billsLine(s.bills)}
       </ul>
       ${items.length ? `
-        <h2 class="section-title">Nicht monatlich – für ${esc(monthLabel(month).split(' ')[0])} aktivieren</h2>
-        <ul class="list plan-nm">${items.map((x) => {
+        <button type="button" class="section-title plan-nm-toggle" data-action="plNm" aria-expanded="${nmOpen}">Nicht monatlich – für ${esc(monthLabel(month).split(' ')[0])} aktivieren
+          <span class="plan-sum">${items.filter((x) => amountIn(month, x) || partOf(month, x.id)).length} von ${items.length} aktiv</span>${icon(nmOpen ? 'up' : 'down', 'icon-sm')}</button>
+        ${nmOpen ? `<ul class="list plan-nm">${items.map((x) => {
           const here = amountIn(month, x);
           const part = partOf(month, x.id);
           const planned = plannedInPeriod(month, x);
@@ -105,7 +106,7 @@ export function makePlanView({ shared = false } = {}) {
             <button type="button" class="btn btn-sm plan-part-btn" data-action="plPart" data-id="${esc(x.id)}" aria-label="Teilbetrag für ${esc(x.name)}">Teil</button>
           </li>`;
         }).join('')}</ul>
-        <p class="muted small" style="margin:6px 2px 0">Kästchen = ganzer Betrag in diesem Monat · „Teil“ = nur ein Teil, auch über mehrere Monate verteilt.</p>` : ''}
+        <p class="muted small" style="margin:6px 2px 0">Kästchen = ganzer Betrag in diesem Monat · „Teil“ = nur ein Teil, auch über mehrere Monate verteilt.</p>` : ''}` : ''}
       <div class="plan-more">
         <button type="button" class="btn" data-action="plYear">${icon('chart', 'icon-sm')} Jahresübersicht</button>
         <button type="button" class="btn" data-action="plUntil">${icon('calendar', 'icon-sm')} Bis Ende Jahr …</button>
@@ -114,6 +115,7 @@ export function makePlanView({ shared = false } = {}) {
 
   // Zeile «Rechnungen in diesem Monat»: Antippen klappt darunter, in derselben Box, auf, welche Rechnungen zählen (und warum)
   let billsOpen = false;
+  let nmOpen = false; // «Nicht monatlich» ist standardmässig zugeklappt (nimmt viel Platz)
   function billsLine(total) {
     const now = curMonth();
     const list = plan().bills.map((b) => ({ b, v: billInMonth(b, month) })).filter((x) => x.v > 0);
@@ -797,6 +799,7 @@ export function makePlanView({ shared = false } = {}) {
       },
       plShow() { shown = !shown; refresh(); },
       plBills() { billsOpen = !billsOpen; refresh(); },
+      plNm() { nmOpen = !nmOpen; refresh(); },
       plMonth(el) { month = addMonths(month, Number(el.dataset.step)); refresh(); },
       plActive(el) { toggleActive(month, el.dataset.id); },
       plPart(el) {
