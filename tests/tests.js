@@ -7,7 +7,7 @@ import { parseMoney } from '../js/ui.js';
 import { pull, startShared, state, update } from '../js/store.js';
 import { fridgeMatch, pickMenus } from '../js/menuroll.js';
 import { donutSvg } from '../js/donut.js';
-import { addMonths, billInMonth, curMonth, useShared } from '../js/planung.js';
+import { addMonths, billInMonth, curMonth, monthSums, toggleSkip, updatePlan, useShared } from '../js/planung.js';
 
 const results = [];
 const eq = (name, got, want) => {
@@ -117,6 +117,20 @@ async function testSync() {
   localStorage.removeItem(`haushalt.cache.${r.key}`);
 }
 
+function testSkip() {
+  useShared(false);
+  const month = curMonth();
+  updatePlan((d) => { d.costs = [{ id: 'k1', name: 'Miete', amount: 100000, kind: 'fix' }]; d.bills = [{ id: 'b9', name: 'Arzt', amount: 20000, due: `${month}-20`, payments: [] }]; });
+  eq('Abhaken: vorher zählt alles', [monthSums(month).fix, monthSums(month).bills], [100000, 20000]);
+  toggleSkip('costs', 'k1', month);
+  toggleSkip('bills', 'b9', month);
+  eq('Abhaken: abgehakte Posten zählen im Monat nicht', [monthSums(month).fix, monthSums(month).bills], [0, 0]);
+  eq('Abhaken: im nächsten Monat zählt die Miete wieder', monthSums(addMonths(month, 1)).fix, 100000);
+  toggleSkip('costs', 'k1', month);
+  eq('Abhaken: nochmals tippen holt sie zurück', monthSums(month).fix, 100000);
+  updatePlan((d) => { d.costs = []; d.bills = []; });
+}
+
 function testDonut() {
   const svg = donutSvg([{ value: 50, cls: 'a' }, { value: 0, cls: 'b' }, { value: 25, cls: 'c' }], 100);
   eq('Ring: Teile ohne Wert werden übersprungen', (svg.match(/dn-arc/g) || []).length, 2);
@@ -143,6 +157,7 @@ export async function run() {
   testBalances();
   testMenuRoll();
   testDonut();
+  testSkip();
   testMoney();
   testBills();
   try { await testSync(); } catch (err) { results.push({ name: 'Abgleich', ok: false, detail: err.message }); }

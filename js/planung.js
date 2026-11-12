@@ -292,16 +292,28 @@ export const notMonthly = () => [
   ...plan().abos.filter((a) => a.rhythm === 'y').map((a) => ({ ...a, src: 'abo' })),
 ];
 
+// Abgehakt (x.skip['JJJJ-MM']): zählt in diesem Monat nicht, z. B. weil jemand anderes bezahlt hat
+export const skipped = (x, month) => Boolean(x.skip?.[month]);
+export function toggleSkip(listKey, id, month) {
+  updatePlan((d) => {
+    const x = d[listKey].find((y) => y.id === id);
+    if (!x) return;
+    const skip = { ...(x.skip || {}) };
+    if (skip[month]) delete skip[month]; else skip[month] = true;
+    if (Object.keys(skip).length) x.skip = skip; else delete x.skip;
+  });
+}
+
 // Ein Monat (Standard, ohne Multiplizieren): Einnahmen, Fixkosten, Abos, Aktiviertes, Rechnungen
 export function monthSums(month) {
   const d = plan();
   const sum = (list) => list.reduce((s, x) => s + x.amount, 0);
   return {
     income: sum(d.incomes.filter((i) => i.kind === 'm' || i.month === month)),
-    fix: sum(d.costs.filter((c) => c.kind === 'fix')),
-    abos: sum(d.abos.filter((a) => a.rhythm !== 'y')),
+    fix: sum(d.costs.filter((c) => c.kind === 'fix' && !skipped(c, month))),
+    abos: sum(d.abos.filter((a) => a.rhythm !== 'y' && !skipped(a, month))),
     active: notMonthly().reduce((t, x) => t + amountIn(month, x), 0),
-    bills: d.bills.reduce((s, b) => s + billInMonth(b, month), 0),
+    bills: d.bills.reduce((s, b) => s + (skipped(b, month) ? 0 : billInMonth(b, month)), 0),
   };
 }
 
@@ -355,7 +367,8 @@ export function untilSums(end) {
   const n = Math.max(1, monthsBetween(start, end) + 1);
   const months = Array.from({ length: n }, (_, i) => addMonths(start, i));
   const sum = (list) => list.reduce((s, x) => s + x.amount, 0);
-  const monthly = (list) => sum(list) * n;
+  // shortcut: abgehakte Rechnungen zählen hier voll (nur Fixkosten und Abos kennen «abgehakt» je Monat); bei Bedarf je Monat prüfen
+  const monthly = (list) => list.reduce((t, x) => t + x.amount * months.filter((m) => !skipped(x, m)).length, 0);
   const bills = d.bills.filter((b) => openOf(b) > 0 || hasMonths(b)).reduce((s, b) => {
     if (hasMonths(b)) return s + Object.entries(billSchedule(b)).filter(([k]) => k >= start && k <= end).reduce((t, [, v]) => t + v, 0);
     if (!b.rate) return s + (startMonth(b) <= end ? openOf(b) : 0);

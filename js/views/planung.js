@@ -23,7 +23,7 @@ import {
   BACKUP_DAYS, addMonths, addPayment, backupDue, dueMonth, isOverdue, useShared, backupText, curMonth, hasBackupPassword, isPlanFile, markBackedUp,
   amountIn, billInMonth, billSchedule, hasMonths, monthSums, monthsBetween, notMonthly, openOf, paidOf, partOf, periodMonths,
   periodOf, plan, plannedInPeriod, rateInfo, readBackup, rememberPayee, removePayment, restorePlan, setBackupPassword,
-  setPartFrom, toggleActive, unassignedOf, untilSums,
+  setPartFrom, skipped, toggleActive, toggleSkip, unassignedOf, untilSums,
   updatePlan,
 } from '../planung.js';
 
@@ -84,8 +84,8 @@ export function makePlanView({ shared = false } = {}) {
       </section>`}
       <ul class="list plan-lines">
         ${line('Einnahmen', s.income, 1)}
-        ${line('Fixkosten', s.fix, -1)}
-        ${line('Abos (monatlich)', s.abos, -1)}
+        ${groupLine('fix', 'Fixkosten', s.fix, plan().costs.filter((c) => c.kind === 'fix').map((c) => ({ listKey: 'costs', action: 'plCost', x: c, sub: '', value: m(c.amount) })))}
+        ${groupLine('abos', 'Abos (monatlich)', s.abos, plan().abos.filter((a) => a.rhythm !== 'y').map((a) => ({ listKey: 'abos', action: 'plAbo', x: a, sub: '', value: m(a.amount) })))}
         ${items.length ? line('Aktiviert in diesem Monat', s.active, -1) : ''}
         ${billsLine(s.bills)}
       </ul>
@@ -113,14 +113,30 @@ export function makePlanView({ shared = false } = {}) {
       </div>`;
   }
 
-  // Zeile «Rechnungen in diesem Monat»: Antippen klappt darunter, in derselben Box, auf, welche Rechnungen zählen (und warum)
-  let billsOpen = false;
+  // Zeilen «Fixkosten», «Abos» und «Rechnungen in diesem Monat»: Antippen klappt darunter, in derselben Box, die Posten auf.
+  // Abhaken (x.skip) nimmt einen Posten für diesen Monat aus der Rechnung, z. B. wenn jemand anderes bezahlt hat.
+  const open = { fix: false, abos: false, bills: false };
   let nmOpen = false; // «Nicht monatlich» ist standardmässig zugeklappt (nimmt viel Platz)
+  const skipRow = ({ listKey, action, x, sub, value }) => {
+    const off = skipped(x, month);
+    return `<li class="${off ? 'is-off' : ''}">
+      <button type="button" class="check ${off ? 'is-on' : ''}" data-action="plSkip" data-list="${listKey}" data-id="${esc(x.id)}" aria-pressed="${off}" aria-label="${esc(x.name)}: ${off ? 'wieder in diesem Monat zählen' : 'in diesem Monat nicht zählen'}">${icon('check', 'icon-sm')}</button>
+      <button type="button" class="list-main plan-row" data-action="${action}" data-id="${esc(x.id)}">${esc(x.name)}${sub ? `<small>${esc(sub)}</small>` : ''}</button>
+      ${tap(value, 'list-value')}</li>`;
+  };
+  function groupLine(key, label, total, entries) {
+    const value = total ? tap(`− ${m(total)}`, 'list-value') : '<span class="list-value">–</span>';
+    if (!entries.length) return `<li><span class="list-main">${label}</span>${value}</li>`;
+    const done = entries.filter((e) => skipped(e.x, month)).length;
+    return `<li class="plan-bills-line">
+      <button type="button" class="list-main plan-bills-toggle" data-action="plOpen" data-key="${key}" aria-expanded="${open[key]}">${label}<small>${entries.length}${done ? ` · ${done} abgehakt` : ''}</small>${icon(open[key] ? 'up' : 'down', 'icon-sm')}</button>
+      ${value}
+      ${open[key] ? `<div class="plan-bills-body"><ul class="plan-bills-list">${entries.map(skipRow).join('')}</ul>
+        <p class="muted small" style="margin:6px 0 4px">Abhaken = zählt in diesem Monat nicht (z. B. wenn jemand anderes bezahlt hat).${key === 'bills' && month >= curMonth() ? ' Rechnung antippen → „Monate“, um sie (oder Teile) einem anderen Monat zuzuweisen.' : ''}</p></div>` : ''}
+    </li>`;
+  }
   function billsLine(total) {
     const now = curMonth();
-    const list = plan().bills.map((b) => ({ b, v: billInMonth(b, month) })).filter((x) => x.v > 0);
-    const value = total ? tap(`− ${m(total)}`, 'list-value') : '<span class="list-value">–</span>';
-    if (!list.length) return `<li><span class="list-main">Rechnungen in diesem Monat</span>${value}</li>`;
     const why = (b) => {
       if (hasMonths(b)) {
         const parts = [b.months[month] ? 'diesem Monat zugewiesen' : '', billSchedule(b)[month] > (b.months[month] || 0) ? 'Rest ohne Monat' : ''].filter(Boolean).join(' + ');
@@ -128,12 +144,9 @@ export function makePlanView({ shared = false } = {}) {
       }
       return month < now ? 'bezahlt' : b.rate ? 'Rate' : 'offen – ganz in diesem Monat';
     };
-    return `<li class="plan-bills-line">
-      <button type="button" class="list-main plan-bills-toggle" data-action="plBills" aria-expanded="${billsOpen}">Rechnungen in diesem Monat<small>${list.length} ${list.length === 1 ? 'Rechnung' : 'Rechnungen'}</small>${icon(billsOpen ? 'up' : 'down', 'icon-sm')}</button>
-      ${value}
-      ${billsOpen ? `<div class="plan-bills-body"><ul class="plan-bills-list">${list.map(({ b, v }) => row('plBill', b, why(b), m(v))).join('')}</ul>
-        ${month >= now ? '<p class="muted small" style="margin:6px 0 4px">Rechnung antippen → „Monate“, um sie (oder Teile) einem anderen Monat zuzuweisen.</p>' : ''}</div>` : ''}
-    </li>`;
+    const entries = plan().bills.map((b) => ({ b, v: billInMonth(b, month) })).filter((x) => x.v > 0)
+      .map(({ b, v }) => ({ listKey: 'bills', action: 'plBill', x: b, sub: why(b), value: m(v) }));
+    return groupLine('bills', 'Rechnungen in diesem Monat', total, entries);
   }
 
   const row = (action, x, sub, value = m(x.amount)) => `
@@ -255,7 +268,7 @@ export function makePlanView({ shared = false } = {}) {
           toast(!name ? 'Bitte eine Bezeichnung eingeben' : 'Bitte einen Betrag eingeben');
           return false;
         }
-        const item = { id: x?.id || uid(), name, amount, [kindName]: String(data.get(kindName)), ...read(data) };
+        const item = { id: x?.id || uid(), name, amount, [kindName]: String(data.get(kindName)), ...read(data), ...(x?.skip ? { skip: x.skip } : {}) };
         updatePlan((d) => {
           const i = d[listKey].findIndex((y) => y.id === item.id);
           if (i >= 0) d[listKey][i] = item;
@@ -798,7 +811,8 @@ export function makePlanView({ shared = false } = {}) {
         refresh();
       },
       plShow() { shown = !shown; refresh(); },
-      plBills() { billsOpen = !billsOpen; refresh(); },
+      plOpen(el) { open[el.dataset.key] = !open[el.dataset.key]; refresh(); },
+      plSkip(el) { toggleSkip(el.dataset.list, el.dataset.id, month); },
       plNm() { nmOpen = !nmOpen; refresh(); },
       plMonth(el) { month = addMonths(month, Number(el.dataset.step)); refresh(); },
       plActive(el) { toggleActive(month, el.dataset.id); },
