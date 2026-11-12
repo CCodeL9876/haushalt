@@ -292,7 +292,8 @@ export const notMonthly = () => [
   ...plan().abos.filter((a) => a.rhythm === 'y').map((a) => ({ ...a, src: 'abo' })),
 ];
 
-// Abgehakt (x.skip['JJJJ-MM']): zählt in diesem Monat nicht, z. B. weil jemand anderes bezahlt hat
+// Abgehakt (b.skip['JJJJ-MM']), nur bei Rechnungen: zählt in diesem Monat nicht, z. B. weil jemand anderes bezahlt hat.
+// shortcut: «Bis Ende Jahr» (untilSums) kennt das nicht und zählt abgehakte Rechnungen voll
 export const skipped = (x, month) => Boolean(x.skip?.[month]);
 export function toggleSkip(listKey, id, month) {
   updatePlan((d) => {
@@ -310,8 +311,8 @@ export function monthSums(month) {
   const sum = (list) => list.reduce((s, x) => s + x.amount, 0);
   return {
     income: sum(d.incomes.filter((i) => i.kind === 'm' || i.month === month)),
-    fix: sum(d.costs.filter((c) => c.kind === 'fix' && !skipped(c, month))),
-    abos: sum(d.abos.filter((a) => a.rhythm !== 'y' && !skipped(a, month))),
+    fix: sum(d.costs.filter((c) => c.kind === 'fix')),
+    abos: sum(d.abos.filter((a) => a.rhythm !== 'y')),
     active: notMonthly().reduce((t, x) => t + amountIn(month, x), 0),
     bills: d.bills.reduce((s, b) => s + (skipped(b, month) ? 0 : billInMonth(b, month)), 0),
   };
@@ -367,8 +368,7 @@ export function untilSums(end) {
   const n = Math.max(1, monthsBetween(start, end) + 1);
   const months = Array.from({ length: n }, (_, i) => addMonths(start, i));
   const sum = (list) => list.reduce((s, x) => s + x.amount, 0);
-  // shortcut: abgehakte Rechnungen zählen hier voll (nur Fixkosten und Abos kennen «abgehakt» je Monat); bei Bedarf je Monat prüfen
-  const monthly = (list) => list.reduce((t, x) => t + x.amount * months.filter((m) => !skipped(x, m)).length, 0);
+  const monthly = (list) => sum(list) * n;
   const bills = d.bills.filter((b) => openOf(b) > 0 || hasMonths(b)).reduce((s, b) => {
     if (hasMonths(b)) return s + Object.entries(billSchedule(b)).filter(([k]) => k >= start && k <= end).reduce((t, [, v]) => t + v, 0);
     if (!b.rate) return s + (startMonth(b) <= end ? openOf(b) : 0);

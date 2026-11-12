@@ -944,6 +944,8 @@ button.plan-sum.total-toggle { float: right; }
 /* Karten in der Hausfarbe des Ladens: ganze Karte farbig, Strichcode als weisses Feld darin (weiss bleibt Pflicht für die Scanner) */
 .loyalty-shop-migros { --shop-bg: #173A85; --shop-bg-2: #173A85; --shop-text: #FFFFFF; --shop-accent: #EE622B; }
 .loyalty-shop-coop { --shop-bg: #2B6FC0; --shop-bg-2: #2B6FC0; --shop-text: #FFFFFF; --shop-accent: #F08A1C; }
+/* Migros und Coop in der Systemschrift des iPhones (SF Pro) wie früher, nicht in Urbanist */
+.loyalty-shop-migros, .loyalty-shop-coop { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif; }
 .loyalty-shop header {
   padding: 12px 10px 12px 22px; background: linear-gradient(90deg, var(--shop-bg), var(--shop-bg-2)); color: var(--shop-text);
   font-size: var(--fs-2xl, 1.6rem); font-weight: 800; letter-spacing: -0.01em;

@@ -84,8 +84,8 @@ export function makePlanView({ shared = false } = {}) {
       </section>`}
       <ul class="list plan-lines">
         ${line('Einnahmen', s.income, 1)}
-        ${groupLine('fix', 'Fixkosten', s.fix, plan().costs.filter((c) => c.kind === 'fix').map((c) => ({ listKey: 'costs', action: 'plCost', x: c, sub: '', value: m(c.amount) })))}
-        ${groupLine('abos', 'Abos (monatlich)', s.abos, plan().abos.filter((a) => a.rhythm !== 'y').map((a) => ({ listKey: 'abos', action: 'plAbo', x: a, sub: '', value: m(a.amount) })))}
+        ${line('Fixkosten', s.fix, -1)}
+        ${line('Abos (monatlich)', s.abos, -1)}
         ${items.length ? line('Aktiviert in diesem Monat', s.active, -1) : ''}
         ${billsLine(s.bills)}
       </ul>
@@ -113,9 +113,10 @@ export function makePlanView({ shared = false } = {}) {
       </div>`;
   }
 
-  // Zeilen «Fixkosten», «Abos» und «Rechnungen in diesem Monat»: Antippen klappt darunter, in derselben Box, die Posten auf.
-  // Abhaken (x.skip) nimmt einen Posten für diesen Monat aus der Rechnung, z. B. wenn jemand anderes bezahlt hat.
-  const open = { fix: false, abos: false, bills: false };
+  // Zeile «Rechnungen in diesem Monat»: Antippen klappt darunter, in derselben Box, die Rechnungen auf.
+  // Abhaken (x.skip) nimmt eine Rechnung für diesen Monat aus der Rechnung, z. B. wenn jemand anderes bezahlt hat.
+  // Nicht monatliche Kosten und Abos (Jahr/Halbjahr) haben dafür ihr Kästchen «aktivieren».
+  const open = { bills: false };
   let nmOpen = false; // «Nicht monatlich» ist standardmässig zugeklappt (nimmt viel Platz)
   const skipRow = ({ listKey, action, x, sub, value }) => {
     const off = skipped(x, month);

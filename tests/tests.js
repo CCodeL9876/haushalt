@@ -122,12 +122,10 @@ function testSkip() {
   const month = curMonth();
   updatePlan((d) => { d.costs = [{ id: 'k1', name: 'Miete', amount: 100000, kind: 'fix' }]; d.bills = [{ id: 'b9', name: 'Arzt', amount: 20000, due: `${month}-20`, payments: [] }]; });
   eq('Abhaken: vorher zählt alles', [monthSums(month).fix, monthSums(month).bills], [100000, 20000]);
-  toggleSkip('costs', 'k1', month);
   toggleSkip('bills', 'b9', month);
-  eq('Abhaken: abgehakte Posten zählen im Monat nicht', [monthSums(month).fix, monthSums(month).bills], [0, 0]);
-  eq('Abhaken: im nächsten Monat zählt die Miete wieder', monthSums(addMonths(month, 1)).fix, 100000);
-  toggleSkip('costs', 'k1', month);
-  eq('Abhaken: nochmals tippen holt sie zurück', monthSums(month).fix, 100000);
+  eq('Abhaken: abgehakte Rechnung zählt im Monat nicht, Fixkosten bleiben', [monthSums(month).fix, monthSums(month).bills], [100000, 0]);
+  toggleSkip('bills', 'b9', month);
+  eq('Abhaken: nochmals tippen holt sie zurück', monthSums(month).bills, 20000);
   updatePlan((d) => { d.costs = []; d.bills = []; });
 }
 
