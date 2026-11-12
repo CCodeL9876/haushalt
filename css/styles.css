@@ -776,8 +776,6 @@ button.plan-sum.total-toggle { float: right; }
 .aisle-title::before { border-radius: 3px; }
 
 /* ---------- Startseite „Heute“ (js/views/heute.js) ---------- */
-.heute-hello { margin: -2px 2px 14px; font-size: var(--fs-2xl); font-weight: 800; letter-spacing: -0.02em; }
-.heute-hello span { display: block; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); letter-spacing: 0; }
 .check.check-toss { border-color: var(--minus); color: var(--minus); }
 .bento { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .tile {
@@ -826,7 +824,6 @@ button.plan-sum.total-toggle { float: right; }
 .tile-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .tile-acts .tile-btn { margin-top: 0; }
 .tile-btn-soft { background: color-mix(in srgb, var(--on-hero) 14%, transparent); color: var(--on-hero); }
-.tile-meal-plain .tile-recipe { background: color-mix(in srgb, var(--tile-text) 12%, transparent); color: var(--tile-text); }
 /* Parmesan-Alarm: Käse-Gelb mit Rinde und Löchern, in allen Farbdesigns gleich */
 .tile-cheese { background: #F6D365; color: #2A2005; border-bottom: 8px solid #B9802A; }
 .cheese-holes i { position: absolute; border-radius: 50%; background: rgba(224, 168, 46, 0.55); pointer-events: none; }

@@ -9,7 +9,7 @@
 // Beträge sind verdeckt, bis man sie zeigt (Antippen eines Betrags, wie bei der Abrechnung) – wieder verdeckt beim
 // Verlassen und wenn die App in den Hintergrund geht.
 //
-// Dieselbe Ansicht dient auch Geld → Moneyflow (makePlanView({ shared: true }), js/views/moneyflow.js): gleicher Aufbau,
+// Dieselbe Ansicht dient auch Geld → Moneyflow (makePlanView({ shared: true }), js/views/geld.js): gleicher Aufbau,
 // gleiche Tabs und Wörter, Daten aber gemeinsam im Haushalt (js/planung.js useShared). Nur dort: Beträge sichtbar,
 // «Wer bezahlt?» bei Rechnungen, Zahlung einer Person auf Wunsch in die Abrechnung, wer zuletzt etwas geändert hat.
 

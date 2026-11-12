@@ -419,10 +419,12 @@ async function wasteReminders() {
   const now = local();
   if (now.hour < REMIND_HOUR) return { skipped: 'vor 17 Uhr' };
   const tomorrow = nextDay(now.day);
-  const rows = await db('items?collection=eq.settings&id=eq.main&select=household_key,data');
+  const rows = await db('items?collection=eq.settings&id=in.(main,wasteOut)&select=household_key,id,data');
+  // „Draussen“ steht in einer eigenen Zeile (settings/wasteOut, js/store.js), bei älteren Ständen noch in main
+  const outBy = new Map(rows.filter((r) => r.id === 'wasteOut').map((r) => [r.household_key, r.data?.value]));
   let sent = 0;
-  for (const row of rows || []) {
-    if (row.data?.wasteOut === tomorrow) continue; // auf Heute schon „Draussen“ getippt
+  for (const row of (rows || []).filter((r) => r.id === 'main')) {
+    if ((outBy.get(row.household_key) ?? row.data?.wasteOut) === tomorrow) continue; // auf Heute schon „Draussen“ getippt
     const kinds = (row.data?.waste?.kinds || []).filter((k) => k?.remind && Array.isArray(k.dates) && k.dates.includes(tomorrow));
     if (!kinds.length) continue;
     const household = row.household_key;

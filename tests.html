@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Haushalt · Tests</title>
+  <style>
+    body { margin: 0; padding: 20px 16px; font: 15px/1.4 -apple-system, system-ui, sans-serif; background: #FDFBD4; color: #23221A; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    p { margin: 0 0 16px; color: #6E6B4C; }
+    ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; max-width: 720px; }
+    li { padding: 10px 12px; border-radius: 12px; background: #FFFEF3; }
+    li.ok::before { content: "✓ "; color: #2C6E3F; font-weight: 700; }
+    li.bad { background: #F8DCD6; } li.bad::before { content: "✗ "; color: #A63D2F; font-weight: 700; }
+    li small { display: block; color: #A63D2F; }
+    .sum { font-weight: 700; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Haushalt · Tests</h1>
+  <p>Prüft Abrechnung, Geldbeträge, Rechnungen im Monat und den Abgleich – mit einem nachgebauten Haushalt, ohne echte Daten.</p>
+  <div class="sum" id="sum">Läuft …</div>
+  <ul id="out"></ul>
+  <dialog id="sheet"></dialog><div id="toast"></div>
+  <script type="module">
+    import { run } from './tests/tests.js';
+    const esc = (v) => String(v).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+    const results = await run();
+    const bad = results.filter((r) => !r.ok).length;
+    document.getElementById('sum').textContent = bad ? `${bad} von ${results.length} Tests fehlgeschlagen` : `Alle ${results.length} Tests bestanden`;
+    document.getElementById('out').innerHTML = results.map((r) => `<li class="${r.ok ? 'ok' : 'bad'}">${esc(r.name)}${r.detail ? `<small>${esc(r.detail)}</small>` : ''}</li>`).join('');
+  </script>
+</body>
+</html>

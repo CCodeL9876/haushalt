@@ -5,8 +5,10 @@
 import { refresh } from '../store.js';
 import { icon } from '../ui.js';
 import abrechnung from './abrechnung.js';
-import planung from './planung.js';
-import moneyflow from './moneyflow.js';
+import planung, { makePlanView } from './planung.js';
+
+// Moneyflow: dieselbe Ansicht wie die Planung, aber mit den gemeinsamen Daten (js/planung.js useShared)
+const moneyflow = makePlanView({ shared: true });
 
 const PARTS = [abrechnung, planung, moneyflow];
 const PART_KEY = 'haushalt.geld';

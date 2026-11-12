@@ -139,11 +139,20 @@ function stable(value) {
   return JSON.stringify(value ?? null);
 }
 
+const OWN_ROW_SETTINGS = ['wasteOut', 'fridgeDays'];
+
 function toRows(data) {
   const rows = new Map();
   for (const c of LIST_COLLECTIONS) for (const item of data[c]) rows.set(`${c}/${item.id}`, { collection: c, id: item.id, data: item });
   for (const [day, entry] of Object.entries(data.plan)) rows.set(`plan/${day}`, { collection: 'plan', id: day, data: entry });
-  rows.set('settings/main', { collection: 'settings', id: 'main', data: data.settings });
+  // Einstellungen, die oft und von mehreren Geräten geändert werden, je in einer eigenen Zeile – sonst überschreibt
+  // ein Gerät mit altem Stand die Änderung des anderen (z. B. „Abfuhr draussen“ beim Erfassen eines Rests)
+  const main = { ...data.settings };
+  for (const key of OWN_ROW_SETTINGS) {
+    delete main[key];
+    if (data.settings[key] !== undefined) rows.set(`settings/${key}`, { collection: 'settings', id: key, data: { value: data.settings[key] } });
+  }
+  rows.set('settings/main', { collection: 'settings', id: 'main', data: main });
   return rows;
 }
 
@@ -152,8 +161,10 @@ function fromRows(rows) {
   for (const r of rows) {
     if (LIST_COLLECTIONS.includes(r.collection)) data[r.collection].push(r.data);
     else if (r.collection === 'plan') data.plan[r.id] = r.data;
-    else if (r.collection === 'settings') data.settings = { ...data.settings, ...r.data };
   }
+  // Zuerst die Hauptzeile, dann die eigenen Zeilen (die gelten, auch wenn ein älteres Gerät sie noch in main schreibt)
+  for (const r of rows) if (r.collection === 'settings' && r.id === 'main') data.settings = { ...data.settings, ...r.data };
+  for (const r of rows) if (r.collection === 'settings' && OWN_ROW_SETTINGS.includes(r.id)) data.settings[r.id] = r.data?.value;
   // Die Datenbank liefert ohne feste Reihenfolge
   data.members.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || a.name.localeCompare(b.name, 'de'));
   data.shopping.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
@@ -272,7 +283,9 @@ export function update(fn) {
 // Änderungen der anderen Geräte holen. Eigene, noch nicht hochgeladene Änderungen gehen vorher hoch.
 export async function pull() {
   if (session.mode !== 'shared') return;
-  if (!(await flush())) return;
+  // Auch wenn das Hochladen scheitert (z. B. eine Sammlung, die in der Datenbank noch fehlt), trotzdem abholen –
+  // sonst sähe dieses Gerät die Änderungen der anderen nie mehr. Was hier noch nicht oben ist, bleibt lokal stehen.
+  const pushed = await flush();
   const before = version;
   let rows;
   try {
@@ -287,14 +300,23 @@ export async function pull() {
   session.offline = false;
   onRows(rows);
   if (version !== before) return; // inzwischen lokal geändert → beim nächsten Abgleich
-  const next = fromRows(rows);
-  const nextSig = signatures(next);
-  const changed = !sameSignatures(nextSig, signatures(state));
-  synced = nextSig;
+  const remoteSig = signatures(fromRows(rows));
+  const next = fromRows(pushed ? rows : withPending(rows));
+  const changed = !sameSignatures(signatures(next), signatures(state));
+  synced = remoteSig; // was die Datenbank kennt – noch nicht Hochgeladenes versucht der nächste Abgleich wieder
   if (!changed) return;
   Object.assign(state, next);
   saveCache();
   refresh('remote');
+}
+
+// Datenbank-Zeilen plus die eigenen Änderungen, die noch nicht oben sind (geändert, neu oder gelöscht)
+function withPending(rows) {
+  const local = toRows(state);
+  const byKey = new Map(rows.map((r) => [`${r.collection}/${r.id}`, r]));
+  for (const [k, r] of local) if (synced.get(k) !== stable(r.data)) byKey.set(k, r);
+  for (const k of synced.keys()) if (!local.has(k)) byKey.delete(k);
+  return [...byKey.values()];
 }
 
 // keepEndpoint: Push-Adresse dieses Geräts – bleibt für Mitteilungen angemeldet, alle anderen nicht

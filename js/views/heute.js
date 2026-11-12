@@ -55,10 +55,10 @@ function missingFor(meal) {
 }
 
 // Kompakt in einer Zeile: links „Heute Abend“ und das Menü, rechts Rezept-Link und Knopf für fehlende Zutaten.
-// hero: zuoberst als dunkle Kachel; sonst (wenn „Jetzt wichtig“ etwas anderes zeigt) hell darunter
-function mealTile(hero = true) {
+// Immer als dunkle Kachel (Heute, Variante D)
+function mealTile() {
   const t = todaysMeal();
-  const cls = hero ? 'tile-hero' : 'tile-auto tile-meal-plain';
+  const cls = 'tile-hero';
   if (!t) {
     return `<button type="button" class="tile ${cls} wide tile-meal" data-action="go" data-hash="#woche">
       <span class="tile-meal-text"><h3>Heute</h3><strong>Noch kein Menü geplant</strong></span>
@@ -112,11 +112,11 @@ function closedMeals() {
   return missing.length || unknown.length ? { names, several: days.length > 1, meals, missing, unknown } : null;
 }
 
-function closedTile(hero = false) {
+function closedTile() {
   const t = closedMeals();
   if (!t) return '';
   const label = (x) => (t.several ? `${x.name}: ${mealTitle(x.meal)}` : mealTitle(x.meal));
-  return `<div class="tile ${hero ? 'tile-hero' : 'tile-auto'} wide">
+  return `<div class="tile tile-auto wide">
     <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
     <h3>Morgen ${esc(t.names)} · Läden zu</h3>
     <div class="tile-big${t.several ? ' tile-big-list' : ''}">${esc(t.meals.map(label).join(' · '))}</div>
@@ -239,8 +239,7 @@ function todoTile() {
 
 // Abfuhrkalender (js/waste.js): ein Streifen für die nächste Abfuhr – am Vortag und am Tag selbst dunkel
 // hervorgehoben („Morgen: Kehricht rausstellen“) –, die übrigen Arten als kleine Chips darunter.
-// focused: die nächste Abfuhr steht schon oben unter „Jetzt wichtig“ – hier nur noch die übrigen
-function wasteTile(focused = false) {
+function wasteTile() {
   const kinds = wasteKinds();
   if (!kinds.length) return '';
   const today = todayKey();
@@ -270,7 +269,6 @@ function wasteTile(focused = false) {
     const when = d === 1 ? 'morgen' : d < 7 ? fmtShort(k.next).split(',')[0] : fmtShort(k.next).split(', ')[1];
     return `<span class="waste-chip">${dot(k, 'is-small')}${esc(k.short)} <b>${esc(when)}</b></span>`;
   };
-  if (focused) return rest.length || note ? `<div class="waste-b">${rest.length ? `<div class="waste-chips" aria-label="Weitere Abfuhren">${rest.map(chip).join('')}</div>` : ''}${note}</div>` : '';
   return `<div class="waste-b">
     <div class="tile waste-next waste-hi ${wasteTone(first[0].short)}${soon ? ' is-soon' : ''}">
       <button type="button" class="tile-link" data-action="waste" aria-label="${esc(title)} – Abfuhrkalender öffnen"></button>
@@ -316,29 +314,12 @@ function fridgeTile() {
 }
 
 // ---------- „Jetzt wichtig“ ----------
-// Zuoberst eine Sache: die erste Regel, die zutrifft.
-//  1. Abfuhr: morgen (am Vorabend ab 17 Uhr) oder heute (bis 7:30) – bis jemand „Ist draussen“ tippt (für alle)
-//  2. Für das Menü von heute fehlen Zutaten (Menü-Kachel mit Knopf)
-//  3. Morgen Sonntag/Feiertag: Läden zu, Zutaten fehlen
-//  4. Reste im Kühlschrank laufen heute ab (oder sind abgelaufen)
-//  5. Als wichtig markierte ToDos (im ToDo „Unter ‚Jetzt wichtig‘ zeigen“, auch ohne Datum)
-//  6. Überfällige ToDos
-//  7. Sonst das Menü von heute
-const WASTE_EVENING = '17:00';
-const WASTE_MORNING_UNTIL = '07:30';
-
-function wasteFocus() {
-  const now = new Date();
-  const hm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const today = todayKey();
-  const tomorrow = dateKey(addDays(now, 1));
-  const next = nextPickups(today);
-  const day = hm >= WASTE_EVENING && next.some((k) => k.next === tomorrow) ? tomorrow
-    : hm < WASTE_MORNING_UNTIL && next.some((k) => k.next === today) ? today : null;
-  if (!day || state.settings.wasteOut === day) return null;
-  const kinds = next.filter((k) => k.next === day);
-  return { day, kinds, names: kinds.map((k) => k.short).join(' und ') };
-}
+// Eine Sache als kompakte Karte, nur was Menü und Abfuhr nicht schon selbst hervorheben (die haben eigene Kacheln):
+//  1. Am Morgen (bis Mittag): Reste, die heute mitgenommen werden sollen
+//  2. Reste im Kühlschrank laufen heute ab (oder sind abgelaufen)
+//  3. Als wichtig markierte ToDos (im ToDo „Unter ‚Jetzt wichtig‘ zeigen“, auch ohne Datum)
+//  4. Überfällige ToDos
+// Sonst nichts (kind '').
 
 // Als wichtig markierte offene ToDos; geteilte nur, wenn sie mich betreffen. Fällige zuerst, ohne Datum zuletzt
 function pinnedTodos() {
@@ -363,8 +344,7 @@ const focusCard = ({ eyebrow, title, note, buttons }) => `<div class="tile wide 
   <div class="tile-acts">${buttons.join('')}</div>
 </div>`;
 
-// skip: Regeln, die schon eine eigene, hervorgehobene Kachel haben (Abfuhr, Menü, Läden zu) – auslassen
-function focus(skip = new Set()) {
+function focus() {
   // Am Morgen (bis Mittag): Reste, die heute mitgenommen werden sollen
   const take = new Date().getHours() < 12 ? takeToday() : [];
   if (take.length) {
@@ -379,22 +359,6 @@ function focus(skip = new Set()) {
       ],
     }) };
   }
-  const waste = skip.has('waste') ? null : wasteFocus();
-  if (waste) {
-    const tomorrow = waste.day !== todayKey();
-    return { kind: 'waste', html: focusCard({
-      eyebrow: 'Jetzt wichtig',
-      title: `${waste.names} rausstellen`,
-      note: tomorrow ? `Abfuhr morgen früh · ${fmtShort(waste.day)}` : `Abfuhr heute · ${fmtShort(waste.day)}`,
-      buttons: [
-        `<button type="button" class="tile-btn" data-action="wasteOut" data-day="${esc(waste.day)}">${icon('check', 'icon-sm')} Ist draussen</button>`,
-        '<button type="button" class="tile-btn tile-btn-soft" data-action="waste">Abfuhrplan</button>',
-      ],
-    }) };
-  }
-  const meal = todaysMeal();
-  if (!skip.has('meal') && meal && missingFor(meal.meal).length) return { kind: 'meal', html: mealTile() };
-  if (!skip.has('closed') && closedMeals()) return { kind: 'closed', html: closedTile(true) };
   const fridge = fridgeToday();
   if (fridge.length) {
     const f = fridge[0];
@@ -439,7 +403,7 @@ function focus(skip = new Set()) {
       ],
     }) };
   }
-  return { kind: 'meal', html: mealTile() };
+  return { kind: '', html: '' };
 }
 
 // ---------- Parmesan-Alarm ----------
@@ -487,8 +451,7 @@ export default {
   render() {
     const now = new Date();
     const fmt = (o) => new Intl.DateTimeFormat('de-CH', o).format(now);
-    const f = focus(new Set(['waste', 'meal', 'closed']));
-    const important = ['take', 'fridge', 'todo'].includes(f.kind) ? f.html : '';
+    const f = focus();
     // Kachelfarben reihum (tile-auto → tile-1/2/3) in der Reihenfolge, in der die Kacheln heute erscheinen – so
     // haben zwei Kacheln nacheinander nie dieselbe Farbe, auch wenn einzelne fehlen
     let n = 0;
@@ -501,9 +464,9 @@ export default {
       <p class="heute-greet">${esc(greeting())}</p>
       <div class="bento">
         ${parmesanTile()}
-        ${important}
-        ${mealTile(true)}
-        ${wasteTile(false)}
+        ${f.html}
+        ${mealTile()}
+        ${wasteTile()}
         ${closedTile()}
         ${sportStrip()}
         ${dayTile()}
