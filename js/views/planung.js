@@ -70,12 +70,12 @@ export function makePlanView({ shared = false } = {}) {
         <strong>${esc(monthLabel(month))}</strong>
         <button type="button" class="icon-btn" data-action="plMonth" data-step="1" aria-label="Monat vor">${icon('right')}</button>
       </div>
-      ${shown && s.income + s.fix + s.abos + s.active + s.bills > 0
-        // Ring nur bei sichtbaren Beträgen (er zeigt die Anteile); Anteil am Einkommen, der Rest bleibt frei
+      ${s.income + s.fix + s.abos + s.active + s.bills > 0
+        // Ring immer (auch bei verdeckten Beträgen, dann steht in der Mitte «CHF *****»); Anteil am Einkommen, der Rest bleibt frei
         ? `<section class="card plan-hero plan-donut">
         <div class="donut">${donutSvg([{ value: s.fix, cls: 'dn-fix' }, { value: s.abos, cls: 'dn-abos' }, { value: s.active + s.bills, cls: 'dn-more' }], Math.max(s.income, s.fix + s.abos + s.active + s.bills))}
           <div class="donut-mid"><small>Bleibt im ${esc(monthLabel(month).split(' ')[0])}</small>
-            ${tap(`<span class="hero-number ${rest < 0 ? 'amount-minus' : ''}">${m(rest, { sign: true })}</span>${hint()}`, 'total-hero')}</div>
+            ${tap(`<span class="hero-number ${shown && rest < 0 ? 'amount-minus' : ''}">${m(rest, { sign: true })}</span>${hint()}`, 'total-hero')}</div>
         </div>
       </section>`
         : `<section class="card plan-hero">
