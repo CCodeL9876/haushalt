@@ -227,24 +227,25 @@ async function takeReminders() {
     if (!groups.has(key)) groups.set(key, { household: it.household_key, member: f.takeFor || '', entries: [] });
     groups.get(key).entries.push({ ref: `take:${it.id}:${now.day}`, name: clip(f.name, 60) });
   }
-  let sent = 0;
+  // Zahlen für die Fehlersuche: gefunden, schon verschickt, ohne Gerät, Versand abgelehnt
+  let sent = 0, already = 0, noDevice = 0, failed = 0;
   for (const { household, member, entries } of groups.values()) {
     const refs = entries.map((e) => `"${e.ref.replace(/"/g, '')}"`).join(',');
     const done = new Set((await db(`push_sent?household_key=eq.${encodeURIComponent(household)}&ref=in.(${encodeURIComponent(refs)})&select=ref`)).map((r) => r.ref));
     const open = entries.filter((e) => !done.has(e.ref));
-    if (!open.length) continue;
+    if (!open.length) { already += 1; continue; }
     const who = member ? `&member_id=eq.${encodeURIComponent(member)}` : '';
     let subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}${who}&select=endpoint,p256dh,auth`);
     // Person ohne Mitteilungen: dann an alle im Haushalt
     if (!subs?.length && member) subs = await db(`push_subscriptions?household_key=eq.${encodeURIComponent(household)}&select=endpoint,p256dh,auth`);
-    if (!subs?.length) continue;
+    if (!subs?.length) { noDevice += 1; continue; }
     const payload = { title: '🥡 Mitnehmen', body: `${list(entries.map((e) => e.name))} aus dem Kühlschrank – nicht vergessen!`, url: '#heute', tag: `take-${now.day}` };
     const results = await Promise.all(subs.map((s) => send(s, payload)));
-    if (!results.some(Boolean)) continue; // später nochmals versuchen
+    if (!results.some(Boolean)) { failed += 1; continue; } // später nochmals versuchen
     await db('push_sent', { method: 'POST', body: open.map((e) => ({ household_key: household, ref: e.ref })), prefer: 'resolution=ignore-duplicates,return=minimal' });
     sent += 1;
   }
-  return { sent };
+  return { found: items?.length || 0, sent, already, noDevice, failed };
 }
 
 // ---------- Mo–Fr am Morgen: Menüidee im Kühlschrank ----------
