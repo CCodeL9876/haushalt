@@ -87,9 +87,8 @@ export function makePlanView({ shared = false } = {}) {
         ${line('Fixkosten', s.fix, -1)}
         ${line('Abos (monatlich)', s.abos, -1)}
         ${items.length ? line('Aktiviert in diesem Monat', s.active, -1) : ''}
-        ${line('Rechnungen in diesem Monat', s.bills, -1)}
+        ${billsLine(s.bills)}
       </ul>
-      ${monthBills()}
       ${items.length ? `
         <h2 class="section-title">Nicht monatlich – für ${esc(monthLabel(month).split(' ')[0])} aktivieren</h2>
         <ul class="list plan-nm">${items.map((x) => {
@@ -113,11 +112,13 @@ export function makePlanView({ shared = false } = {}) {
       </div>`;
   }
 
-  // Welche Rechnungen im gewählten Monat zählen (und warum): bezahlt, Rate, zugewiesen oder offen
-  function monthBills() {
+  // Zeile «Rechnungen in diesem Monat»: Antippen klappt darunter, in derselben Box, auf, welche Rechnungen zählen (und warum)
+  let billsOpen = false;
+  function billsLine(total) {
     const now = curMonth();
     const list = plan().bills.map((b) => ({ b, v: billInMonth(b, month) })).filter((x) => x.v > 0);
-    if (!list.length) return '';
+    const value = total ? tap(`− ${m(total)}`, 'list-value') : '<span class="list-value">–</span>';
+    if (!list.length) return `<li><span class="list-main">Rechnungen in diesem Monat</span>${value}</li>`;
     const why = (b) => {
       if (hasMonths(b)) {
         const parts = [b.months[month] ? 'diesem Monat zugewiesen' : '', billSchedule(b)[month] > (b.months[month] || 0) ? 'Rest ohne Monat' : ''].filter(Boolean).join(' + ');
@@ -125,12 +126,12 @@ export function makePlanView({ shared = false } = {}) {
       }
       return month < now ? 'bezahlt' : b.rate ? 'Rate' : 'offen – ganz in diesem Monat';
     };
-    return `
-      <details class="plan-month-bills">
-        <summary>${list.length} ${list.length === 1 ? 'Rechnung' : 'Rechnungen'} im ${esc(monthLabel(month).split(' ')[0])}</summary>
-        <ul class="list">${list.map(({ b, v }) => row('plBill', b, why(b), m(v))).join('')}</ul>
-        ${month >= now ? '<p class="muted small" style="margin:6px 2px 0">Rechnung antippen → „Monate“, um sie (oder Teile) einem anderen Monat zuzuweisen.</p>' : ''}
-      </details>`;
+    return `<li class="plan-bills-line">
+      <button type="button" class="list-main plan-bills-toggle" data-action="plBills" aria-expanded="${billsOpen}">Rechnungen in diesem Monat<small>${list.length} ${list.length === 1 ? 'Rechnung' : 'Rechnungen'}</small>${icon(billsOpen ? 'up' : 'down', 'icon-sm')}</button>
+      ${value}
+      ${billsOpen ? `<div class="plan-bills-body"><ul class="plan-bills-list">${list.map(({ b, v }) => row('plBill', b, why(b), m(v))).join('')}</ul>
+        ${month >= now ? '<p class="muted small" style="margin:6px 0 4px">Rechnung antippen → „Monate“, um sie (oder Teile) einem anderen Monat zuzuweisen.</p>' : ''}</div>` : ''}
+    </li>`;
   }
 
   const row = (action, x, sub, value = m(x.amount)) => `
@@ -795,6 +796,7 @@ export function makePlanView({ shared = false } = {}) {
         refresh();
       },
       plShow() { shown = !shown; refresh(); },
+      plBills() { billsOpen = !billsOpen; refresh(); },
       plMonth(el) { month = addMonths(month, Number(el.dataset.step)); refresh(); },
       plActive(el) { toggleActive(month, el.dataset.id); },
       plPart(el) {

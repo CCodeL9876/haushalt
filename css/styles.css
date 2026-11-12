@@ -1211,8 +1211,13 @@ button.plan-sum.total-toggle { float: right; }
 .plan-spread { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--muted); }
 .plan-spread .input { width: 56px; min-height: 34px; padding: 0 8px; text-align: center; }
 .plan-bill-months { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
-.plan-month-bills { margin: 12px 0 0; }
-.plan-month-bills summary { font-weight: 650; color: var(--muted); cursor: pointer; margin: 0 2px 8px; }
+/* «Rechnungen in diesem Monat»: klappt in der Box auf */
+.plan-lines li.plan-bills-line { flex-wrap: wrap; }
+.plan-bills-toggle { display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; }
+.plan-bills-toggle small { margin-left: auto; color: var(--muted); font-weight: 600; }
+.plan-bills-body { flex-basis: 100%; border-top: 1px solid var(--line); margin-top: 6px; padding: 4px 0 4px 8px; }
+.plan-bills-list { list-style: none; margin: 0; padding: 0; }
+.plan-bills-list li { display: flex; align-items: center; gap: 8px; min-height: 44px; }
 /* App-Einstellungen → ToDo: Ton beim Abhaken (js/celebrate.js SOUNDS) */
 .sound-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 14px; }
 .sound-pick > span { font-weight: 650; margin-right: 2px; }
