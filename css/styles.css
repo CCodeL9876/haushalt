@@ -1360,12 +1360,13 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .heute-greet { font-size: var(--fs-3xl); font-weight: 300; letter-spacing: -0.03em; color: var(--text); margin: 4px 2px 14px; }
 /* Geld → Monat: Ring wie in der Vorlage */
 .plan-donut { background: var(--tile-1-bg); color: var(--tile-text); padding: 18px 12px; }
-.plan-donut .donut { position: relative; width: 244px; max-width: 100%; aspect-ratio: 1; margin: 0 auto; }
+.plan-donut .donut { position: relative; width: 300px; max-width: 100%; aspect-ratio: 1; margin: 0 auto; }
 .plan-donut .donut svg { width: 100%; height: 100%; }
 .donut-mid { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 2px; text-align: center; }
 .donut-mid small { color: color-mix(in srgb, var(--tile-text) 70%, transparent); font-weight: 600; }
-.plan-donut .hero-number { font-size: var(--fs-2xl); font-weight: 500; }
-.dn-track, .dn-arc { fill: none; stroke-width: 44; stroke-linecap: round; }
+.plan-donut .hero-number { font-size: var(--fs-xl); font-weight: 600; }
+.donut-mid { padding: 0 22%; }
+.dn-track, .dn-arc { fill: none; stroke-width: 36; stroke-linecap: round; }
 .dn-track { stroke: color-mix(in srgb, var(--tile-text) 9%, transparent); }
 .dn-fix { stroke: var(--accent); } .dn-abos { stroke: var(--tile-2-bg); } .dn-more { stroke: var(--card); }
 /* Tab-Leiste nur mit Symbolen: aktiver Bereich als runder Knopf, Beschriftung für Screenreader */
