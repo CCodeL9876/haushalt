@@ -44,6 +44,7 @@ export default {
         choose(el.dataset.part);
         refresh();
         window.scrollTo(0, 0);
+        document.querySelector('[data-scroll-here]')?.scrollIntoView({ block: 'start' }); // Wochenplan: zum heutigen Tag
       },
     };
   },

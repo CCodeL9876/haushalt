@@ -110,7 +110,11 @@ function route() {
     else tab.removeAttribute('aria-current');
   }
   render();
-  if (changed) window.scrollTo(0, 0);
+  // Neuer Bereich: nach oben – oder zu dem, was als «hier» markiert ist (Wochenplan: der heutige Tag)
+  if (changed) {
+    window.scrollTo(0, 0);
+    root.querySelector('[data-scroll-here]')?.scrollIntoView({ block: 'start' });
+  }
 }
 
 // Knöpfe mit data-keep-focus (z. B. Vorschläge beim Einkauf) nehmen dem Eingabefeld den Fokus nicht weg –

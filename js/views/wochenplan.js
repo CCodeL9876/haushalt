@@ -17,6 +17,8 @@ export const SLOTS = [
 ];
 
 let weekOffset = 0; // 0 = diese Woche
+// Beim Wechsel in einen anderen Bereich (und zurück) wieder die aktuelle Woche zeigen
+window.addEventListener('hashchange', () => { weekOffset = 0; });
 
 const ideaByTitle = (title) => state.ideas.find((i) => i.title.toLowerCase() === title.trim().toLowerCase());
 const ideaOf = (meal) => (meal?.ideaId && state.ideas.find((i) => i.id === meal.ideaId)) || null;
@@ -300,7 +302,7 @@ export default {
         const hasMittag = Boolean(state.plan[key]?.mittag);
         const shown = SLOTS.filter((s) => s.id === 'abend' || hasMittag);
         return `
-          <section class="card day ${key === today ? 'is-today' : ''} ${key < today ? 'is-past' : ''}">
+          <section class="card day ${key === today ? 'is-today' : ''} ${key < today ? 'is-past' : ''}" ${key === today ? 'data-scroll-here' : ''}>
             <div class="day-head">
               <strong>${fmtWeekday(d)}${key === today ? ' <span class="today-pill">Heute</span>' : ''}</strong>
               <span class="day-meta">
