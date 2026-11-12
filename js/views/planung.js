@@ -18,6 +18,7 @@ import { avatar, closeSheet, esc, icon, money, openSheet, parseMoney, toast } fr
 import { fmtMonthYear, fmtShort, parseKey, todayKey } from '../dates.js';
 import { saveFile } from '../backup.js';
 import { donutSvg } from '../donut.js';
+import { currentMember } from '../login.js';
 import { celebrate } from '../celebrate.js';
 import {
   BACKUP_DAYS, addMonths, addPayment, backupDue, dueMonth, isOverdue, useShared, backupText, curMonth, hasBackupPassword, isPlanFile, markBackedUp,
@@ -203,7 +204,7 @@ export function makePlanView({ shared = false } = {}) {
           <ul>${b.payments.map((p) => `<li><span>${esc(fmtShort(p.date))}${p.expenseId ? ' · in der Abrechnung' : ''}</span><span>${m(p.amount)}</span>
             <button type="button" class="icon-btn" data-action="plUnpay" data-bill="${esc(b.id)}" data-id="${esc(p.id)}" aria-label="Zahlung vom ${esc(fmtShort(p.date))} entfernen">${icon('x', 'icon-sm')}</button></li>`).join('')}</ul>
         </details>` : ''}
-        ${b.paidBy ? `<small class="plan-bill-info">Bezahlt von <b>${esc(b.paidBy)}</b> – zählt nicht in deiner Planung</small>` : ''}
+        ${b.paidBy ? `<small class="plan-bill-info">Bezahlt von <b>${esc(b.paidBy)}</b> – zählt nicht in deiner Planung${b.paid_expenseId ? ' · in der Abrechnung verrechnet' : ''}</small>` : ''}
         ${!shared && !until && (open || b.paidBy) ? `<div class="row plan-bill-actions">
           ${open && !b.paidBy ? `<button type="button" class="btn btn-sm" data-action="plPay" data-id="${esc(b.id)}">${icon('plus', 'icon-sm')} Teilzahlung</button>
           <button type="button" class="btn btn-sm" data-action="plPayAll" data-id="${esc(b.id)}">${icon('check', 'icon-sm')} Ganz bezahlt</button>` : ''}
@@ -240,26 +241,45 @@ export function makePlanView({ shared = false } = {}) {
 
   // ---------- Fenster ----------
 
-  // «Bezahlt von …»: jemand anderes zahlt diese Rechnung – sie verschwindet aus Monat und Summen (byOther)
+  // «Bezahlt von …»: jemand anderes zahlt diese Rechnung – sie verschwindet aus Monat und Summen (byOther). Wer aus dem
+  // Haushalt bezahlt, kann auf Wunsch gleich in die Abrechnung: diese Person hat bezahlt, ich trage es (ich schulde ihr den Betrag).
   function paidBySheet(b) {
     if (!b) return;
-    if (b.paidBy) { setPaidBy(b.id, ''); return toast(`«${b.name}» zählt wieder in deiner Planung`); }
-    const names = [...new Set(plan().bills.map((x) => x.paidBy).filter(Boolean))];
+    if (b.paidBy) {
+      if (b.paid_expenseId) update((s) => { s.expenses = s.expenses.filter((e) => e.id !== b.paid_expenseId); });
+      setPaidBy(b.id, '');
+      return toast(`«${b.name}» zählt wieder in deiner Planung${b.paid_expenseId ? ' · Eintrag in der Abrechnung entfernt' : ''}`);
+    }
+    const me = currentMember();
+    const people = state.members.filter((x) => x.id !== me?.id);
+    const open = openOf(b) || b.amount;
     openSheet({
       title: 'Bezahlt von …',
       body: `<p class="muted small" style="margin:0 0 10px">«${esc(b.name)}» bezahlt jemand anderes. Sie zählt dann nicht in deiner Planung und steht nicht im Monat.</p>
-        <label class="field"><span>Wer bezahlt?</span>
-          <input class="input" name="who" required maxlength="40" list="plan-paidby" placeholder="z. B. Anna" autocomplete="off"></label>
-        <datalist id="plan-paidby">${names.map((n) => `<option value="${esc(n)}">`).join('')}</datalist>`,
+        <div class="field"><span>Wer bezahlt?</span>${radios('who', [...people.map((x) => [x.id, x.name]), ['other', 'Andere Person']], people[0]?.id || 'other')}</div>
+        <label class="field"><span>Name, falls andere Person</span><input class="input" name="name" maxlength="40" placeholder="z. B. Anna" autocomplete="off"></label>
+        ${me && people.length ? `<label class="field"><span>Betrag in der Abrechnung (${esc(cur())})</span><input class="input" name="amount" inputmode="decimal" value="${amountValue(open)}" autocomplete="off"></label>
+          <label class="check-field"><input type="checkbox" name="settle" checked> In die Abrechnung: Person aus dem Haushalt hat bezahlt, ich schulde ihr den Betrag</label>` : ''}`,
       submitLabel: 'Speichern',
       onSubmit(data) {
-        const who = String(data.get('who') || '').trim().slice(0, 40);
-        if (!who) { toast('Bitte angeben, wer bezahlt'); return false; }
-        setPaidBy(b.id, who);
+        const who = String(data.get('who') || 'other');
+        const person = people.find((x) => x.id === who);
+        const name = person ? person.name : String(data.get('name') || '').trim().slice(0, 40);
+        if (!name) { toast('Bitte angeben, wer bezahlt'); return false; }
+        let extra = {};
+        if (person && me && data.get('settle') === 'on') {
+          const amount = parseMoney(data.get('amount')) || 0;
+          if (!amount) { toast('Bitte einen Betrag für die Abrechnung eingeben'); return false; }
+          const cats = state.settings.categories || [];
+          const e = { id: uid(), kind: 'expense', title: b.name, note: `Bezahlt von ${person.name} (aus der Planung)`, amount, payerId: person.id, splitIds: [me.id], category: cats.includes('Wohnen') ? 'Wohnen' : cats.at(-1) || '', date: todayKey(), createdAt: Date.now() };
+          update((s) => { s.expenses.push(e); });
+          extra = { memberId: person.id, expenseId: e.id };
+        }
+        setPaidBy(b.id, name, extra);
+        if (extra.expenseId) toast(`In der Abrechnung: ${name} hat bezahlt, du schuldest ${money(parseMoney(data.get('amount')) || 0)}`);
       },
     });
   }
-
 
   const amountField = (label, x, name = 'amount') => `
     <label class="field"><span>${label} (${esc(cur())})</span>

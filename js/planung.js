@@ -295,12 +295,18 @@ export const notMonthly = () => [
 // «Bezahlt von …» (b.paidBy, Planung Rechnungen): jemand anderes zahlt die Rechnung, sie zählt nirgends in der Planung
 // (nicht im Monat, nicht bei «Bis Ende Jahr», nicht unter «offen»). Löschen von paidBy bringt sie zurück.
 export const byOther = (b) => Boolean(b.paidBy);
-export function setPaidBy(id, name) {
+// extra: { memberId, expenseId } – Person aus dem Haushalt und der Eintrag in der Abrechnung (zum Rückgängigmachen)
+export function setPaidBy(id, name, extra = {}) {
   updatePlan((d) => {
     const b = d.bills.find((x) => x.id === id);
     if (!b) return;
-    if (name) { b.paidBy = name; b.doneAt ||= Date.now(); } // doneAt: nach 30 Tagen weg wie Bezahltes
-    else { delete b.paidBy; if (paidOf(b) < b.amount) delete b.doneAt; }
+    if (name) {
+      b.paidBy = name; b.doneAt ||= Date.now(); // doneAt: nach 30 Tagen weg wie Bezahltes
+      for (const k of ['memberId', 'expenseId']) if (extra[k]) b[`paid_${k}`] = extra[k]; else delete b[`paid_${k}`];
+    } else {
+      delete b.paidBy; delete b.paid_memberId; delete b.paid_expenseId;
+      if (paidOf(b) < b.amount) delete b.doneAt;
+    }
   });
 }
 
