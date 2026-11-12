@@ -23,7 +23,7 @@ import {
   BACKUP_DAYS, addMonths, addPayment, backupDue, dueMonth, isOverdue, useShared, backupText, curMonth, hasBackupPassword, isPlanFile, markBackedUp,
   amountIn, billInMonth, billSchedule, hasMonths, monthSums, monthsBetween, notMonthly, openOf, paidOf, partOf, periodMonths,
   periodOf, plan, plannedInPeriod, rateInfo, readBackup, rememberPayee, removePayment, restorePlan, setBackupPassword,
-  setPartFrom, skipped, toggleActive, toggleSkip, unassignedOf, untilSums,
+  setPaidBy, setPartFrom, toggleActive, unassignedOf, untilSums, byOther,
   updatePlan,
 } from '../planung.js';
 
@@ -114,28 +114,8 @@ export function makePlanView({ shared = false } = {}) {
   }
 
   // Zeile «Rechnungen in diesem Monat»: Antippen klappt darunter, in derselben Box, die Rechnungen auf.
-  // Abhaken (x.skip) nimmt eine Rechnung für diesen Monat aus der Rechnung, z. B. wenn jemand anderes bezahlt hat.
-  // Nicht monatliche Kosten und Abos (Jahr/Halbjahr) haben dafür ihr Kästchen «aktivieren».
-  const open = { bills: false };
-  let nmOpen = false; // «Nicht monatlich» ist standardmässig zugeklappt (nimmt viel Platz)
-  const skipRow = ({ listKey, action, x, sub, value }) => {
-    const off = skipped(x, month);
-    return `<li class="${off ? 'is-off' : ''}">
-      <button type="button" class="check ${off ? 'is-on' : ''}" data-action="plSkip" data-list="${listKey}" data-id="${esc(x.id)}" aria-pressed="${off}" aria-label="${esc(x.name)}: ${off ? 'wieder in diesem Monat zählen' : 'in diesem Monat nicht zählen'}">${icon('check', 'icon-sm')}</button>
-      <button type="button" class="list-main plan-row" data-action="${action}" data-id="${esc(x.id)}">${esc(x.name)}${sub ? `<small>${esc(sub)}</small>` : ''}</button>
-      ${tap(value, 'list-value')}</li>`;
-  };
-  function groupLine(key, label, total, entries) {
-    const value = total ? tap(`− ${m(total)}`, 'list-value') : '<span class="list-value">–</span>';
-    if (!entries.length) return `<li><span class="list-main">${label}</span>${value}</li>`;
-    const done = entries.filter((e) => skipped(e.x, month)).length;
-    return `<li class="plan-bills-line">
-      <button type="button" class="list-main plan-bills-toggle" data-action="plOpen" data-key="${key}" aria-expanded="${open[key]}">${label}<small>${entries.length}${done ? ` · ${done} abgehakt` : ''}</small>${icon(open[key] ? 'up' : 'down', 'icon-sm')}</button>
-      ${value}
-      ${open[key] ? `<div class="plan-bills-body"><ul class="plan-bills-list">${entries.map(skipRow).join('')}</ul>
-        <p class="muted small" style="margin:6px 0 4px">Abhaken = zählt in diesem Monat nicht (z. B. wenn jemand anderes bezahlt hat).${key === 'bills' && month >= curMonth() ? ' Rechnung antippen → „Monate“, um sie (oder Teile) einem anderen Monat zuzuweisen.' : ''}</p></div>` : ''}
-    </li>`;
-  }
+  // Von anderen bezahlte Rechnungen (byOther) stehen hier nicht.
+  let billsOpen = false;
   function billsLine(total) {
     const now = curMonth();
     const why = (b) => {
@@ -145,9 +125,15 @@ export function makePlanView({ shared = false } = {}) {
       }
       return month < now ? 'bezahlt' : b.rate ? 'Rate' : 'offen – ganz in diesem Monat';
     };
-    const entries = plan().bills.map((b) => ({ b, v: billInMonth(b, month) })).filter((x) => x.v > 0)
-      .map(({ b, v }) => ({ listKey: 'bills', action: 'plBill', x: b, sub: why(b), value: m(v) }));
-    return groupLine('bills', 'Rechnungen in diesem Monat', total, entries);
+    const list = plan().bills.filter((b) => !byOther(b)).map((b) => ({ b, v: billInMonth(b, month) })).filter((x) => x.v > 0);
+    const value = total ? tap(`− ${m(total)}`, 'list-value') : '<span class="list-value">–</span>';
+    if (!list.length) return `<li><span class="list-main">Rechnungen in diesem Monat</span>${value}</li>`;
+    return `<li class="plan-bills-line">
+      <button type="button" class="list-main plan-bills-toggle" data-action="plBills" aria-expanded="${billsOpen}">Rechnungen in diesem Monat<small>${list.length} ${list.length === 1 ? 'Rechnung' : 'Rechnungen'}</small>${icon(billsOpen ? 'up' : 'down', 'icon-sm')}</button>
+      ${value}
+      ${billsOpen ? `<div class="plan-bills-body"><ul class="plan-bills-list">${list.map(({ b, v }) => row('plBill', b, why(b), m(v))).join('')}</ul>
+        ${month >= now ? '<p class="muted small" style="margin:6px 0 4px">Rechnung antippen → „Monate“, um sie (oder Teile) einem anderen Monat zuzuweisen.</p>' : ''}</div>` : ''}
+    </li>`;
   }
 
   const row = (action, x, sub, value = m(x.amount)) => `
@@ -216,7 +202,13 @@ export function makePlanView({ shared = false } = {}) {
           <ul>${b.payments.map((p) => `<li><span>${esc(fmtShort(p.date))}${p.expenseId ? ' · in der Abrechnung' : ''}</span><span>${m(p.amount)}</span>
             <button type="button" class="icon-btn" data-action="plUnpay" data-bill="${esc(b.id)}" data-id="${esc(p.id)}" aria-label="Zahlung vom ${esc(fmtShort(p.date))} entfernen">${icon('x', 'icon-sm')}</button></li>`).join('')}</ul>
         </details>` : ''}
-        ${open && !until ? `<div class="row plan-bill-actions">
+        ${b.paidBy ? `<small class="plan-bill-info">Bezahlt von <b>${esc(b.paidBy)}</b> – zählt nicht in deiner Planung</small>` : ''}
+        ${!shared && !until && (open || b.paidBy) ? `<div class="row plan-bill-actions">
+          ${open && !b.paidBy ? `<button type="button" class="btn btn-sm" data-action="plPay" data-id="${esc(b.id)}">${icon('plus', 'icon-sm')} Teilzahlung</button>
+          <button type="button" class="btn btn-sm" data-action="plPayAll" data-id="${esc(b.id)}">${icon('check', 'icon-sm')} Ganz bezahlt</button>` : ''}
+          <button type="button" class="btn btn-sm" data-action="plPaidBy" data-id="${esc(b.id)}">${icon('users', 'icon-sm')} ${b.paidBy ? 'Doch selbst zahlen' : 'Bezahlt von …'}</button>
+        </div>` : ''}
+        ${shared && open && !until ? `<div class="row plan-bill-actions">
           <button type="button" class="btn btn-sm" data-action="plPay" data-id="${esc(b.id)}">${icon('plus', 'icon-sm')} Teilzahlung</button>
           <button type="button" class="btn btn-sm" data-action="plPayAll" data-id="${esc(b.id)}">${icon('check', 'icon-sm')} Ganz bezahlt</button>
         </div>` : ''}
@@ -226,8 +218,9 @@ export function makePlanView({ shared = false } = {}) {
   function billsPart() {
     const until = asOf && asOf !== todayKey() ? asOf : '';
     const all = plan().bills;
-    const open = all.filter((b) => openOf(b, until || undefined) > 0).sort(byDue);
-    const paid = all.filter((b) => !open.includes(b));
+    const others = all.filter(byOther);
+    const open = all.filter((b) => !byOther(b) && openOf(b, until || undefined) > 0).sort(byDue);
+    const paid = all.filter((b) => !byOther(b) && !open.includes(b));
     return `
       <button type="button" class="btn btn-primary btn-block" data-action="plBill">${icon('plus', 'icon-sm')} Rechnung erfassen</button>
       ${all.length ? `
@@ -237,12 +230,35 @@ export function makePlanView({ shared = false } = {}) {
           ${tap(`<span class="hero-number">${m(open.reduce((s, b) => s + openOf(b, until || undefined), 0))}</span><small>${open.length} ${open.length === 1 ? 'Rechnung' : 'Rechnungen'} offen${until ? ' – Stand an diesem Tag' : ''}</small>${hint()}`, 'total-hero')}
         </section>
         <ul class="list plan-bills">${open.map((b) => billCard(b, until)).join('')}</ul>
+        ${others.length ? `<details class="plan-paid"><summary>Von anderen bezahlt (${others.length}) – zählt nicht in der Planung</summary>
+          <ul class="list plan-bills">${others.map((b) => billCard(b, until)).join('')}</ul></details>` : ''}
         ${paid.length ? `<details class="plan-paid"><summary>Bezahlt (${paid.length})${until ? '' : ' – nach 30 Tagen weg'}</summary>
           <ul class="list plan-bills">${paid.map((b) => billCard(b, until)).join('')}</ul></details>` : ''}`
         : '<div class="empty"><strong>Noch keine Rechnungen</strong>Rechnung mit Betrag erfassen; Teilzahlungen und Ratenplan sind möglich.</div>'}`;
   }
 
   // ---------- Fenster ----------
+
+  // «Bezahlt von …»: jemand anderes zahlt diese Rechnung – sie verschwindet aus Monat und Summen (byOther)
+  function paidBySheet(b) {
+    if (!b) return;
+    if (b.paidBy) { setPaidBy(b.id, ''); return toast(`«${b.name}» zählt wieder in deiner Planung`); }
+    const names = [...new Set(plan().bills.map((x) => x.paidBy).filter(Boolean))];
+    openSheet({
+      title: 'Bezahlt von …',
+      body: `<p class="muted small" style="margin:0 0 10px">«${esc(b.name)}» bezahlt jemand anderes. Sie zählt dann nicht in deiner Planung und steht nicht im Monat.</p>
+        <label class="field"><span>Wer bezahlt?</span>
+          <input class="input" name="who" required maxlength="40" list="plan-paidby" placeholder="z. B. Anna" autocomplete="off"></label>
+        <datalist id="plan-paidby">${names.map((n) => `<option value="${esc(n)}">`).join('')}</datalist>`,
+      submitLabel: 'Speichern',
+      onSubmit(data) {
+        const who = String(data.get('who') || '').trim().slice(0, 40);
+        if (!who) { toast('Bitte angeben, wer bezahlt'); return false; }
+        setPaidBy(b.id, who);
+      },
+    });
+  }
+
 
   const amountField = (label, x, name = 'amount') => `
     <label class="field"><span>${label} (${esc(cur())})</span>
@@ -269,7 +285,7 @@ export function makePlanView({ shared = false } = {}) {
           toast(!name ? 'Bitte eine Bezeichnung eingeben' : 'Bitte einen Betrag eingeben');
           return false;
         }
-        const item = { id: x?.id || uid(), name, amount, [kindName]: String(data.get(kindName)), ...read(data), ...(x?.skip ? { skip: x.skip } : {}) };
+        const item = { id: x?.id || uid(), name, amount, [kindName]: String(data.get(kindName)), ...read(data) };
         updatePlan((d) => {
           const i = d[listKey].findIndex((y) => y.id === item.id);
           if (i >= 0) d[listKey][i] = item;
@@ -812,8 +828,8 @@ export function makePlanView({ shared = false } = {}) {
         refresh();
       },
       plShow() { shown = !shown; refresh(); },
-      plOpen(el) { open[el.dataset.key] = !open[el.dataset.key]; refresh(); },
-      plSkip(el) { toggleSkip(el.dataset.list, el.dataset.id, month); },
+      plBills() { billsOpen = !billsOpen; refresh(); },
+      plPaidBy(el) { paidBySheet(plan().bills.find((x) => x.id === el.dataset.id)); },
       plNm() { nmOpen = !nmOpen; refresh(); },
       plMonth(el) { month = addMonths(month, Number(el.dataset.step)); refresh(); },
       plActive(el) { toggleActive(month, el.dataset.id); },

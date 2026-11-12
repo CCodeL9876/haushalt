@@ -7,7 +7,7 @@ import { parseMoney } from '../js/ui.js';
 import { pull, startShared, state, update } from '../js/store.js';
 import { fridgeMatch, pickMenus } from '../js/menuroll.js';
 import { donutSvg } from '../js/donut.js';
-import { addMonths, billInMonth, curMonth, monthSums, toggleSkip, updatePlan, useShared } from '../js/planung.js';
+import { addMonths, billInMonth, curMonth, monthSums, setPaidBy, untilSums, updatePlan, useShared } from '../js/planung.js';
 
 const results = [];
 const eq = (name, got, want) => {
@@ -117,15 +117,16 @@ async function testSync() {
   localStorage.removeItem(`haushalt.cache.${r.key}`);
 }
 
-function testSkip() {
+function testPaidBy() {
   useShared(false);
   const month = curMonth();
   updatePlan((d) => { d.costs = [{ id: 'k1', name: 'Miete', amount: 100000, kind: 'fix' }]; d.bills = [{ id: 'b9', name: 'Arzt', amount: 20000, due: `${month}-20`, payments: [] }]; });
-  eq('Abhaken: vorher zählt alles', [monthSums(month).fix, monthSums(month).bills], [100000, 20000]);
-  toggleSkip('bills', 'b9', month);
-  eq('Abhaken: abgehakte Rechnung zählt im Monat nicht, Fixkosten bleiben', [monthSums(month).fix, monthSums(month).bills], [100000, 0]);
-  toggleSkip('bills', 'b9', month);
-  eq('Abhaken: nochmals tippen holt sie zurück', monthSums(month).bills, 20000);
+  eq('Bezahlt von: vorher zählt alles', [monthSums(month).fix, monthSums(month).bills], [100000, 20000]);
+  setPaidBy('b9', 'Anna');
+  eq('Bezahlt von: Rechnung zählt im Monat nicht, Fixkosten bleiben', [monthSums(month).fix, monthSums(month).bills], [100000, 0]);
+  eq('Bezahlt von: auch nicht bei «Bis Ende Jahr»', untilSums(addMonths(month, 2)).bills, 0);
+  setPaidBy('b9', '');
+  eq('Bezahlt von: zurücknehmen bringt sie zurück', monthSums(month).bills, 20000);
   updatePlan((d) => { d.costs = []; d.bills = []; });
 }
 
@@ -155,7 +156,7 @@ export async function run() {
   testBalances();
   testMenuRoll();
   testDonut();
-  testSkip();
+  testPaidBy();
   testMoney();
   testBills();
   try { await testSync(); } catch (err) { results.push({ name: 'Abgleich', ok: false, detail: err.message }); }
