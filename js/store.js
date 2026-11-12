@@ -14,7 +14,7 @@
 //             aisle: von Hand gewählte Abteilung im Laden (sonst am Namen erkannt, siehe js/aisles.js)
 //             bought: Zeitpunkte der letzten 6 Einkäufe, snooze: „Wieder mal?“ weggetippt bis (js/views/einkauf.js)
 //   ideas     [{ id, title, ingredients: [text], steps?: [text], tags: [text], note, url?, glutenfree? }]   url: Link zum Rezept (Einlesen: js/recipes.js); glutenfree: Zutaten als glutenfreie Variante einkaufen
-//   plan      { 'JJJJ-MM-TT': { mittag: { title, ideaId, away?, others?, cooked? }, abend: { … } } }   others: { memberId: { title, ideaId, away? } } wer anders isst   cooked: auf Heute als gekocht abgehakt   away: Platzhalter „Auswärts essen“ / „Bestellen“ (kein Kochen)
+//   plan      { 'JJJJ-MM-TT': { mittag: { title, ideaId, away?, others?, cooked? }, abend: { … } } }   others: { memberId: { title, ideaId, away? } } wer anders isst   cooked: auf Heute als gekocht abgehakt   auto: gewürfelt («Woche auswürfeln»)   away: Platzhalter „Auswärts essen“ / „Bestellen“ (kein Kochen)
 //   expenses  [{ id, kind: 'expense' | 'transfer', title, note?, amount (Rappen/Cent), payerId, splitIds, method?, category, date, createdAt? }]
 //             Rechnung (expense): payerId hat bezahlt, splitIds tragen es. Zahlung (transfer): payerId zahlt splitIds[0].
 //             method: Zahlungsart (Twint, Neon …), note: was die Rechnung/Zahlung beinhaltet (js/views/abrechnung.js)
@@ -144,7 +144,8 @@ const OWN_ROW_SETTINGS = ['wasteOut', 'fridgeDays'];
 function toRows(data) {
   const rows = new Map();
   for (const c of LIST_COLLECTIONS) for (const item of data[c]) rows.set(`${c}/${item.id}`, { collection: c, id: item.id, data: item });
-  for (const [day, entry] of Object.entries(data.plan)) rows.set(`plan/${day}`, { collection: 'plan', id: day, data: entry });
+  // Wochenplan: je Tag und Mahlzeit eine Zeile («2026-11-13:abend») – sonst überschreibt, wer Mittag ändert, den Abend des anderen
+  for (const [day, entry] of Object.entries(data.plan)) for (const [slot, meal] of Object.entries(entry)) rows.set(`plan/${day}:${slot}`, { collection: 'plan', id: `${day}:${slot}`, data: meal });
   // Einstellungen, die oft und von mehreren Geräten geändert werden, je in einer eigenen Zeile – sonst überschreibt
   // ein Gerät mit altem Stand die Änderung des anderen (z. B. „Abfuhr draussen“ beim Erfassen eines Rests)
   const main = { ...data.settings };
@@ -160,7 +161,13 @@ function fromRows(rows) {
   const data = empty();
   for (const r of rows) {
     if (LIST_COLLECTIONS.includes(r.collection)) data[r.collection].push(r.data);
-    else if (r.collection === 'plan') data.plan[r.id] = r.data;
+  }
+  // Wochenplan: zuerst alte Tageszeilen («2026-11-13», beide Mahlzeiten), dann die Zeilen je Mahlzeit – die gelten
+  for (const r of rows) if (r.collection === 'plan' && !r.id.includes(':')) data.plan[r.id] = { ...r.data };
+  for (const r of rows) {
+    if (r.collection !== 'plan' || !r.id.includes(':')) continue;
+    const [day, slot] = r.id.split(':');
+    data.plan[day] = { ...(data.plan[day] || {}), [slot]: r.data };
   }
   // Zuerst die Hauptzeile, dann die eigenen Zeilen (die gelten, auch wenn ein älteres Gerät sie noch in main schreibt)
   for (const r of rows) if (r.collection === 'settings' && r.id === 'main') data.settings = { ...data.settings, ...r.data };
@@ -172,6 +179,15 @@ function fromRows(rows) {
   return data;
 }
 
+// Was die Datenbank kennt. Alte Tageszeilen des Wochenplans stehen mit drin, damit der nächste Abgleich sie löscht.
+const knownRows = (rows) => {
+  const known = signatures(fromRows(rows));
+  // Mahlzeiten, die nur in einer alten Tageszeile stehen, sind als eigene Zeile noch nicht oben
+  const real = new Set(rows.filter((r) => r.collection === 'plan').map((r) => r.id));
+  for (const k of [...known.keys()]) if (k.startsWith('plan/') && !real.has(k.slice(5))) known.delete(k);
+  for (const r of rows) if (r.collection === 'plan' && !r.id.includes(':')) known.set(`plan/${r.id}`, 'alt');
+  return known;
+};
 const signatures = (data) => new Map([...toRows(data)].map(([k, r]) => [k, stable(r.data)]));
 const sameSignatures = (a, b) => a.size === b.size && [...a].every(([k, v]) => b.get(k) === v);
 
@@ -223,7 +239,7 @@ export async function startShared(r, name, { offline = false } = {}) {
   }
   const rows = await remote.loadAll();
   Object.assign(state, fromRows(rows));
-  synced = signatures(state);
+  synced = knownRows(rows);
   saveCache();
   onRows(rows);
 }
@@ -300,7 +316,7 @@ export async function pull() {
   session.offline = false;
   onRows(rows);
   if (version !== before) return; // inzwischen lokal geändert → beim nächsten Abgleich
-  const remoteSig = signatures(fromRows(rows));
+  const remoteSig = knownRows(rows);
   const next = fromRows(pushed ? rows : withPending(rows));
   const changed = !sameSignatures(signatures(next), signatures(state));
   synced = remoteSig; // was die Datenbank kennt – noch nicht Hochgeladenes versucht der nächste Abgleich wieder

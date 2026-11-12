@@ -618,12 +618,17 @@ async function mealReminders() {
   // Heute und die nächsten 4 Tage (Läden zu über mehrere Tage, z. B. Weihnachten)
   const days = Array.from({ length: 5 }, (_, i) => dateKey(addDays(asDate(now.day), i)));
   const keys = [...byHousehold.keys()].map((k) => `"${k.replace(/"/g, '')}"`).join(',');
-  const rows = await db(`items?household_key=in.(${encodeURIComponent(keys)})&or=(collection.in.(ideas,shopping,fridge,members),and(collection.eq.plan,id.in.(${days.join(',')})))&select=household_key,collection,id,data`);
+  // Wochenplan: eine Zeile je Mahlzeit («2026-11-13:abend»); alte Tageszeilen («2026-11-13») gelten als Grundlage
+  const planIds = days.flatMap((d) => [d, `${d}:mittag`, `${d}:abend`]);
+  const rows = await db(`items?household_key=in.(${encodeURIComponent(keys)})&or=(collection.in.(ideas,shopping,fridge,members),and(collection.eq.plan,id.in.(${planIds.join(',')})))&select=household_key,collection,id,data`);
   const data = new Map();
   for (const r of rows || []) {
     if (!data.has(r.household_key)) data.set(r.household_key, { ideas: [], shopping: [], fridge: [], members: new Set(), plan: {} });
     const h = data.get(r.household_key);
-    if (r.collection === 'plan') h.plan[r.id] = r.data || {};
+    if (r.collection === 'plan') {
+      const [day, slot] = r.id.split(':');
+      h.plan[day] = slot ? { ...(h.plan[day] || {}), [slot]: r.data || {} } : { ...(r.data || {}), ...(h.plan[day] || {}) };
+    }
     else if (r.collection === 'members') h.members.add(r.id);
     else h[r.collection].push(r.data || {});
   }

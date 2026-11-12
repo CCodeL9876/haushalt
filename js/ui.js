@@ -19,6 +19,7 @@ const PATHS = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
+  dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/>',
   leftovers: '<rect x="3" y="7" width="18" height="4" rx="1.5"/><path d="M5 11v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7M10 15h4"/>',
   bag: '<path d="M5 8h14l-1.2 12.1a2 2 0 0 1-2 1.9H8.2a2 2 0 0 1-2-1.9Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   trash: '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',

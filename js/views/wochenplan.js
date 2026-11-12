@@ -9,6 +9,7 @@ import { shopIngredients } from './einkauf.js';
 import { isStaple, splitIngredient } from '../ingredients.js';
 import { addToFridge, fridgeSorted, isUrgent, leftLabel, suggestDays, tomorrowKey } from '../fridge.js';
 import { currentMember } from '../login.js';
+import { pickMenus } from '../menuroll.js';
 
 export const SLOTS = [
   { id: 'mittag', label: 'Mittag' },
@@ -138,6 +139,43 @@ export const forMeal = (day, meal) => {
   return [...new Map(ideas.map((i) => [i.id, i])).values()]
     .flatMap((idea) => (idea.ingredients || []).map((line) => ({ line, gf: Boolean(idea.glutenfree), meal: { day, title: idea.title } })));
 };
+
+// «Woche auswürfeln»: freie Abende der angezeigten Woche (ab heute) füllen. Frühere Würfe (auto) werden beim nächsten
+// Würfeln neu gewürfelt – von Hand geänderte, gekochte und Einträge mit Personen-Abweichung bleiben.
+const rerollable = (m) => Boolean(m?.auto) && !m.cooked && !othersOf(m).length;
+const weekDays = () => Array.from({ length: 7 }, (_, i) => dateKey(addDays(addDays(startOfWeek(new Date()), weekOffset * 7), i)));
+const rollDays = () => weekDays().filter((k) => k >= todayKey() && (!state.plan[k]?.abend || rerollable(state.plan[k].abend)));
+
+function rollWeek() {
+  const days = rollDays();
+  if (!days.length) return toast('Alle Abende sind schon geplant');
+  if (!mealIdeas().length) return toast('Zuerst Menüideen erfassen – daraus wird gewürfelt');
+  // Was in den Tagen rundherum schon geplant ist (14 Tage vor/nach der Woche), zählt als «schon gehabt»
+  const first = addDays(startOfWeek(new Date()), weekOffset * 7);
+  const taken = new Set();
+  for (let i = -14; i < 21; i += 1) {
+    const k = dateKey(addDays(first, i));
+    for (const [slot, meal] of Object.entries(state.plan[k] || {})) {
+      if (meal && !meal.away && !meal.undecided && !(slot === 'abend' && days.includes(k))) taken.add(mealTitle(meal).toLowerCase());
+    }
+  }
+  const fridge = fridgeSorted().map((f) => ({ name: f.name, urgent: isUrgent(f) }));
+  const picks = pickMenus({ ideas: mealIdeas(), count: days.length, taken, fridge });
+  const before = days.map((k) => [k, state.plan[k]?.abend]);
+  update((s) => {
+    days.forEach((k, n) => { s.plan[k] = { ...(s.plan[k] || {}), abend: { title: picks[n].title, ideaId: picks[n].id, auto: true } }; });
+  });
+  toast(`${days.length === 1 ? '1 Abend' : `${days.length} Abende`} gewürfelt`, {
+    label: 'Rückgängig',
+    run: () => update((s) => {
+      for (const [k, old] of before) {
+        const entry = { ...(s.plan[k] || {}) };
+        if (old) entry.abend = old; else delete entry.abend;
+        if (Object.keys(entry).length) s.plan[k] = entry; else delete s.plan[k];
+      }
+    }),
+  });
+}
 
 // Getränke (js/views/ideen.js) gehören nicht in die Menüauswahl
 const mealIdeas = () => state.ideas.filter((i) => i.kind !== 'drink');
@@ -287,6 +325,7 @@ export default {
             </div>
           </section>`;
       }).join('')}
+      ${rollDays().length ? `<button type="button" class="btn btn-block week-dice" data-action="rollWeek">${icon('dice', 'icon-sm')} ${weekDays().some((k) => rerollable(state.plan[k]?.abend)) ? 'Nochmals würfeln' : 'Freie Abende auswürfeln'}</button>` : ''}
       <button type="button" class="btn btn-block week-shop" data-action="shopWeek">${icon('cart', 'icon-sm')} Zutaten der Woche einkaufen</button>`;
   },
 
@@ -296,6 +335,7 @@ export default {
       weekOffset = step === 0 ? 0 : weekOffset + step;
       refresh();
     },
+    rollWeek,
     edit(el) { editMeal(el.dataset.day, el.dataset.slot); },
     shopWeek() {
       const monday = addDays(startOfWeek(new Date()), weekOffset * 7);

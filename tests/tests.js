@@ -5,6 +5,7 @@
 import { balances } from '../js/settle.js';
 import { parseMoney } from '../js/ui.js';
 import { pull, startShared, state, update } from '../js/store.js';
+import { fridgeMatch, pickMenus } from '../js/menuroll.js';
 import { addMonths, billInMonth, curMonth, useShared } from '../js/planung.js';
 
 const results = [];
@@ -97,10 +98,43 @@ async function testSync() {
   eq('Abgleich trotz Fehler: neuer Einkauf der anderen Person kommt an', state.shopping.map((x) => x.name), ['Milch']);
   eq('Abgleich trotz Fehler: eigene, nicht gespeicherte Änderung bleibt', state.flow.map((x) => x.name), ['Miete']);
   localStorage.removeItem(`haushalt.cache.${r.key}`);
+
+  // Wochenplan: alte Tageszeile wird eingelesen und beim ersten Abgleich durch Zeilen je Mahlzeit ersetzt;
+  // Mittag und Abend am selben Tag überschreiben sich nicht mehr
+  r = fakeRemote([...base, { collection: 'plan', id: '2026-11-13', data: { mittag: { title: 'Pasta' }, abend: { title: 'Suppe' } } }]);
+  await startShared(r, 'Test');
+  eq('Wochenplan: alte Tageszeile wird gelesen', state.plan['2026-11-13'], { mittag: { title: 'Pasta' }, abend: { title: 'Suppe' } });
+  update((s) => { s.plan['2026-11-13'].abend = { title: 'Pizza' }; });
+  await new Promise((ok) => setTimeout(ok, 20));
+  eq('Wochenplan: Tageszeile ersetzt', [r.db.has('plan/2026-11-13'), r.db.get('plan/2026-11-13:abend')?.data, r.db.get('plan/2026-11-13:mittag')?.data], [false, { title: 'Pizza' }, { title: 'Pasta' }]);
+  r.db.set('plan/2026-11-13:mittag', { collection: 'plan', id: '2026-11-13:mittag', data: { title: 'Reis' } }); // anderes Gerät ändert den Mittag
+  await pull();
+  eq('Wochenplan: fremder Mittag kommt an, eigener Abend bleibt', [state.plan['2026-11-13'].mittag, state.plan['2026-11-13'].abend], [{ title: 'Reis' }, { title: 'Pizza' }]);
+  update((s) => { delete s.plan['2026-11-13'].mittag; });
+  await new Promise((ok) => setTimeout(ok, 20));
+  eq('Wochenplan: gelöschter Mittag verschwindet in der Datenbank', r.db.has('plan/2026-11-13:mittag'), false);
+  localStorage.removeItem(`haushalt.cache.${r.key}`);
+}
+
+function testMenuRoll() {
+  const idea = (id, title, ingredients = []) => ({ id, title, ingredients });
+  const ideas = [idea('1', 'Pasta', ['400 g Spaghetti']), idea('2', 'Curry', ['1 Zucchetti']), idea('3', 'Suppe', ['Karotten']), idea('4', 'Pizza'), idea('5', 'Risotto')];
+  const titles = (picks) => picks.map((p) => p.title);
+  const week = pickMenus({ ideas, count: 5 });
+  eq('Würfeln: fünf verschiedene Gerichte für fünf Tage', new Set(titles(week)).size, 5);
+  eq('Würfeln: zu wenige Ideen – Gerichte wiederholen sich, aber alle Tage sind gefüllt', pickMenus({ ideas: ideas.slice(0, 2), count: 5 }).length, 5);
+  eq('Würfeln: ohne Ideen nichts', pickMenus({ ideas: [], count: 3 }), []);
+  const free = pickMenus({ ideas, count: 3, taken: new Set(['pasta', 'curry']) });
+  eq('Würfeln: bereits geplante Gerichte kommen erst zuletzt', titles(free).slice(0, 3).sort(), ['Pizza', 'Risotto', 'Suppe']);
+  eq('Würfeln: Kühlschrank-Zutat passt (dringend zählt mehr)', [fridgeMatch(idea('x', 'X', ['2 Zucchetti']), [{ name: 'Zucchetti', urgent: true }]), fridgeMatch(idea('x', 'X', ['2 Zucchetti']), [{ name: 'Zucchetti', urgent: false }]), fridgeMatch(idea('x', 'X', ['Reis']), [{ name: 'Zucchetti', urgent: true }])], [2, 1, 0]);
+  let at = 0; // erster Wurf immer ganz vorn: mit Kühlschrank-Gewicht trotzdem die Idee mit passender Zutat, wenn der Wurf dort landet
+  const heavy = pickMenus({ ideas, count: 1, fridge: [{ name: 'Zucchetti', urgent: true }], rnd: () => (at += 0.5, 0.5) });
+  eq('Würfeln: Gericht mit dringender Kühlschrank-Zutat hat mehr Gewicht', titles(heavy), ['Curry']);
 }
 
 export async function run() {
   testBalances();
+  testMenuRoll();
   testMoney();
   testBills();
   try { await testSync(); } catch (err) { results.push({ name: 'Abgleich', ok: false, detail: err.message }); }
