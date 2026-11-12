@@ -1,10 +1,9 @@
-// Startseite „Heute“: alles Wichtige auf einen Blick, als Kacheln (Bento). Antippen führt in den Bereich.
-//  - zuoberst „Jetzt wichtig“ (focus): das Dringendste mit Knopf zum Erledigen, sonst das Menü von heute
-//  - Parmesan-Alarm: gelbe Karte, wenn kein Parmesan auf der Einkaufsliste steht
-//  - Menü von heute (Abend, sonst Mittag) mit Knopf für fehlende Zutaten und Link zum Rezept
-//  - vor Sonn- und Feiertagen (Läden zu, js/dates.js shopsClosed): Menüs dieser Tage mit fehlenden Zutaten (oder ohne
-//    Zutatenliste: „an den Einkauf denken“) – also heute einkaufen. Folgen mehrere zu-Tage aufeinander (Ostern,
-//    Weihnachten), alle zusammen
+// Startseite „Heute“: Datum, darunter eine grosse Karte mit dem Wichtigsten dieser Stunde, dann „Als Nächstes“
+// (bis zu drei Zeilen) und „Morgen“ (Chips). Welche Sache gross erscheint, hängt von der Tageszeit ab (agenda):
+//  - morgens Reste mitnehmen, dann Überfälliges/Wichtiges, ab 15 Uhr fehlende Zutaten (heute oder vor Sonn- und
+//    Feiertagen, js/dates.js shopsClosed), ab 17 Uhr die Abfuhr (am Abfuhrtag selbst sofort), sonst das Menü von heute
+//    (mit Knöpfen „Gekocht“, fehlende Zutaten, Rezept; gekocht: „Reste“)
+//  - Parmesan-Alarm: gelbe Karte ganz oben, wenn kein Parmesan auf der Einkaufsliste steht
 //  - ToDos, die heute dran sind (fällig bis heute) aus geteilten (nur für alle oder mir zugewiesen) und eigenen
 //    persönlichen Listen – direkt abhakbar
 //  - „Dein Tag“: Termine aus dem Apple-Kalender (js/calendars.js) und ToDos mit Uhrzeit als Zeitleiste mit Strich
@@ -54,44 +53,6 @@ function missingFor(meal) {
   });
 }
 
-// Kompakt in einer Zeile: links „Heute Abend“ und das Menü, rechts Rezept-Link und Knopf für fehlende Zutaten.
-// Immer als dunkle Kachel (Heute, Variante D)
-function mealTile() {
-  const t = todaysMeal();
-  const cls = 'tile-hero';
-  if (!t) {
-    return `<button type="button" class="tile ${cls} wide tile-meal" data-action="go" data-hash="#woche">
-      <span class="tile-meal-text"><h3>Heute</h3><strong>Noch kein Menü geplant</strong></span>
-      <span class="tile-btn tile-meal-btn">${icon('calendar', 'icon-sm')} Planen</span></button>`;
-  }
-  if (t.meal.away) {
-    // Platzhalter im Wochenplan: heute kein Kochen
-    return `<button type="button" class="tile ${cls} wide tile-meal" data-action="go" data-hash="#woche">
-      <span class="tile-meal-text"><h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3><strong>${esc(mealTitle(t.meal))}</strong><small>Kein Kochen nötig</small></span>
-      ${icon(awayIcon(t.meal.title))}</button>`;
-  }
-  // Als gekocht abgehakt (am Eintrag im Wochenplan, für alle): keine fehlenden Zutaten mehr anzeigen
-  const cooked = Boolean(state.plan[t.day]?.[t.slot]?.cooked);
-  const missing = cooked ? [] : missingFor(t.meal);
-  const known = state.ideas.some((i) => i.id === t.meal.ideaId);
-  // Rezept-Link der Idee (falls hinterlegt): direkt aus der Kachel öffnen, ohne die Idee zu suchen
-  const url = safeLink(state.ideas.find((i) => i.id === t.meal.ideaId)?.url);
-  return `<div class="tile ${cls} wide tile-meal${cooked ? ' is-cooked' : ''}">
-    <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
-    <button type="button" class="check meal-check${cooked ? ' is-on' : ''}" data-action="mealCooked" data-day="${t.day}" data-slot="${t.slot}" aria-pressed="${cooked}" aria-label="${esc(mealTitle(t.meal))} ${cooked ? 'doch nicht gekocht' : 'als gekocht abhaken'}">${icon('check', 'icon-sm')}</button>
-    <span class="tile-meal-text">
-      <h3>Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}</h3>
-      <strong>${esc(mealTitle(t.meal))}</strong>
-      ${cooked ? '<small>Gekocht ✓</small>' : !missing.length && known ? '<small>Alle Zutaten da ✓</small>' : ''}
-    </span>
-    ${url ? `<a class="tile-recipe" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Rezept öffnen" title="Rezept öffnen">${icon('link', 'icon-sm')}</a>` : ''}
-    ${cooked ? `<button type="button" class="tile-btn tile-meal-btn" data-action="mealLeftovers" data-day="${t.day}" data-slot="${t.slot}">${icon('leftovers', 'icon-sm')} Reste</button>` : ''}
-    ${missing.length
-      ? `<button type="button" class="tile-btn tile-meal-btn" data-action="shopMeal" aria-label="${missing.length} ${missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'} – auf die Einkaufsliste">${icon('cart', 'icon-sm')} ${missing.length} fehl${missing.length === 1 ? 't' : 'en'}</button>`
-      : ''}
-  </div>`;
-}
-
 // Morgen Sonntag oder Feiertag (bis zu 4 zu-Tage hintereinander): deren Menüs (Mittag und Abend). Hinweis, wenn
 // Zutaten fehlen oder ein Menü keine Zutatenliste hat (dann nur „an den Einkauf denken“); sind alle Zutaten da, kein
 // Hinweis. Ist heute selbst zu, auch nicht – einkaufen geht ja nicht.
@@ -110,23 +71,6 @@ function closedMeals() {
   const unknown = meals.filter((x) => !state.ideas.find((i) => i.id === x.meal.ideaId)?.ingredients?.length);
   const names = days.length === 1 ? dayName(days[0]) : `${dayName(days[0])} bis ${dayName(days.at(-1))}`;
   return missing.length || unknown.length ? { names, several: days.length > 1, meals, missing, unknown } : null;
-}
-
-function closedTile() {
-  const t = closedMeals();
-  if (!t) return '';
-  const label = (x) => (t.several ? `${x.name}: ${mealTitle(x.meal)}` : mealTitle(x.meal));
-  return `<div class="tile tile-auto wide">
-    <button type="button" class="tile-link" data-action="go" data-hash="#woche" aria-label="Wochenplan öffnen"></button>
-    <h3>Morgen ${esc(t.names)} · Läden zu</h3>
-    <div class="tile-big${t.several ? ' tile-big-list' : ''}">${esc(t.meals.map(label).join(' · '))}</div>
-    ${t.missing.length
-      ? `<button type="button" class="tile-btn" data-action="shopClosed">${icon('cart', 'icon-sm')} ${t.missing.length} ${t.missing.length === 1 ? 'Zutat' : 'Zutaten'} heute einkaufen</button>`
-      : ''}
-    ${t.unknown.length
-      ? `<span class="tile-note">${t.missing.length ? `Für ${esc(t.unknown.map((x) => mealTitle(x.meal)).join(', '))} keine Zutatenliste – ` : ''}An den Einkauf denken</span>`
-      : ''}
-  </div>`;
 }
 
 // Fällige ToDos (bis heute), geteilte und persönliche, Überfälliges zuerst
@@ -241,7 +185,7 @@ function todoTile() {
 // hervorgehoben („Morgen: Kehricht rausstellen“) –, die übrigen Arten als kleine Chips darunter.
 function wasteTile() {
   const kinds = wasteKinds();
-  if (!kinds.length) return '';
+  if (!kinds.length || wasteNow()) return ''; // dringend: steht als grosse Karte oder unter «Als Nächstes»
   const today = todayKey();
   const next = nextPickups(today);
   const last = lastPickup();
@@ -314,7 +258,7 @@ function fridgeTile() {
 }
 
 // ---------- „Jetzt wichtig“ ----------
-// Eine Sache als kompakte Karte, nur was Menü und Abfuhr nicht schon selbst hervorheben (die haben eigene Kacheln):
+// Daten für die grosse Karte (agenda): eine Sache, Menü und Abfuhr kommen separat dazu:
 //  1. Am Morgen (bis Mittag): Reste, die heute mitgenommen werden sollen
 //  2. Reste im Kühlschrank laufen heute ab (oder sind abgelaufen)
 //  3. Als wichtig markierte ToDos (im ToDo „Unter ‚Jetzt wichtig‘ zeigen“, auch ohne Datum)
@@ -333,23 +277,12 @@ function pinnedTodos() {
 const overdueTodos = () => dueTodos().filter(({ t }) => t.due < todayKey());
 const fridgeToday = () => fridgeSorted().filter((f) => daysLeft(f) <= 0);
 
-// „Jetzt wichtig“: kompakte helle Zeile (Symbol, Text, Knöpfe) – das Menü darunter ist die dunkle Karte
-const focusCard = ({ eyebrow, title, note, buttons }) => `<div class="tile wide tile-focus now-card">
-  <span class="now-ic" aria-hidden="true">${icon('bolt', 'icon-sm')}</span>
-  <div class="now-m">
-    <h3>${esc(eyebrow)}</h3>
-    <strong>${esc(title)}</strong>
-    ${note ? `<span class="tile-note">${esc(note)}</span>` : ''}
-  </div>
-  <div class="tile-acts">${buttons.join('')}</div>
-</div>`;
-
 function focus() {
   // Am Morgen (bis Mittag): Reste, die heute mitgenommen werden sollen
   const take = new Date().getHours() < 12 ? takeToday() : [];
   if (take.length) {
     const f = take[0];
-    return { kind: 'take', html: focusCard({
+    return { kind: 'take', card: ({
       eyebrow: 'Mitnehmen',
       title: take.length > 1 ? take.map((x) => x.name).join(', ') : f.name,
       note: 'aus dem Kühlschrank – nicht vergessen',
@@ -362,7 +295,7 @@ function focus() {
   const fridge = fridgeToday();
   if (fridge.length) {
     const f = fridge[0];
-    return { kind: 'fridge', html: focusCard({
+    return { kind: 'fridge', card: ({
       eyebrow: 'Kühlschrank',
       title: `${f.name}: ${leftLabel(f)}`,
       note: fridge.length > 1 ? `Auch: ${fridge.slice(1, 4).map((x) => x.name).join(', ')}${fridge.length > 4 ? ' …' : ''}` : '',
@@ -378,7 +311,7 @@ function focus() {
   if (pinned.length) {
     const { scope, t } = pinned[0];
     const rest = pinned.slice(1).map((x) => x.t.title);
-    return { kind: 'todo', html: focusCard({
+    return { kind: 'todo', card: ({
       eyebrow: pinned.length > 1 ? `Jetzt wichtig · ${pinned.length}` : 'Jetzt wichtig',
       title: t.title,
       note: [t.due ? `fällig ${t.due < todayKey() ? 'seit' : ''} ${fmtShort(t.due)}${t.time ? ` · ${t.time}` : ''}`.replace('  ', ' ') : '',
@@ -393,7 +326,7 @@ function focus() {
   if (overdue.length) {
     const { scope, t } = overdue[0];
     const days = Math.round((new Date(`${todayKey()}T12:00:00`) - new Date(`${t.due}T12:00:00`)) / 86400000);
-    return { kind: 'todo', html: focusCard({
+    return { kind: 'todo', card: ({
       eyebrow: overdue.length > 1 ? `Überfällig · ${overdue.length}` : 'Überfällig',
       title: t.title,
       note: days === 1 ? 'seit gestern fällig' : `seit ${days} Tagen fällig`,
@@ -403,7 +336,121 @@ function focus() {
       ],
     }) };
   }
-  return { kind: '', html: '' };
+  return { kind: '', card: null };
+}
+
+// Abfuhr heute oder morgen und noch nicht «draussen»: gehört in die grosse Karte bzw. unter «Als Nächstes»
+function wasteNow() {
+  if (!wasteKinds().length) return null;
+  const today = todayKey();
+  const next = nextPickups(today);
+  if (!next.length) return null;
+  const first = next.filter((k) => k.next === next[0].next);
+  const n = Math.round((new Date(`${first[0].next}T12:00:00`) - new Date(`${today}T12:00:00`)) / 86400000);
+  if (n > 1 || state.settings.wasteOut === first[0].next) return null;
+  return { first, n, day: first[0].next };
+}
+
+// ---------- Aufbau «Eine grosse Karte» ----------
+// Alles, was heute etwas von dir will, als Kandidat mit Rangfolge (kleiner = wichtiger). Der erste ist die grosse Karte,
+// die nächsten drei stehen als Zeilen darunter. Die Rangfolge hängt von der Tageszeit ab: morgens Mitnehmen, ab 15 Uhr
+// fehlende Zutaten, ab 17 Uhr die Abfuhr, sonst das Menü.
+function agenda() {
+  const h = new Date().getHours();
+  const list = [];
+  const add = (c) => list.push(c);
+
+  const f = focus();
+  if (f.card) {
+    const meta = { take: ['bag', 'bis 11', '#kuehlschrank', 10], todo: ['check', '', '#todo', 20], fridge: ['leftovers', 'heute', '#kuehlschrank', 50] }[f.kind] || ['bolt', '', '#heute', 50];
+    add({ rank: meta[3], kind: f.kind, ic: meta[0], when: meta[1], hash: meta[2], hero: f.card });
+  }
+
+  const wn = wasteNow();
+  if (wn) {
+    const names = wn.first.map((k) => k.short).join(' und ');
+    const tone = wasteTone(wn.first[0].short);
+    add({
+      rank: wn.n === 0 ? 12 : h >= 17 ? 40 : 80, kind: 'waste', ic: wasteIcon(wn.first[0].short), tone, action: 'waste', when: wn.n === 0 ? 'heute' : 'ab 17',
+      hero: {
+        eyebrow: 'Abfuhr', title: wn.n === 0 ? `Heute: ${names}` : `Morgen: ${names} rausstellen`,
+        note: `${fmtShort(wn.day)}${wn.n === 1 ? ' · am besten heute Abend' : ''}`,
+        buttons: [`<button type="button" class="tile-btn" data-action="wasteOut" data-day="${esc(wn.day)}">${icon('check', 'icon-sm')} Draussen</button>`,
+          '<button type="button" class="tile-btn tile-btn-soft" data-action="waste">Abfuhrkalender</button>'],
+      },
+    });
+  }
+
+  const closed = closedMeals();
+  if (closed) {
+    const label = (x) => (closed.several ? `${x.name}: ${mealTitle(x.meal)}` : mealTitle(x.meal));
+    add({
+      rank: h >= 15 && closed.missing.length ? 30 : 75, kind: 'closed', ic: 'cart', hash: '#woche', when: 'morgen',
+      hero: {
+        eyebrow: `Morgen ${closed.names} · Läden zu`, title: closed.meals.map(label).join(' · '),
+        note: closed.missing.length ? `${closed.missing.length} ${closed.missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'}` : 'An den Einkauf denken',
+        buttons: closed.missing.length ? [`<button type="button" class="tile-btn" data-action="shopClosed">${icon('cart', 'icon-sm')} ${closed.missing.length} heute einkaufen</button>`] : [],
+      },
+    });
+  }
+
+  const t = todaysMeal();
+  if (!t) {
+    add({ rank: 70, kind: 'meal', ic: 'calendar', hash: '#woche', when: 'planen', row: { eyebrow: 'Heute', title: 'Noch kein Menü geplant' } });
+  } else if (t.meal.away) {
+    add({ rank: 65, kind: 'meal', ic: awayIcon(t.meal.title), hash: '#woche', when: t.slot === 'abend' ? 'Abend' : 'Mittag', row: { eyebrow: t.slot === 'abend' ? 'Znacht' : 'Zmittag', title: mealTitle(t.meal), note: 'Kein Kochen nötig' } });
+  } else {
+    const cooked = Boolean(state.plan[t.day]?.[t.slot]?.cooked);
+    const missing = cooked ? [] : missingFor(t.meal);
+    const known = state.ideas.some((i) => i.id === t.meal.ideaId);
+    const url = safeLink(state.ideas.find((i) => i.id === t.meal.ideaId)?.url);
+    const data = `data-day="${t.day}" data-slot="${t.slot}"`;
+    const note = cooked ? 'Gekocht ✓' : missing.length ? `${missing.length} ${missing.length === 1 ? 'Zutat fehlt' : 'Zutaten fehlen'}` : known ? 'Alle Zutaten da ✓' : '';
+    const buttons = cooked
+      ? [`<button type="button" class="tile-btn" data-action="mealLeftovers" ${data}>${icon('leftovers', 'icon-sm')} Reste</button>`,
+        `<button type="button" class="tile-btn tile-btn-soft" data-action="mealCooked" ${data} aria-pressed="true">Doch nicht</button>`]
+      : [...(missing.length ? [`<button type="button" class="tile-btn" data-action="shopMeal">${icon('cart', 'icon-sm')} ${missing.length} auf die Liste</button>`] : []),
+        `<button type="button" class="tile-btn${missing.length ? ' tile-btn-soft' : ''}" data-action="mealCooked" ${data} aria-pressed="false">${icon('check', 'icon-sm')} Gekocht</button>`,
+        ...(url ? [`<a class="tile-btn tile-btn-soft" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${icon('link', 'icon-sm')} Rezept</a>`] : [])];
+    add({
+      rank: cooked ? 95 : missing.length && h >= 15 ? 35 : 60, kind: 'meal', ic: 'utensils', hash: '#woche', when: t.slot === 'abend' ? 'Abend' : 'Mittag',
+      hero: { eyebrow: `Heute ${t.slot === 'abend' ? 'Abend' : 'Mittag'}`, title: mealTitle(t.meal), note, buttons },
+      row: { eyebrow: t.slot === 'abend' ? 'Znacht' : 'Zmittag', title: mealTitle(t.meal), note },
+    });
+  }
+  return list.sort((a, b) => a.rank - b.rank);
+}
+
+const heroHtml = (c) => `<div class="tile wide tile-hero hero-b">
+  <span class="hb-eyebrow">${esc(c.hero.eyebrow)}</span>
+  <div class="hb-title">${esc(c.hero.title)}</div>
+  ${c.hero.note ? `<div class="hb-sub">${esc(c.hero.note)}</div>` : ''}
+  ${c.hero.buttons.length ? `<div class="tile-acts">${c.hero.buttons.join('')}</div>` : ''}
+</div>`;
+
+const nextRowHtml = (c) => {
+  const r = c.row || { eyebrow: c.hero.eyebrow, title: c.hero.title, note: c.hero.note };
+  const go = c.action ? `data-action="${c.action}"` : `data-action="go" data-hash="${esc(c.hash || '#heute')}"`;
+  return `<button type="button" class="na-row" ${go}>
+    <span class="na-dot k-${c.kind} ${c.tone || ''}" aria-hidden="true">${icon(c.ic, 'icon-sm')}</span>
+    <span class="na-text"><strong>${esc(r.title)}</strong><small>${esc([r.eyebrow, r.note].filter(Boolean).join(' · '))}</small></span>
+    <span class="na-when">${esc(c.when || '')}</span>
+  </button>`;
+};
+
+// «Morgen»: Abfuhr, geschlossene Läden, Menü und Termine des nächsten Tages als kleine Chips
+function tomorrowChips() {
+  const tmr = addDays(new Date(), 1);
+  const key = dateKey(tmr);
+  const chips = [];
+  for (const k of nextPickups(todayKey()).filter((x) => x.next === key)) chips.push({ text: `${k.short}-Abfuhr`, tone: wasteTone(k.short) });
+  if (shopsClosed(tmr) && !shopsClosed(new Date())) chips.push({ text: `${dayName(tmr)}: Läden zu` });
+  const entry = state.plan[key] || {};
+  const meal = entry.abend || entry.mittag;
+  if (meal && !meal.away && !meal.undecided) chips.push({ text: `${entry.abend ? 'Znacht' : 'Zmittag'}: ${mealTitle(meal)}` });
+  const events = eventsOn(key).length;
+  if (events) chips.push({ text: `${events} ${events === 1 ? 'Termin' : 'Termine'}` });
+  return chips;
 }
 
 // ---------- Parmesan-Alarm ----------
@@ -446,12 +493,15 @@ export default {
   title: 'Heute',
   icon: 'home',
 
-  // Oben das Datum (gross, mit Kalenderwoche) und der Gruss; dann „Jetzt wichtig“ (nur was nicht schon Menü oder
-  // Abfuhr zeigen), das Menü von heute, die Abfuhr hervorgehoben, danach der Rest
+  // Oben das Datum (gross, mit Kalenderwoche) und der Gruss; dann die grosse Karte, „Als Nächstes“, „Morgen“ und
+  // darunter der Rest (Abfuhr-Übersicht, Sport, Dein Tag, ToDos, Kühlschrank)
   render() {
     const now = new Date();
     const fmt = (o) => new Intl.DateTimeFormat('de-CH', o).format(now);
-    const f = focus();
+    const [hero, ...rest] = agenda();
+    const next = rest.slice(0, 3);
+    const items = hero ? [hero, ...next] : [];
+    const chips = tomorrowChips();
     // Kachelfarben reihum (tile-auto → tile-1/2/3) in der Reihenfolge, in der die Kacheln heute erscheinen – so
     // haben zwei Kacheln nacheinander nie dieselbe Farbe, auch wenn einzelne fehlen
     let n = 0;
@@ -464,14 +514,14 @@ export default {
       <p class="heute-greet">${esc(greeting())}</p>
       <div class="bento">
         ${parmesanTile()}
-        ${f.html}
-        ${mealTile()}
+        ${hero ? heroHtml(hero) : ''}
+        ${next.length ? `<section class="na-list" aria-label="Als Nächstes"><h3 class="na-h">Als Nächstes</h3>${next.map(nextRowHtml).join('')}</section>` : ''}
+        ${chips.length ? `<section class="na-list" aria-label="Morgen"><h3 class="na-h">Morgen</h3><div class="na-chips">${chips.map((c) => `<span class="na-chip ${c.tone || ''}">${esc(c.text)}</span>`).join('')}</div></section>` : ''}
         ${wasteTile()}
-        ${closedTile()}
         ${sportStrip()}
         ${dayTile()}
         ${todoTile()}
-        ${f.kind === 'fridge' ? '' : fridgeTile()}
+        ${items.some((c) => c.kind === 'fridge') ? '' : fridgeTile()}
       </div>`.replace(/\btile-auto\b/g, () => `tile-${(n++ % 3) + 1}`);
   },
 
