@@ -17,6 +17,7 @@ import { memberById, refresh, state, uid, update } from '../store.js';
 import { avatar, closeSheet, esc, icon, money, openSheet, parseMoney, toast } from '../ui.js';
 import { fmtMonthYear, fmtShort, parseKey, todayKey } from '../dates.js';
 import { saveFile } from '../backup.js';
+import { donutSvg } from '../donut.js';
 import { celebrate } from '../celebrate.js';
 import {
   BACKUP_DAYS, addMonths, addPayment, backupDue, dueMonth, isOverdue, useShared, backupText, curMonth, hasBackupPassword, isPlanFile, markBackedUp,
@@ -69,10 +70,18 @@ export function makePlanView({ shared = false } = {}) {
         <strong>${esc(monthLabel(month))}</strong>
         <button type="button" class="icon-btn" data-action="plMonth" data-step="1" aria-label="Monat vor">${icon('right')}</button>
       </div>
-      <section class="card plan-hero">
+      ${shown && s.income + s.fix + s.abos + s.active + s.bills > 0
+        // Ring nur bei sichtbaren Beträgen (er zeigt die Anteile); Anteil am Einkommen, der Rest bleibt frei
+        ? `<section class="card plan-hero plan-donut">
+        <div class="donut">${donutSvg([{ value: s.fix, cls: 'dn-fix' }, { value: s.abos, cls: 'dn-abos' }, { value: s.active + s.bills, cls: 'dn-more' }], Math.max(s.income, s.fix + s.abos + s.active + s.bills))}
+          <div class="donut-mid"><small>Bleibt im ${esc(monthLabel(month).split(' ')[0])}</small>
+            ${tap(`<span class="hero-number ${rest < 0 ? 'amount-minus' : ''}">${m(rest, { sign: true })}</span>${hint()}`, 'total-hero')}</div>
+        </div>
+      </section>`
+        : `<section class="card plan-hero">
         <small>Bleibt im ${esc(monthLabel(month).split(' ')[0])}</small>
         ${tap(`<span class="hero-number ${shown && rest < 0 ? 'amount-minus' : ''}">${m(rest, { sign: true })}</span>${hint()}`, 'total-hero')}
-      </section>
+      </section>`}
       <ul class="list plan-lines">
         ${line('Einnahmen', s.income, 1)}
         ${line('Fixkosten', s.fix, -1)}

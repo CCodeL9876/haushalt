@@ -6,6 +6,7 @@ import { balances } from '../js/settle.js';
 import { parseMoney } from '../js/ui.js';
 import { pull, startShared, state, update } from '../js/store.js';
 import { fridgeMatch, pickMenus } from '../js/menuroll.js';
+import { donutSvg } from '../js/donut.js';
 import { addMonths, billInMonth, curMonth, useShared } from '../js/planung.js';
 
 const results = [];
@@ -116,6 +117,12 @@ async function testSync() {
   localStorage.removeItem(`haushalt.cache.${r.key}`);
 }
 
+function testDonut() {
+  const svg = donutSvg([{ value: 50, cls: 'a' }, { value: 0, cls: 'b' }, { value: 25, cls: 'c' }], 100);
+  eq('Ring: Teile ohne Wert werden übersprungen', (svg.match(/dn-arc/g) || []).length, 2);
+  eq('Ring: ohne Gesamtwert kein Teil', (donutSvg([{ value: 5, cls: 'a' }], 0).match(/dn-arc/g) || []).length, 0);
+}
+
 function testMenuRoll() {
   const idea = (id, title, ingredients = []) => ({ id, title, ingredients });
   const ideas = [idea('1', 'Pasta', ['400 g Spaghetti']), idea('2', 'Curry', ['1 Zucchetti']), idea('3', 'Suppe', ['Karotten']), idea('4', 'Pizza'), idea('5', 'Risotto')];
@@ -135,6 +142,7 @@ function testMenuRoll() {
 export async function run() {
   testBalances();
   testMenuRoll();
+  testDonut();
   testMoney();
   testBills();
   try { await testSync(); } catch (err) { results.push({ name: 'Abgleich', ok: false, detail: err.message }); }

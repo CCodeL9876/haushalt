@@ -422,19 +422,19 @@ function agenda() {
 }
 
 const heroHtml = (c) => `<div class="tile wide tile-hero hero-b">
+  <svg class="hb-deco" viewBox="0 0 190 190" aria-hidden="true"><circle cx="95" cy="95" r="58" fill="none" stroke-width="38" stroke-linecap="round" stroke-dasharray="190 400" transform="rotate(-20 95 95)"/></svg>
   <span class="hb-eyebrow">${esc(c.hero.eyebrow)}</span>
   <div class="hb-title">${esc(c.hero.title)}</div>
   ${c.hero.note ? `<div class="hb-sub">${esc(c.hero.note)}</div>` : ''}
   ${c.hero.buttons.length ? `<div class="tile-acts">${c.hero.buttons.join('')}</div>` : ''}
 </div>`;
 
-const nextRowHtml = (c) => {
+const nextTileHtml = (c) => {
   const r = c.row || { eyebrow: c.hero.eyebrow, title: c.hero.title, note: c.hero.note };
   const go = c.action ? `data-action="${c.action}"` : `data-action="go" data-hash="${esc(c.hash || '#heute')}"`;
-  return `<button type="button" class="na-row" ${go}>
-    <span class="na-dot k-${c.kind} ${c.tone || ''}" aria-hidden="true">${icon(c.ic, 'icon-sm')}</span>
-    <span class="na-text"><strong>${esc(r.title)}</strong><small>${esc([r.eyebrow, r.note].filter(Boolean).join(' · '))}</small></span>
-    <span class="na-when">${esc(c.when || '')}</span>
+  return `<button type="button" class="na-tile k-${c.kind} ${c.tone || ''}" ${go}>
+    <span class="na-top"><span class="na-ring">${icon(c.ic, 'icon-sm')}</span><span class="na-go">${icon('ne', 'icon-sm')}</span></span>
+    <span class="na-txt">${esc(r.eyebrow)}<b>${esc(r.title)}</b>${r.note ? `<small>${esc(r.note)}</small>` : ''}</span>
   </button>`;
 };
 
@@ -517,7 +517,7 @@ export default {
       <div class="bento">
         ${parmesanTile()}
         ${hero ? heroHtml(hero) : ''}
-        ${next.length ? `<section class="na-list" aria-label="Als Nächstes"><h3 class="na-h">Als Nächstes</h3>${next.map(nextRowHtml).join('')}</section>` : ''}
+        ${next.length ? `<section class="na-list" aria-label="Als Nächstes"><h3 class="na-h">Als Nächstes</h3><div class="na-tiles" data-keep-scroll="next">${next.map(nextTileHtml).join('')}</div></section>` : ''}
         ${chips.length ? `<section class="na-list" aria-label="Morgen"><h3 class="na-h">Morgen</h3><div class="na-chips">${chips.map((c) => `<span class="na-chip ${c.tone || ''}">${esc(c.text)}</span>`).join('')}</div></section>` : ''}
         ${wasteTile()}
         ${sportStrip()}

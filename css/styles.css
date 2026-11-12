@@ -1320,17 +1320,6 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .hero-b a.tile-btn { text-decoration: none; }
 .na-list { grid-column: 1 / -1; display: grid; gap: 7px; min-width: 0; }
 .na-h { margin: 8px 4px 0; font-size: var(--fs-2xs); font-weight: 750; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-.na-row {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 11px; align-items: center; width: 100%;
-  padding: 10px 12px; border: 0; border-radius: 18px; background: var(--card); color: var(--text); font: inherit; text-align: left; cursor: pointer;
-}
-.na-dot { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; background: var(--tile-1-badge); color: var(--tile-badge-text); }
-.na-dot.k-take { background: var(--tile-3-badge); } .na-dot.k-fridge, .na-dot.k-closed { background: var(--tile-2-badge); }
-.na-dot:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) { background: var(--w-strong); color: #FFFFFF; }
-.na-text { min-width: 0; }
-.na-text strong { display: block; font-size: var(--fs-sm); font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
-.na-text small { display: block; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
-.na-when { font-size: var(--fs-xs); font-weight: 700; color: var(--muted); white-space: nowrap; }
 .na-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 4px; }
 .na-chip { padding: 5px 11px; border-radius: 999px; background: var(--chip); color: var(--text); font-size: var(--fs-xs); font-weight: 650; }
 .na-chip:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) { background: var(--w-bg); color: var(--w-text); }
@@ -1340,5 +1329,42 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .tile.hero-b .hb-eyebrow, .tile.hero-b .hb-sub { color: color-mix(in srgb, var(--tile-text) 68%, transparent); }
 .tile.hero-b .hb-title { font-weight: 300; font-size: var(--fs-3xl); letter-spacing: -0.03em; line-height: 1.05; }
 .tile.hero-b .tile-btn-soft { background: color-mix(in srgb, var(--tile-text) 10%, transparent); color: var(--tile-text); }
-.na-row { border-radius: 24px; }
-.na-dot { border-radius: 50%; }
+
+/* «Als Nächstes» als Kacheln zum Wischen (angeschnitten am Rand), Ring und Pfeil-Kreis wie in der Vorlage */
+.na-tiles { display: flex; gap: 10px; margin: 0 -16px; padding: 0 16px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+.na-tiles::-webkit-scrollbar { display: none; }
+.na-tile {
+  flex: none; width: 152px; height: 158px; padding: 12px; border: 0; border-radius: 30px; scroll-snap-align: start;
+  display: flex; flex-direction: column; justify-content: space-between; text-align: left; font: inherit;
+  background: var(--tile-2-bg); color: var(--tile-text); cursor: pointer;
+}
+.na-tile.k-meal, .na-tile.k-take { background: var(--accent); color: var(--on-accent); }
+.na-tile.k-fridge, .na-tile.k-closed { background: var(--tile-2-bg); color: var(--tile-text); }
+.na-tile.k-todo { background: var(--tile-1-bg); color: var(--tile-text); }
+.na-tile:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) { background: var(--w-bg); color: var(--w-text); }
+.na-top { display: flex; justify-content: space-between; align-items: center; }
+.na-ring { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid color-mix(in srgb, currentColor 24%, transparent); }
+.na-go { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #212121; color: #FFFFFF; }
+.na-txt { display: block; font-size: var(--fs-xs); font-weight: 600; line-height: 1.2; }
+.na-txt b { display: block; margin-top: 3px; font-size: var(--fs-lg); font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.na-txt small { display: block; margin-top: 2px; font-size: var(--fs-2xs); font-weight: 600; opacity: 0.72; }
+/* Grosse Karte: gelber Ring angeschnitten rechts unten */
+.hb-deco { position: absolute; right: -48px; bottom: -62px; width: 190px; height: 190px; pointer-events: none; }
+.hb-deco circle { stroke: var(--accent); }
+.hero-b > :not(.hb-deco) { position: relative; z-index: 1; }
+.heute-greet { font-size: var(--fs-3xl); font-weight: 300; letter-spacing: -0.03em; color: var(--text); margin: 4px 2px 14px; }
+/* Geld → Monat: Ring wie in der Vorlage */
+.plan-donut { background: var(--tile-1-bg); color: var(--tile-text); padding: 18px 12px; }
+.plan-donut .donut { position: relative; width: 244px; max-width: 100%; aspect-ratio: 1; margin: 0 auto; }
+.plan-donut .donut svg { width: 100%; height: 100%; }
+.donut-mid { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 2px; text-align: center; }
+.donut-mid small { color: color-mix(in srgb, var(--tile-text) 70%, transparent); font-weight: 600; }
+.plan-donut .hero-number { font-size: var(--fs-2xl); font-weight: 500; }
+.dn-track, .dn-arc { fill: none; stroke-width: 44; stroke-linecap: round; }
+.dn-track { stroke: color-mix(in srgb, var(--tile-text) 9%, transparent); }
+.dn-fix { stroke: var(--accent); } .dn-abos { stroke: var(--tile-2-bg); } .dn-more { stroke: var(--card); }
+/* Tab-Leiste nur mit Symbolen: aktiver Bereich als runder Knopf, Beschriftung für Screenreader */
+.tab { width: 52px; height: 52px; margin: auto; border-radius: 50%; }
+.tab span { position: absolute; width: 1px; height: 1px; max-width: none; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.tab-plus { width: 52px; height: 52px; margin: auto; border-radius: 50%; }
+.tabbar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
