@@ -5,79 +5,80 @@
    Oliv, Lavendel und Lila sind als Schrift auf Creme zu blass – sie dienen als Flächen mit dunkler Schrift;
    für Schrift werden dunklere Töne derselben Farben verwendet (--accent-text, --tab-active, --section-text). */
 :root {
-  --bg: #FDFBD4;             /* Creme */
-  --card: #FFFEF3;
-  --chip: #F1EDBE;
-  --line: #E9E4B0;
-  --text: #23221A;
-  --text-soft: #46442F;
-  --muted: #6E6B4C;
-  --accent: #CF6DFC;         /* Lila: Hinzufügen, Speichern, erledigt */
-  --accent-hover: #C056F3;
-  --accent-tint: #ECEBFF;
-  --accent-text: #8A35C2;    /* dunkleres Lila: als Schrift lesbar */
-  --on-accent: #1E1530;
+  --bg: #F1F2F3;             /* Hellgrau */
+  --card: #FFFFFF;
+  --chip: #E7E8EA;
+  --line: #E1E3E5;
+  --text: #212121;
+  --text-soft: #43474B;
+  --muted: #666B70;
+  --accent: #FCFD76;         /* Gelb: Hinzufügen, Speichern, erledigt */
+  --accent-hover: #F1F25A;
+  --accent-tint: #F3F4B8;
+  --accent-text: #3E3E7A;    /* dunkles Lavendel: als Schrift lesbar */
+  --on-accent: #212121;
   --plus: #2C6E3F;           /* Guthaben in der Abrechnung */
   --minus: #A63D2F;          /* Schulden in der Abrechnung */
-  --bar: #CF6DFC;
-  --bar-track: #F1EDBE;
+  --bar: #212121;
+  --bar-track: #E7E8EA;
   /* Bausteine der einzelnen Bereiche */
-  --tab-active: #8A35C2;
-  --check-border: #BDB96A;   /* Oliv */
-  --suggest-bg: #C1BFFF;     /* Lavendel */
-  --suggest-text: #23221A;
-  --suggest-icon: #4B2F80;
-  --seg-bg: #F1EDBE;
-  --seg-active-bg: #BDB96A;
-  --seg-active-text: #23221A;
-  --section-text: #6B6728;   /* Oliv dunkel */
-  --section-dot: #BDB96A;
-  --today-ring: #CF6DFC;
-  --today-pill-bg: #C1BFFF;
-  --today-pill-text: #23221A;
-  --mittag-bg: #F3F1FF;
-  --mittag-label-bg: #C1BFFF; /* Lavendel */
-  --mittag-label-text: #23221A;
-  --abend-bg: #F5F2CE;
-  --abend-label-bg: #BDB96A;  /* Oliv */
-  --abend-label-text: #23221A;
-  --week-btn-bg: #C1BFFF;
-  --week-btn-text: #23221A;
-  --idea-1: #BDB96A;         /* Farbstreifen der Menüideen-Karten, reihum */
-  --idea-2: #C1BFFF;
-  --idea-3: #CF6DFC;
-  --idea-4: #6B6728;
-  --tag-1-bg: #E3E0A4;       /* Stichworte, reihum */
-  --tag-2-bg: #C1BFFF;
-  --tag-3-bg: #E7B8FD;
-  --tag-4-bg: #ECEBFF;
-  --tag-text: #23221A;
-  --tag-4-text: #23221A;
-  --tile-1-bg: #DEDDFF;       /* Kacheln der ToDo-Listen, reihum: Lavendel, Oliv, Lila */
-  --tile-1-badge: #C1BFFF;
-  --tile-2-bg: #EDEAB9;
-  --tile-2-badge: #BDB96A;
-  --tile-3-bg: #F3DDFE;
-  --tile-3-badge: #E2A8FD;
-  --tile-text: #23221A;
-  --tile-badge-text: #1E1530;
-  --stat-bar: #A64FD6;       /* Balken der Statistik (Kontrast ≥ 3:1 auf --card) */
+  --tab-active: #212121;
+  --check-border: #9AA0A5;
+  --suggest-bg: #D7D7F4;     /* Lavendel */
+  --suggest-text: #212121;
+  --suggest-icon: #3E3E7A;
+  --seg-bg: #E7E8EA;
+  --seg-active-bg: #FFFFFF;
+  --seg-active-text: #212121;
+  --section-text: #5A5F64;
+  --section-dot: #C1D6D9;
+  --today-ring: #212121;
+  --today-pill-bg: #FCFD76;
+  --today-pill-text: #212121;
+  --mittag-bg: #ECECFA;
+  --mittag-label-bg: #D7D7F4;
+  --mittag-label-text: #212121;
+  --abend-bg: #E8EFF0;
+  --abend-label-bg: #C1D6D9;  /* Graublau */
+  --abend-label-text: #212121;
+  --week-btn-bg: #FCFD76;
+  --week-btn-text: #212121;
+  --idea-1: #FCFD76;         /* Farbstreifen der Menüideen-Karten, reihum */
+  --idea-2: #C1D6D9;
+  --idea-3: #D7D7F4;
+  --idea-4: #9AA7A9;
+  --tag-1-bg: #F3F4B8;       /* Stichworte, reihum */
+  --tag-2-bg: #C1D6D9;
+  --tag-3-bg: #D7D7F4;
+  --tag-4-bg: #E5EAE3;
+  --tag-text: #212121;
+  --tag-4-text: #212121;
+  --tile-1-bg: #C1D6D9;       /* Kacheln, reihum: Graublau, Lavendel, Gelb */
+  --tile-1-badge: #A6C2C6;
+  --tile-2-bg: #D7D7F4;
+  --tile-2-badge: #BEBEEB;
+  --tile-3-bg: #F3F4B8;
+  --tile-3-badge: #FCFD76;
+  --tile-text: #212121;
+  --tile-badge-text: #212121;
+  --stat-bar: #6F6FB8;       /* Balken der Statistik (Kontrast ≥ 3:1 auf --card) */
 
-  --radius-sm: 14px;          /* Bento: kräftig gerundet */
-  --radius: 22px;
-  --radius-lg: 28px;
-  --shadow: 0 1px 2px rgba(80, 76, 30, 0.05);   /* Bento: flach, Flächen heben sich über die Farbe ab */
-  --shadow-lg: 0 -10px 40px rgba(80, 76, 30, 0.18);
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --radius-sm: 16px;
+  --radius: 24px;
+  --radius-lg: 32px;
+  --shadow: none;            /* Flächen heben sich über die Farbe ab */
+  --shadow-lg: 0 -10px 40px rgba(33, 33, 33, 0.18);
+  --font: 'Urbanist', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
 
   --tabbar-h: 62px;
   /* Platz, den die schwebende Tab-Leiste unten braucht (mindestens 12px Abstand zum Rand) */
   --tabbar-space: calc(var(--tabbar-h) + max(var(--safe-bottom), 12px));
   /* Dunkle Fläche für Tab-Leiste und Hauptkacheln: dunkle Fassung der Akzentfarbe des Farbdesigns */
-  --hero: color-mix(in srgb, var(--accent-text) 38%, #121016);
+  --hero: #212121;
   --on-hero: #FFFFFF;
-  --tab-on-bg: var(--tile-1-bg);   /* aktiver Bereich in der Tab-Leiste */
-  --tab-on-text: var(--tile-text);
+  --dock: color-mix(in srgb, #D7D7F4 70%, transparent);   /* schwebende Tab-Leiste */
+  --tab-on-bg: #212121;            /* aktiver Bereich in der Tab-Leiste */
+  --tab-on-text: #FFFFFF;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --kb: 0px;                 /* Höhe der Bildschirmtastatur, gesetzt in js/ui.js */
@@ -86,50 +87,53 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1A1912; --card: #24231A; --chip: #2F2D21; --line: #3A382A;
-    --text: #FDFBD4; --text-soft: #E6E3BC; --muted: #A9A57E;   /* Creme als Schrift */
-    --accent: #CF6DFC; --accent-hover: #DA8BFD; --accent-tint: #2A2840; --accent-text: #DA8BFD; --on-accent: #1E1530;
-    --plus: #A9C97C; --minus: #F08B7C; --bar: #CF6DFC; --bar-track: #2F2D21;
-    --tab-active: #CF6DFC; --check-border: #8E8A4C;
-    --suggest-bg: #2A2840; --suggest-text: #C1BFFF; --suggest-icon: #CF6DFC;
-    --seg-bg: #2F2D21; --seg-active-bg: #BDB96A; --seg-active-text: #1A1912;
-    --section-text: #BDB96A; --section-dot: #BDB96A;
-    --today-ring: #CF6DFC; --today-pill-bg: #C1BFFF; --today-pill-text: #1E1530;
-    --mittag-bg: #242337; --mittag-label-bg: #C1BFFF; --mittag-label-text: #1E1530;
-    --abend-bg: #2A2918; --abend-label-bg: #BDB96A; --abend-label-text: #1A1912;
-    --week-btn-bg: #C1BFFF; --week-btn-text: #1E1530;
-    --idea-1: #BDB96A; --idea-2: #C1BFFF; --idea-3: #CF6DFC; --idea-4: #8E8A4C;
-    --tag-1-bg: #BDB96A; --tag-2-bg: #C1BFFF; --tag-3-bg: #CF6DFC; --tag-4-bg: #2A2840;
-    --tag-text: #1A1912; --tag-4-text: #C1BFFF;
-    --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4; --stat-bar: #C064F0;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    --bg: #17181A; --card: #232528; --chip: #2A2C30; --line: #33363A;
+    --text: #F1F2F3; --text-soft: #D0D3D6; --muted: #9A9FA5;
+    --accent: #FCFD76; --accent-hover: #EDEE5E; --accent-tint: #2E2F1F; --accent-text: #FCFD76; --on-accent: #212121;
+    --plus: #A9C97C; --minus: #F08B7C; --bar: #FCFD76; --bar-track: #2A2C30;
+    --tab-active: #FCFD76; --check-border: #6E7479;
+    --suggest-bg: #2E2E4B; --suggest-text: #D7D7F4; --suggest-icon: #D7D7F4;
+    --seg-bg: #2A2C30; --seg-active-bg: #3A3D42; --seg-active-text: #F1F2F3;
+    --section-text: #A9C4C8; --section-dot: #C1D6D9;
+    --today-ring: #FCFD76; --today-pill-bg: #FCFD76; --today-pill-text: #212121;
+    --mittag-bg: #25253C; --mittag-label-bg: #D7D7F4; --mittag-label-text: #212121;
+    --abend-bg: #243136; --abend-label-bg: #C1D6D9; --abend-label-text: #212121;
+    --week-btn-bg: #FCFD76; --week-btn-text: #212121;
+    --idea-1: #FCFD76; --idea-2: #C1D6D9; --idea-3: #D7D7F4; --idea-4: #6E7479;
+    --tag-1-bg: #FCFD76; --tag-2-bg: #C1D6D9; --tag-3-bg: #D7D7F4; --tag-4-bg: #2A2C30;
+    --tag-text: #212121; --tag-4-text: #F1F2F3;
+    --tile-1-bg: #2B3A3D; --tile-1-badge: #C1D6D9; --tile-2-bg: #2E2E4B; --tile-2-badge: #D7D7F4; --tile-3-bg: #3A3B1C; --tile-3-badge: #FCFD76; --tile-text: #F1F2F3; --tile-badge-text: #212121; --stat-bar: #D7D7F4;
+    --shadow: none;
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
-    --hero: color-mix(in srgb, var(--accent) 28%, #15131B); --tab-on-bg: var(--accent); --tab-on-text: var(--on-accent);
+    --hero: #3A3B5E; --dock: color-mix(in srgb, #3C3C5C 70%, transparent); --tab-on-bg: #FCFD76; --tab-on-text: #212121;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #1A1912; --card: #24231A; --chip: #2F2D21; --line: #3A382A;
-  --text: #FDFBD4; --text-soft: #E6E3BC; --muted: #A9A57E;
-  --accent: #CF6DFC; --accent-hover: #DA8BFD; --accent-tint: #2A2840; --accent-text: #DA8BFD; --on-accent: #1E1530;
-  --plus: #A9C97C; --minus: #F08B7C; --bar: #CF6DFC; --bar-track: #2F2D21;
-  --tab-active: #CF6DFC; --check-border: #8E8A4C;
-  --suggest-bg: #2A2840; --suggest-text: #C1BFFF; --suggest-icon: #CF6DFC;
-  --seg-bg: #2F2D21; --seg-active-bg: #BDB96A; --seg-active-text: #1A1912;
-  --section-text: #BDB96A; --section-dot: #BDB96A;
-  --today-ring: #CF6DFC; --today-pill-bg: #C1BFFF; --today-pill-text: #1E1530;
-  --mittag-bg: #242337; --mittag-label-bg: #C1BFFF; --mittag-label-text: #1E1530;
-  --abend-bg: #2A2918; --abend-label-bg: #BDB96A; --abend-label-text: #1A1912;
-  --week-btn-bg: #C1BFFF; --week-btn-text: #1E1530;
-  --idea-1: #BDB96A; --idea-2: #C1BFFF; --idea-3: #CF6DFC; --idea-4: #8E8A4C;
-  --tag-1-bg: #BDB96A; --tag-2-bg: #C1BFFF; --tag-3-bg: #CF6DFC; --tag-4-bg: #2A2840;
-  --tag-text: #1A1912; --tag-4-text: #C1BFFF;
-  --tile-1-bg: #2A2840; --tile-1-badge: #C1BFFF; --tile-2-bg: #302E1C; --tile-2-badge: #BDB96A; --tile-3-bg: #36223F; --tile-3-badge: #CF6DFC; --tile-text: #FDFBD4; --stat-bar: #C064F0;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --bg: #17181A; --card: #232528; --chip: #2A2C30; --line: #33363A;
+  --text: #F1F2F3; --text-soft: #D0D3D6; --muted: #9A9FA5;
+  --accent: #FCFD76; --accent-hover: #EDEE5E; --accent-tint: #2E2F1F; --accent-text: #FCFD76; --on-accent: #212121;
+  --plus: #A9C97C; --minus: #F08B7C; --bar: #FCFD76; --bar-track: #2A2C30;
+  --tab-active: #FCFD76; --check-border: #6E7479;
+  --suggest-bg: #2E2E4B; --suggest-text: #D7D7F4; --suggest-icon: #D7D7F4;
+  --seg-bg: #2A2C30; --seg-active-bg: #3A3D42; --seg-active-text: #F1F2F3;
+  --section-text: #A9C4C8; --section-dot: #C1D6D9;
+  --today-ring: #FCFD76; --today-pill-bg: #FCFD76; --today-pill-text: #212121;
+  --mittag-bg: #25253C; --mittag-label-bg: #D7D7F4; --mittag-label-text: #212121;
+  --abend-bg: #243136; --abend-label-bg: #C1D6D9; --abend-label-text: #212121;
+  --week-btn-bg: #FCFD76; --week-btn-text: #212121;
+  --idea-1: #FCFD76; --idea-2: #C1D6D9; --idea-3: #D7D7F4; --idea-4: #6E7479;
+  --tag-1-bg: #FCFD76; --tag-2-bg: #C1D6D9; --tag-3-bg: #D7D7F4; --tag-4-bg: #2A2C30;
+  --tag-text: #212121; --tag-4-text: #F1F2F3;
+  --tile-1-bg: #2B3A3D; --tile-1-badge: #C1D6D9; --tile-2-bg: #2E2E4B; --tile-2-badge: #D7D7F4; --tile-3-bg: #3A3B1C; --tile-3-badge: #FCFD76; --tile-text: #F1F2F3; --tile-badge-text: #212121; --stat-bar: #D7D7F4;
+  --shadow: none;
   --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
-  --hero: color-mix(in srgb, var(--accent) 28%, #15131B); --tab-on-bg: var(--accent); --tab-on-text: var(--on-accent);
+  --hero: #3A3B5E; --dock: color-mix(in srgb, #3C3C5C 70%, transparent); --tab-on-bg: #FCFD76; --tab-on-text: #212121;
   color-scheme: dark;
 }
+
+/* Urbanist (OFL), selbst gehostet: Die App lädt nichts von fremden Servern (Content-Security-Policy in index.html) */
+@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 300 700; font-display: swap; src: url(../assets/fonts/urbanist.woff2) format('woff2'); }
 
 * { box-sizing: border-box; }
 /* Nie seitlich verschiebbar: was über den Rand ragt, wird abgeschnitten. „clip“ statt „hidden“, damit die
@@ -184,7 +188,7 @@ button { cursor: pointer; }
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
 }
-.topbar-title { margin: 0; font-size: var(--fs-4xl); font-weight: 800; letter-spacing: -0.035em; }
+.topbar-title { margin: 0; font-size: var(--fs-4xl); font-weight: 300; letter-spacing: -0.03em; }
 
 .view { padding: 4px 16px 0; max-width: 640px; margin: 0 auto; }
 
@@ -194,12 +198,12 @@ button { cursor: pointer; }
   position: fixed; left: 12px; right: 12px; bottom: max(var(--safe-bottom), 12px); z-index: 20;
   max-width: 616px; margin: 0 auto;
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px;
-  height: var(--tabbar-h); padding: 6px; border-radius: 22px;
-  background: var(--hero); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  height: var(--tabbar-h); padding: 6px; border-radius: 36px;
+  background: var(--dock); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
 }
 .tab {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 16px;
-  color: color-mix(in srgb, var(--on-hero) 62%, var(--hero)); text-decoration: none; font-size: var(--fs-2xs); font-weight: 650;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 28px;
+  color: var(--text); text-decoration: none; font-size: var(--fs-2xs); font-weight: 650;
 }
 .tab[aria-current="page"] { color: var(--tab-on-text); background: var(--tab-on-bg); }
 /* Sechs Bereiche auf schmalen iPhones: Beschriftung notfalls kürzen statt überlappen */
@@ -208,7 +212,7 @@ button { cursor: pointer; }
 /* ---------- Bausteine ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--radius-sm);
+  min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px;
   background: var(--chip); font-weight: 600; color: inherit; text-decoration: none;
 }
 .btn-primary { background: var(--accent); color: var(--on-accent); }
@@ -223,7 +227,7 @@ button { cursor: pointer; }
   border: 0; border-radius: 50%; background: transparent; color: var(--text-soft);
 }
 .icon-btn:active { background: var(--chip); }
-.topbar .icon-btn { background: var(--card); box-shadow: none; border-radius: 14px; }
+.topbar .icon-btn { background: var(--card); box-shadow: none; border-radius: 50%; }
 
 .card {
   background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
@@ -809,7 +813,7 @@ button.plan-sum.total-toggle { float: right; }
 }
 .tile-btn {
   position: relative; display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
-  min-height: 40px; padding: 0 14px; border: 0; border-radius: 14px;
+  min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px;
   background: var(--accent); color: var(--on-accent); font-weight: 750; font-size: var(--fs-sm);
 }
 /* „Jetzt wichtig“: eine Sache zuoberst, mit Knöpfen zum Erledigen */
@@ -1330,3 +1334,11 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .na-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 4px; }
 .na-chip { padding: 5px 11px; border-radius: 999px; background: var(--chip); color: var(--text); font-size: var(--fs-xs); font-weight: 650; }
 .na-chip:is(.waste-tone-blue, .waste-tone-brown, .waste-tone-green) { background: var(--w-bg); color: var(--w-text); }
+
+/* Urbanist: die grosse Karte auf der Startseite in Graublau, Knöpfe als Pillen */
+.tile.hero-b { background: var(--tile-1-bg); color: var(--tile-text); }
+.tile.hero-b .hb-eyebrow, .tile.hero-b .hb-sub { color: color-mix(in srgb, var(--tile-text) 68%, transparent); }
+.tile.hero-b .hb-title { font-weight: 300; font-size: var(--fs-3xl); letter-spacing: -0.03em; line-height: 1.05; }
+.tile.hero-b .tile-btn-soft { background: color-mix(in srgb, var(--tile-text) 10%, transparent); color: var(--tile-text); }
+.na-row { border-radius: 24px; }
+.na-dot { border-radius: 50%; }

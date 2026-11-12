@@ -3,8 +3,8 @@
   "short_name": "Haushalt",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#FDFBD4",
-  "theme_color": "#FDFBD4",
+  "background_color": "#F1F2F3",
+  "theme_color": "#F1F2F3",
   "icons": [
     { "src": "assets/icon-schluessel-180.png", "sizes": "180x180", "type": "image/png" },
     { "src": "assets/icon-schluessel-512.png", "sizes": "512x512", "type": "image/png" }

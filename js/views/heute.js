@@ -498,8 +498,10 @@ export default {
   render() {
     const now = new Date();
     const fmt = (o) => new Intl.DateTimeFormat('de-CH', o).format(now);
-    const [hero, ...rest] = agenda();
-    const next = rest.slice(0, 3);
+    // Die grosse Karte ist der erste Kandidat mit Knöpfen; Zeilen ohne (z. B. «Noch kein Menü geplant») stehen darunter
+    const all = agenda();
+    const hero = all.find((c) => c.hero);
+    const next = all.filter((c) => c !== hero).slice(0, 3);
     const items = hero ? [hero, ...next] : [];
     const chips = tomorrowChips();
     // Kachelfarben reihum (tile-auto → tile-1/2/3) in der Reihenfolge, in der die Kacheln heute erscheinen – so

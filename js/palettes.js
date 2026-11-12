@@ -1,6 +1,6 @@
 // Farbdesigns für die Auswahl unter App-Einstellungen → Farbdesign – erzeugt von tools/make-palettes.py.
 export const PALETTES = [
-  { id: 'creme', name: 'Creme', swatches: ['#FDFBD4', '#BDB96A', '#C1BFFF', '#CF6DFC'] },
+  { id: 'creme', name: 'Urbanist', swatches: ['#F1F2F3', '#FCFD76', '#C1D6D9', '#D7D7F4'] },
   { id: 'neon', name: 'Neon', swatches: ['#CCFF00', '#FF6B00', '#F900FF', '#5200FF'] },
   { id: 'fruehling', name: 'Frühling', swatches: ['#89F336', '#38A711', '#F23598', '#A835F2'] },
   { id: 'pastell', name: 'Pastell', swatches: ['#81D8D0', '#D99E82', '#D7D982', '#AE82D9'] },

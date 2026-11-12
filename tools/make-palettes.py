@@ -16,7 +16,7 @@ Neues Design: unten in PALETTES eintragen und das Skript ausführen.
   c3      dritte Farbe für Kacheln, Menüideen und Stichworte
   accent  Hauptfarbe für Knöpfe (+, Speichern) und Erledigt
   show    die vier Farben in der gelieferten Reihenfolge (Farbtupfer in der Auswahl)
-Das Standard-Design „Creme“ steht von Hand in css/styles.css (:root) und wird hier nicht erzeugt.
+Das Standard-Design „Urbanist“ steht von Hand in css/styles.css (:root) und wird hier nicht erzeugt.
 """
 
 from pathlib import Path
@@ -38,7 +38,7 @@ PALETTES = [
     {'id': 'miami', 'name': 'Miami', 'show': ['#FF69B4', '#069494', '#FFFFFF', '#00F0FF'], 'base': '#00F0FF', 'c1': '#069494', 'c2': '#00F0FF', 'c3': '#FF69B4', 'accent': '#FF69B4'},
 ]
 # Für die Auswahl: das Standard-Design (Farben aus css/styles.css)
-STANDARD = {'id': 'creme', 'name': 'Creme', 'swatches': ['#FDFBD4', '#BDB96A', '#C1BFFF', '#CF6DFC']}
+STANDARD = {'id': 'creme', 'name': 'Urbanist', 'swatches': ['#F1F2F3', '#FCFD76', '#C1D6D9', '#D7D7F4']}
 
 WHITE, BLACK = '#FFFFFF', '#000000'
 
