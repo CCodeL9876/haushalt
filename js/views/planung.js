@@ -116,6 +116,7 @@ export function makePlanView({ shared = false } = {}) {
   // Zeile «Rechnungen in diesem Monat»: Antippen klappt darunter, in derselben Box, die Rechnungen auf.
   // Von anderen bezahlte Rechnungen (byOther) stehen hier nicht.
   let billsOpen = false;
+  let nmOpen = false; // «Nicht monatlich» ist standardmässig zugeklappt (nimmt viel Platz)
   function billsLine(total) {
     const now = curMonth();
     const why = (b) => {
