@@ -131,7 +131,10 @@ async function encrypt(sub, payload) {
 }
 
 // Gibt true zurück, wenn der Dienst die Mitteilung angenommen hat. Abgelaufene Abos werden gelöscht.
+// lastPushError: Grund der letzten Ablehnung, für die Probe-Mitteilung in der App (Statuscode und Antwort des Dienstes)
+let lastPushError = '';
 async function send(sub, payload) {
+  lastPushError = '';
   try {
     const res = await fetch(sub.endpoint, {
       method: 'POST',
@@ -146,12 +149,16 @@ async function send(sub, payload) {
       signal: AbortSignal.timeout(15000),
     });
     if (res.status === 404 || res.status === 410) {
+      lastPushError = `Gerät nicht mehr gültig (${res.status}) – in der App Mitteilungen aus- und wieder einschalten`;
       await db(`push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`, { method: 'DELETE' });
     } else if (!res.ok) {
-      console.error('Push abgelehnt', res.status, await res.text());
+      const text = (await res.text()).slice(0, 200);
+      lastPushError = `${new URL(sub.endpoint).host}: ${res.status} ${text}`.trim();
+      console.error('Push abgelehnt', res.status, text);
     }
     return res.ok;
   } catch (err) {
+    lastPushError = String(err?.message || err).slice(0, 200);
     console.error('Push fehlgeschlagen', err);
     return false;
   }
@@ -720,10 +727,10 @@ async function test(household, body) {
     if (!content) return json({ error: 'Die gewählte Liste gibt es nicht mehr.' }, 404);
     const payload = todoPayload(sub, content, local().day);
     if (!payload) return json({ empty: true });
-    return (await send(sub, payload)) ? json({ ok: true }) : json({ error: 'Der Push-Dienst hat die Mitteilung nicht angenommen.' }, 502);
+    return (await send(sub, payload)) ? json({ ok: true }) : json({ error: `Der Push-Dienst hat die Mitteilung nicht angenommen${lastPushError ? ` (${lastPushError})` : ''}.` }, 502);
   }
   const ok = await send(subs[0], { title: 'Haushalt', body: 'Mitteilungen funktionieren 🎉', url: '#kuehlschrank', tag: 'test' });
-  return ok ? json({ ok: true }) : json({ error: 'Der Push-Dienst hat die Mitteilung nicht angenommen.' }, 502);
+  return ok ? json({ ok: true }) : json({ error: `Der Push-Dienst hat die Mitteilung nicht angenommen${lastPushError ? ` (${lastPushError})` : ''}.` }, 502);
 }
 
 // ---------- ToDo zugewiesen ----------
@@ -757,7 +764,7 @@ async function assigned(household, body) {
     tag: `assign-${todoId}`,
   };
   const results = await Promise.all(subs.map((s) => send(s, payload)));
-  if (!results.some(Boolean)) return json({ error: 'Der Push-Dienst hat die Mitteilung nicht angenommen.' }, 502);
+  if (!results.some(Boolean)) return json({ error: `Der Push-Dienst hat die Mitteilung nicht angenommen${lastPushError ? ` (${lastPushError})` : ''}.` }, 502);
   await db('push_sent', { method: 'POST', body: [{ household_key: household, ref, sent_at: new Date().toISOString() }], prefer: 'resolution=merge-duplicates,return=minimal' });
   return json({ ok: true });
 }
