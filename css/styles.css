@@ -1341,7 +1341,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .na-tiles { display: flex; gap: 10px; margin: 0 -16px; padding: 0 16px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
 .na-tiles::-webkit-scrollbar { display: none; }
 .na-tile {
-  flex: none; width: 152px; height: 158px; padding: 12px; border: 0; border-radius: 30px; scroll-snap-align: start;
+  flex: none; width: 168px; min-height: 158px; padding: 12px; gap: 10px; /* wächst mit langen Titeln, nichts wird abgeschnitten */ border: 0; border-radius: 30px; scroll-snap-align: start;
   display: flex; flex-direction: column; justify-content: space-between; text-align: left; font: inherit;
   background: var(--tile-2-bg); color: var(--tile-text); cursor: pointer;
 }
