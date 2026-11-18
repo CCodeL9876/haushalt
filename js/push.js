@@ -36,6 +36,17 @@ export async function currentSubscription() {
   return reg ? reg.pushManager.getSubscription() : null;
 }
 
+// Gehört das Abo zum aktuellen öffentlichen Schlüssel? Nach einem Schlüsselwechsel (config.js) lehnt Apple alte Abos
+// mit «VapidPkHashMismatch» ab – dann muss das Gerät neu anmelden.
+const toB64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const sameKey = (sub) => { const k = sub.options?.applicationServerKey; return !k || toB64url(new Uint8Array(k)) === PUSH_PUBLIC_KEY; };
+// Abo mit dem alten Schlüssel abmelden (hier und in Supabase) und ein neues mit dem aktuellen anlegen
+async function renew(reg, old) {
+  await rpc('push_unsubscribe', { p_endpoint: old.endpoint }).catch(() => {});
+  await old.unsubscribe().catch(() => {});
+  return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64url(PUSH_PUBLIC_KEY) });
+}
+
 const save = (sub, memberId) => {
   const j = sub.toJSON();
   return rpc('push_subscribe', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_member: memberId || '' });
@@ -54,8 +65,10 @@ export async function enablePush(memberId) {
     navigator.serviceWorker.ready,
     new Promise((_, reject) => setTimeout(() => reject(new Error('Die App ist noch nicht bereit – bitte neu laden und nochmals versuchen.')), 15000)),
   ]);
-  const existing = await reg.pushManager.getSubscription();
-  const sub = existing || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64url(PUSH_PUBLIC_KEY) }));
+  let existing = await reg.pushManager.getSubscription();
+  let sub = existing;
+  if (existing && !sameKey(existing)) { sub = await renew(reg, existing); existing = null; }
+  sub ||= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64url(PUSH_PUBLIC_KEY) });
   try {
     await save(sub, memberId);
   } catch (err) {
@@ -103,7 +116,9 @@ export async function notifyAssigned(todoId, byId) {
 export async function refreshPush(memberId) {
   if (!pushConfigured() || permission() !== 'granted') return;
   try {
-    const sub = await currentSubscription();
+    let sub = await currentSubscription();
+    // Altes Abo (anderer Schlüssel): still erneuern, die Erlaubnis gilt weiter
+    if (sub && !sameKey(sub)) sub = await renew(await navigator.serviceWorker.ready, sub);
     if (sub) await save(sub, memberId);
   } catch { /* beim nächsten Start wieder */ }
 }
