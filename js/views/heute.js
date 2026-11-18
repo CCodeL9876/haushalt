@@ -517,7 +517,7 @@ export default {
       <div class="bento">
         ${parmesanTile()}
         ${hero ? heroHtml(hero) : ''}
-        ${next.length ? `<section class="na-list" aria-label="Als Nächstes"><h3 class="na-h">Als Nächstes</h3><div class="na-tiles" data-keep-scroll="next">${next.map(nextTileHtml).join('')}</div></section>` : ''}
+        ${next.length ? `<section class="na-list" aria-label="Als Nächstes"><h3 class="na-h">Als Nächstes</h3><div class="na-tiles" data-n="${next.length}" data-keep-scroll="next">${next.map(nextTileHtml).join('')}</div></section>` : ''}
         ${chips.length ? `<section class="na-list" aria-label="Morgen"><h3 class="na-h">Morgen</h3><div class="na-chips">${chips.map((c) => `<span class="na-chip ${c.tone || ''}">${esc(c.text)}</span>`).join('')}</div></section>` : ''}
         ${wasteTile()}
         ${sportStrip()}
