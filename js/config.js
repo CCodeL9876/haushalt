@@ -14,4 +14,4 @@ export const RECIPE_IMPORT_URL = '';
 
 // Push-Mitteilungen: öffentlicher Schlüssel (VAPID) – darf öffentlich sein. Der geheime Teil liegt nur in Supabase
 // (Secret VAPID_PRIVATE_KEY). Muss zu VAPID_PUBLIC_KEY in supabase/functions/push/index.ts passen.
-export const PUSH_PUBLIC_KEY = 'BJvU0TeuBTa-QQLamVufZ_ck7Skh8gAA1SCzb5vcN-u6MgRoN2nGa5hgsEfs1FinZn9Hd8v77yjfBArWCi_u_Ig';
+export const PUSH_PUBLIC_KEY = 'BGt-iml744wG0uZzhVy_MoFZGBhj__vBKJC5q_2oLO3hGpJ-TMGsJyZvnv6HpuCUKFnTlfEY5kgGfmAzl8MWn1w';

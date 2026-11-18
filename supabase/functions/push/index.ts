@@ -24,7 +24,7 @@
 // ohne Zusatzbibliothek. Secret: VAPID_PRIVATE_KEY (ANLEITUNG.md, „Push-Mitteilungen“); der öffentliche Schlüssel
 // steht hier und in js/config.js (PUSH_PUBLIC_KEY) – beide müssen zusammenpassen.
 
-const VAPID_PUBLIC_KEY = 'BJvU0TeuBTa-QQLamVufZ_ck7Skh8gAA1SCzb5vcN-u6MgRoN2nGa5hgsEfs1FinZn9Hd8v77yjfBArWCi_u_Ig';
+const VAPID_PUBLIC_KEY = 'BGt-iml744wG0uZzhVy_MoFZGBhj__vBKJC5q_2oLO3hGpJ-TMGsJyZvnv6HpuCUKFnTlfEY5kgGfmAzl8MWn1w';
 // Kontakt für die Push-Dienste (Apple verlangt eine https- oder mailto-Adresse)
 const VAPID_SUBJECT = 'https://ccodel9876.github.io/haushalt/';
 const TIME_ZONE = 'Europe/Zurich';
