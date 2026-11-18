@@ -68,7 +68,7 @@
   --radius-lg: 32px;
   --shadow: none;            /* Flächen heben sich über die Farbe ab */
   --shadow-lg: 0 -10px 40px rgba(33, 33, 33, 0.18);
-  --font: 'Urbanist', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font: 'Outfit', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
 
   --tabbar-h: 62px;
   /* Platz, den die schwebende Tab-Leiste unten braucht (mindestens 12px Abstand zum Rand) */
@@ -132,8 +132,8 @@
   color-scheme: dark;
 }
 
-/* Urbanist (OFL), selbst gehostet: Die App lädt nichts von fremden Servern (Content-Security-Policy in index.html) */
-@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 300 700; font-display: swap; src: url(../assets/fonts/urbanist.woff2) format('woff2'); }
+/* Outfit (OFL), selbst gehostet: Die App lädt nichts von fremden Servern (Content-Security-Policy in index.html) */
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 300 700; font-display: swap; src: url(../assets/fonts/outfit.woff2) format('woff2'); }
 
 * { box-sizing: border-box; }
 /* Nie seitlich verschiebbar: was über den Rand ragt, wird abgeschnitten. „clip“ statt „hidden“, damit die
@@ -944,7 +944,7 @@ button.plan-sum.total-toggle { float: right; }
 /* Karten in der Hausfarbe des Ladens: ganze Karte farbig, Strichcode als weisses Feld darin (weiss bleibt Pflicht für die Scanner) */
 .loyalty-shop-migros { --shop-bg: #173A85; --shop-bg-2: #173A85; --shop-text: #FFFFFF; --shop-accent: #EE622B; }
 .loyalty-shop-coop { --shop-bg: #2B6FC0; --shop-bg-2: #2B6FC0; --shop-text: #FFFFFF; --shop-accent: #F08A1C; }
-/* Migros und Coop in der Systemschrift des iPhones (SF Pro) wie früher, nicht in Urbanist */
+/* Migros und Coop in der Systemschrift des iPhones (SF Pro) wie früher, nicht in Outfit */
 .loyalty-shop-migros, .loyalty-shop-coop { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif; }
 .loyalty-shop header {
   padding: 12px 10px 12px 22px; background: linear-gradient(90deg, var(--shop-bg), var(--shop-bg-2)); color: var(--shop-text);
