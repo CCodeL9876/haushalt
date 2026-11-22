@@ -262,9 +262,12 @@ ${ideasAvailable() && !drinks ? `<button type="button" class="ask-claude" data-a
         <span><strong>Claude fragen</strong><small>Zutaten angeben, Rezeptideen bekommen</small></span>
         ${icon('right', 'icon-sm')}
       </button>` : ''}
-      <div class="search">
+      <div class="add-row">
+      <div class="search" style="flex: 1; margin: 0">
         ${icon('search')}
         <input class="input" type="search" data-input="filter" value="${esc(query)}" placeholder="${drinks ? 'Getränk oder Zutat' : 'Gericht, Zutat oder Stichwort'}" autocomplete="off" aria-label="${drinks ? 'Getränke' : 'Menüideen'} durchsuchen">
+      </div>
+      <button type="button" class="btn btn-primary" data-action="edit" aria-label="${drinks ? 'Neues Getränk' : 'Neue Menüidee'}">${icon('plus')}</button>
       </div>
       ${list.length ? [...list].sort((a, b) => a.title.localeCompare(b.title, 'de')).map((i) => `
         <div class="idea-wrap" data-search="${esc(searchText(i))}" ${matches(i) ? '' : 'hidden'}>
@@ -279,8 +282,7 @@ ${ideasAvailable() && !drinks ? `<button type="button" class="ask-claude" data-a
         : drinks
           ? `<div class="empty"><strong>Noch keine Getränke</strong>Mit + das erste Lieblingsgetränk anlegen – Cocktail, Bowle, Eistee …</div>`
           : `<div class="empty"><strong>Noch keine Ideen</strong>Mit + das erste Lieblingsgericht anlegen.</div>`}
-      <p class="empty" data-no-results ${query && list.length && !list.some(matches) ? '' : 'hidden'}>Nichts gefunden.</p>
-      <button type="button" class="fab" data-action="edit" aria-label="${drinks ? 'Neues Getränk' : 'Neue Menüidee'}">${icon('plus')}</button>`;
+      <p class="empty" data-no-results ${query && list.length && !list.some(matches) ? '' : 'hidden'}>Nichts gefunden.</p>`;
   },
 
   actions: {

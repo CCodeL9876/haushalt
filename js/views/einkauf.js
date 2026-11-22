@@ -424,7 +424,7 @@ export default {
           <button type="button" class="btn btn-ghost btn-sm" data-action="clearDone">Aufräumen</button>
         </h2>
         <ul class="list">${done.map(item).join('')}</ul>` : ''}
-      <button type="button" class="fab" data-action="cards" aria-label="${cards().length ? 'Kundenkarte zeigen' : 'Kundenkarte hinterlegen'}">${icon('card')}</button>`;
+      <button type="button" class="fab fab-card" data-action="cards" aria-label="${cards().length ? 'Kundenkarte zeigen' : 'Kundenkarte hinterlegen'}">${icon('card')}</button>`;
   },
 
   input: {

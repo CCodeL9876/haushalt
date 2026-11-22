@@ -422,7 +422,6 @@ function agenda() {
 }
 
 const heroHtml = (c) => `<div class="tile wide tile-hero hero-b">
-  <svg class="hb-deco" viewBox="0 0 190 190" aria-hidden="true"><circle cx="95" cy="95" r="58" fill="none" stroke-width="38" stroke-linecap="round" stroke-dasharray="190 400" transform="rotate(-20 95 95)"/></svg>
   <span class="hb-eyebrow">${esc(c.hero.eyebrow)}</span>
   <div class="hb-title">${esc(c.hero.title)}</div>
   ${c.hero.note ? `<div class="hb-sub">${esc(c.hero.note)}</div>` : ''}
