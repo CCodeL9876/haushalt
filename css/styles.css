@@ -1400,7 +1400,8 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 /* Startseite ohne Titel «Heute»: Die Kopfzeile schrumpft, die Knöpfe schweben oben rechts neben dem Datum (der Titel bleibt für Screenreader) */
 :root[data-view="heute"] .topbar { padding: var(--safe-top) 16px 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 :root[data-view="heute"] .topbar-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-:root[data-view="heute"] .topbar-actions { position: absolute; top: calc(var(--safe-top) + 8px); right: 16px; }
-:root[data-view="heute"] .view { padding-top: 12px; }
+:root[data-view="heute"] .topbar-actions { position: absolute; top: calc(var(--safe-top) + 16px); right: 16px; }
+:root[data-view="heute"] .view { padding-top: 22px; }
+:root[data-view="heute"] .hd-num { line-height: 1; } /* Outfit hat höhere Ziffern: bei 0.9 wurde die Oberkante knapp */
 :root[data-view="heute"] .heute-date { padding-right: 100px; }
 :root[data-view="heute"] .hd-kw { margin-left: 4px; }
