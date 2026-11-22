@@ -76,6 +76,8 @@
   /* Dunkle Fläche für Tab-Leiste und Hauptkacheln: dunkle Fassung der Akzentfarbe des Farbdesigns */
   --hero: #212121;
   --on-hero: #FFFFFF;
+  --go: #5144E3;             /* kräftiges Indigo (aus dem Lavendel): «Einkaufsmodus starten» */
+  --on-go: #FFFFFF;
   --dock: color-mix(in srgb, #D7D7F4 70%, transparent);   /* schwebende Tab-Leiste */
   --tab-on-bg: #212121;            /* aktiver Bereich in der Tab-Leiste */
   --tab-on-text: #FFFFFF;
@@ -105,7 +107,7 @@
     --tile-1-bg: #2B3A3D; --tile-1-badge: #C1D6D9; --tile-2-bg: #2E2E4B; --tile-2-badge: #D7D7F4; --tile-3-bg: #3A3B1C; --tile-3-badge: #FCFD76; --tile-text: #F1F2F3; --tile-badge-text: #212121; --stat-bar: #D7D7F4;
     --shadow: none;
     --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
-    --hero: #3A3B5E; --dock: color-mix(in srgb, #3C3C5C 70%, transparent); --tab-on-bg: #FCFD76; --tab-on-text: #212121;
+    --hero: #3A3B5E; --go: #B4AEFF; --on-go: #1E1530; --dock: color-mix(in srgb, #3C3C5C 70%, transparent); --tab-on-bg: #FCFD76; --tab-on-text: #212121;
     color-scheme: dark;
   }
 }
@@ -128,7 +130,7 @@
   --tile-1-bg: #2B3A3D; --tile-1-badge: #C1D6D9; --tile-2-bg: #2E2E4B; --tile-2-badge: #D7D7F4; --tile-3-bg: #3A3B1C; --tile-3-badge: #FCFD76; --tile-text: #F1F2F3; --tile-badge-text: #212121; --stat-bar: #D7D7F4;
   --shadow: none;
   --shadow-lg: 0 -10px 40px rgba(0, 0, 0, 0.5);
-  --hero: #3A3B5E; --dock: color-mix(in srgb, #3C3C5C 70%, transparent); --tab-on-bg: #FCFD76; --tab-on-text: #212121;
+  --hero: #3A3B5E; --go: #B4AEFF; --on-go: #1E1530; --dock: color-mix(in srgb, #3C3C5C 70%, transparent); --tab-on-bg: #FCFD76; --tab-on-text: #212121;
   color-scheme: dark;
 }
 
@@ -862,7 +864,7 @@ button.plan-sum.total-toggle { float: right; }
 :root[data-shopmode][data-view="einkauf"] .view { padding-top: calc(var(--safe-top) + 14px); }
 .mode-start {
   display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; margin: 0 0 4px;
-  border: 0; border-radius: 16px; background: var(--hero); color: var(--on-hero); font-weight: 750;
+  border: 0; border-radius: 999px; background: var(--go); color: var(--on-go); font-weight: 750; font-size: var(--fs-base);
 }
 .mode-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .mode-head strong { display: flex; align-items: center; gap: 8px; font-size: var(--fs-base); opacity: 0.8; }
