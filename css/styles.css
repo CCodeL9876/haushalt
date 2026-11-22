@@ -1396,3 +1396,11 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 /* Kundenkarte (Einkauf): dunkler Knopf statt zweitem gelbem Plus; die Liste lässt unten Platz für ihn */
 .fab.fab-card { background: var(--hero); color: var(--on-hero); }
 :root[data-view="einkauf"] body { padding-bottom: calc(var(--tabbar-space) + 28px + 64px); }
+
+/* Startseite ohne Titel «Heute»: Die Kopfzeile schrumpft, die Knöpfe schweben oben rechts neben dem Datum (der Titel bleibt für Screenreader) */
+:root[data-view="heute"] .topbar { padding: var(--safe-top) 16px 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-view="heute"] .topbar-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:root[data-view="heute"] .topbar-actions { position: absolute; top: calc(var(--safe-top) + 8px); right: 16px; }
+:root[data-view="heute"] .view { padding-top: 12px; }
+:root[data-view="heute"] .heute-date { padding-right: 100px; }
+:root[data-view="heute"] .hd-kw { margin-left: 4px; }
