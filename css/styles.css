@@ -1391,3 +1391,6 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, summary:fo
 .na-tiles[data-n="1"] .na-txt { order: 1; flex: 1; min-width: 0; }
 .na-tiles[data-n="1"] .na-go { order: 2; }
 .na-tiles[data-n="2"] .na-tile { flex: 1 1 0; width: auto; min-width: 0; }
+
+/* Gewählte Pille (Menüidee oder Platzhalter im Wochenplan-Fenster) */
+.chip.is-on { background: var(--accent); color: var(--on-accent); font-weight: 650; }

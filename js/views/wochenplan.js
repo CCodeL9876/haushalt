@@ -181,7 +181,19 @@ function rollWeek() {
 
 // Getränke (js/views/ideen.js) gehören nicht in die Menüauswahl
 const mealIdeas = () => state.ideas.filter((i) => i.kind !== 'drink');
-const ideaChips = () => mealIdeas().map((i) => `<button type="button" class="chip" data-sheet-action="pick" data-title="${esc(i.title)}">${esc(i.title)}</button>`).join('');
+// Menüideen als Pillen; die zum aktuellen Gericht passende ist markiert (aria-pressed, .is-on)
+const ideaChips = (current = '') => mealIdeas().map((i) => {
+  const on = i.title.trim().toLowerCase() === String(current).trim().toLowerCase();
+  return `<button type="button" class="chip${on ? ' is-on' : ''}" data-sheet-action="pick" data-title="${esc(i.title)}" aria-pressed="${on}">${esc(i.title)}</button>`;
+}).join('');
+const syncChips = (form) => {
+  const now = String(form.elements.title.value).trim().toLowerCase();
+  for (const c of form.querySelectorAll('.chip[data-title]')) {
+    const on = c.dataset.title.trim().toLowerCase() === now;
+    c.classList.toggle('is-on', on);
+    c.setAttribute('aria-pressed', String(on));
+  }
+};
 
 // Auswahl pro Person: zugeklappt „Für alle gleich“; aufgeklappt (oder wenn schon jemand abweicht) je Person ein Feld
 function personsHtml(meal) {
@@ -203,22 +215,17 @@ function personsHtml(meal) {
 function editMeal(day, slot) {
   const meal = state.plan[day]?.[slot];
   const slotLabel = SLOTS.find((s) => s.id === slot).label;
-  openSheet({
+  const sheetForm = openSheet({
     title: `${fmtShort(day)} · ${slotLabel}`,
     body: `
       <label class="field"><span>Gericht</span>
         <input class="input" name="title" list="idea-list" value="${meal?.away ? '' : esc(mealTitle(meal))}" placeholder="z. B. Gemüsecurry" autocomplete="off">
         <datalist id="idea-list">${mealIdeas().map((i) => `<option value="${esc(i.title)}">`).join('')}</datalist>
       </label>
-      ${!mealIdeas().length ? '' : meal
-        // Schon ein Menü eingetragen: die Ideen nur auf Wunsch aufklappen (zum Ändern)
-        ? `<details class="field ideas-field"><summary>Anderes Menü aus den Menüideen (${mealIdeas().length})</summary>
-            <div class="chips" style="margin-top:8px">${ideaChips()}</div>
-          </details>`
-        : `<div class="field"><span>Aus den Menüideen</span><div class="chips">${ideaChips()}</div></div>`}
+      ${!mealIdeas().length ? '' : `<div class="field"><span>Aus den Menüideen</span><div class="chips">${ideaChips(meal?.away ? '' : mealTitle(meal))}</div></div>`}
       <label class="check-field"><input type="checkbox" name="shop"> Zutaten auf die Einkaufsliste</label>
       <div class="field"><span>Oder Platzhalter</span>
-        <div class="chips">${PLACEHOLDERS.map((t) => `<button type="button" class="chip chip-away" data-sheet-action="away" data-title="${esc(t)}">${icon(awayIcon(t), 'icon-xs')} ${esc(t)}</button>`).join('')}</div>
+        <div class="chips">${PLACEHOLDERS.map((t) => `<button type="button" class="chip chip-away${meal?.away && meal.title === t ? ' is-on' : ''}" data-sheet-action="away" data-title="${esc(t)}" aria-pressed="${Boolean(meal?.away && meal.title === t)}">${icon(awayIcon(t), 'icon-xs')} ${esc(t)}</button>`).join('')}</div>
       </div>
       ${personsHtml(meal)}`,
     submitLabel: 'Speichern',
@@ -227,7 +234,7 @@ function editMeal(day, slot) {
       <button type="button" class="btn btn-block" data-sheet-action="leftovers">Reste in den Kühlschrank</button>
       <button type="button" class="btn btn-danger btn-block" data-sheet-action="clear">Eintrag entfernen</button>` : '',
     actions: {
-      pick(btn, form) { form.elements.title.value = btn.dataset.title; },
+      pick(btn, form) { form.elements.title.value = btn.dataset.title; syncChips(form); },
       away(btn, form) {
         setAway(day, slot, btn.dataset.title);
         setOthers(day, slot, othersFromForm(form, state.plan[day]?.[slot]));
@@ -258,6 +265,8 @@ function editMeal(day, slot) {
       }
     },
   });
+  // Tippt jemand ein Gericht, wird die passende Pille mitmarkiert
+  sheetForm?.elements.title?.addEventListener('input', () => syncChips(sheetForm));
 }
 
 // Im Plan: eine Zeile pro Person, wenn jemand anders isst (wer dasselbe isst, teilt sich eine Zeile)
